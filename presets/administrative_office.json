@@ -1,0 +1,1200 @@
+{
+  "id": "administrative_office",
+  "name_ar": "المبنى الإداري النموذجي (Case Study 1)",
+  "name_en": "Standard Administrative Office Building",
+  "building_type": "administrative",
+  "spaces": {
+    "reception": {
+      "id": "reception",
+      "name_ar": "ردهة الاستقبال الرئيسية",
+      "name_en": "Main Reception Lobby",
+      "type": "public",
+      "capacity": 15,
+      "area_m2": 48.0,
+      "bounds": {
+        "x": -18,
+        "z": -14,
+        "width": 12,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#4a90e2"
+    },
+    "waiting_hall": {
+      "id": "waiting_hall",
+      "name_ar": "صالة انتظار المراجعين",
+      "name_en": "Public Waiting Hall",
+      "type": "public",
+      "capacity": 22,
+      "area_m2": 66.0,
+      "bounds": {
+        "x": -6,
+        "z": -14,
+        "width": 14,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#f5a623"
+    },
+    "multi_hall_a": {
+      "id": "multi_hall_a",
+      "name_ar": "القاعة المتعددة المرنة (أ)",
+      "name_en": "Multipurpose Hall A (Flexible)",
+      "type": "flexible",
+      "capacity": 20,
+      "area_m2": 60.0,
+      "bounds": {
+        "x": 8,
+        "z": -14,
+        "width": 10,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#7ed321"
+    },
+    "multi_hall_b": {
+      "id": "multi_hall_b",
+      "name_ar": "قاعة الاجتماعات والتدريب (ب)",
+      "name_en": "Meeting & Training Hall B",
+      "type": "flexible",
+      "capacity": 20,
+      "area_m2": 60.0,
+      "bounds": {
+        "x": 18,
+        "z": -14,
+        "width": 10,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#9013fe"
+    },
+    "corridor_central": {
+      "id": "corridor_central",
+      "name_ar": "الشريان الحركي المركزي",
+      "name_en": "Central Spine Corridor",
+      "type": "circulation",
+      "capacity": 40,
+      "area_m2": 80.0,
+      "bounds": {
+        "x": -18,
+        "z": -6,
+        "width": 46,
+        "depth": 4,
+        "height": 3.5
+      },
+      "color": "#606060"
+    },
+    "corridor_bypass_south": {
+      "id": "corridor_bypass_south",
+      "name_ar": "ممر الحركة الالتفافي (البديل)",
+      "name_en": "Southern Bypass Corridor",
+      "type": "circulation",
+      "capacity": 25,
+      "area_m2": 45.0,
+      "bounds": {
+        "x": -18,
+        "z": 12,
+        "width": 46,
+        "depth": 3,
+        "height": 3.5
+      },
+      "color": "#505050"
+    },
+    "open_office_north": {
+      "id": "open_office_north",
+      "name_ar": "مكاتب الموظفين (الجناح الشمالي)",
+      "name_en": "North Open Office",
+      "type": "workspace",
+      "capacity": 30,
+      "area_m2": 115.0,
+      "bounds": {
+        "x": -18,
+        "z": -2,
+        "width": 22,
+        "depth": 14,
+        "height": 3.5
+      },
+      "color": "#50e3c2"
+    },
+    "open_office_south": {
+      "id": "open_office_south",
+      "name_ar": "مكاتب الموظفين (الجناح الجنوبي)",
+      "name_en": "South Open Office",
+      "type": "workspace",
+      "capacity": 25,
+      "area_m2": 95.0,
+      "bounds": {
+        "x": 4,
+        "z": -2,
+        "width": 24,
+        "depth": 14,
+        "height": 3.5
+      },
+      "color": "#4a90e2"
+    },
+    "break_lounge": {
+      "id": "break_lounge",
+      "name_ar": "استراحة الموظفين والخدمات",
+      "name_en": "Staff Lounge & Amenities",
+      "type": "amenity",
+      "capacity": 18,
+      "area_m2": 52.0,
+      "bounds": {
+        "x": -6,
+        "z": 2,
+        "width": 10,
+        "depth": 10,
+        "height": 3.5
+      },
+      "color": "#b8e986"
+    }
+  },
+  "partitions": {
+    "p_waiting_multi": {
+      "id": "p_waiting_multi",
+      "name_ar": "القاطع الصوتي المنزلق (صالة الانتظار - القاعة أ)",
+      "between": [
+        "waiting_hall",
+        "multi_hall_a"
+      ],
+      "status": "closed",
+      "position": {
+        "x": 8,
+        "z": -14,
+        "width": 0.25,
+        "depth": 8,
+        "height": 3.5
+      },
+      "expansion_capacity": 18
+    },
+    "p_multi_ab": {
+      "id": "p_multi_ab",
+      "name_ar": "القاطع المرن بين قاعتي التدريب (أ و ب)",
+      "between": [
+        "multi_hall_a",
+        "multi_hall_b"
+      ],
+      "status": "closed",
+      "position": {
+        "x": 18,
+        "z": -14,
+        "width": 0.25,
+        "depth": 8,
+        "height": 3.5
+      },
+      "expansion_capacity": 20
+    }
+  },
+  "edges": [
+    {
+      "u": "reception",
+      "v": "corridor_central",
+      "distance": 6.0,
+      "width": 2.2,
+      "status": "active"
+    },
+    {
+      "u": "waiting_hall",
+      "v": "corridor_central",
+      "distance": 4.5,
+      "width": 2.4,
+      "status": "active"
+    },
+    {
+      "u": "waiting_hall",
+      "v": "multi_hall_a",
+      "distance": 2.0,
+      "width": 3.0,
+      "status": "closed_by_partition"
+    },
+    {
+      "u": "multi_hall_a",
+      "v": "corridor_central",
+      "distance": 5.0,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "multi_hall_b",
+      "v": "corridor_central",
+      "distance": 5.0,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "open_office_north",
+      "v": "corridor_central",
+      "distance": 4.0,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "open_office_south",
+      "v": "corridor_central",
+      "distance": 4.0,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "break_lounge",
+      "v": "corridor_central",
+      "distance": 7.0,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "open_office_north",
+      "v": "corridor_bypass_south",
+      "distance": 7.5,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "open_office_south",
+      "v": "corridor_bypass_south",
+      "distance": 7.5,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "corridor_central",
+      "v": "corridor_bypass_south",
+      "distance": 18.0,
+      "width": 2.0,
+      "status": "active"
+    }
+  ],
+  "walls": {
+    "w_reception_n": {
+      "id": "w_reception_n",
+      "name_ar": "جدار شمالي (ردهة الاستقبال الرئيسية)",
+      "start": [
+        -18.0,
+        -14.0
+      ],
+      "end": [
+        -6.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_reception_s": {
+      "id": "w_reception_s",
+      "name_ar": "جدار جنوبي (ردهة الاستقبال الرئيسية)",
+      "start": [
+        -18.0,
+        -6.0
+      ],
+      "end": [
+        -6.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_reception_w": {
+      "id": "w_reception_w",
+      "name_ar": "جدار غربي (ردهة الاستقبال الرئيسية)",
+      "start": [
+        -18.0,
+        -14.0
+      ],
+      "end": [
+        -18.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_reception_e": {
+      "id": "w_reception_e",
+      "name_ar": "جدار شرقي (ردهة الاستقبال الرئيسية)",
+      "start": [
+        -6.0,
+        -14.0
+      ],
+      "end": [
+        -6.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_waiting_hall_n": {
+      "id": "w_waiting_hall_n",
+      "name_ar": "جدار شمالي (صالة انتظار المراجعين)",
+      "start": [
+        -6.0,
+        -14.0
+      ],
+      "end": [
+        8.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_waiting_hall_s": {
+      "id": "w_waiting_hall_s",
+      "name_ar": "جدار جنوبي (صالة انتظار المراجعين)",
+      "start": [
+        -6.0,
+        -6.0
+      ],
+      "end": [
+        8.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_waiting_hall_w": {
+      "id": "w_waiting_hall_w",
+      "name_ar": "جدار غربي (صالة انتظار المراجعين)",
+      "start": [
+        -6.0,
+        -14.0
+      ],
+      "end": [
+        -6.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_waiting_hall_e": {
+      "id": "w_waiting_hall_e",
+      "name_ar": "جدار شرقي (صالة انتظار المراجعين)",
+      "start": [
+        8.0,
+        -14.0
+      ],
+      "end": [
+        8.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_a_n": {
+      "id": "w_multi_hall_a_n",
+      "name_ar": "جدار شمالي (القاعة المتعددة المرنة (أ))",
+      "start": [
+        8.0,
+        -14.0
+      ],
+      "end": [
+        18.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_multi_hall_a_s": {
+      "id": "w_multi_hall_a_s",
+      "name_ar": "جدار جنوبي (القاعة المتعددة المرنة (أ))",
+      "start": [
+        8.0,
+        -6.0
+      ],
+      "end": [
+        18.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_a_w": {
+      "id": "w_multi_hall_a_w",
+      "name_ar": "جدار غربي (القاعة المتعددة المرنة (أ))",
+      "start": [
+        8.0,
+        -14.0
+      ],
+      "end": [
+        8.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_a_e": {
+      "id": "w_multi_hall_a_e",
+      "name_ar": "جدار شرقي (القاعة المتعددة المرنة (أ))",
+      "start": [
+        18.0,
+        -14.0
+      ],
+      "end": [
+        18.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_b_n": {
+      "id": "w_multi_hall_b_n",
+      "name_ar": "جدار شمالي (قاعة الاجتماعات والتدريب (ب))",
+      "start": [
+        18.0,
+        -14.0
+      ],
+      "end": [
+        28.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_multi_hall_b_s": {
+      "id": "w_multi_hall_b_s",
+      "name_ar": "جدار جنوبي (قاعة الاجتماعات والتدريب (ب))",
+      "start": [
+        18.0,
+        -6.0
+      ],
+      "end": [
+        28.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_b_w": {
+      "id": "w_multi_hall_b_w",
+      "name_ar": "جدار غربي (قاعة الاجتماعات والتدريب (ب))",
+      "start": [
+        18.0,
+        -14.0
+      ],
+      "end": [
+        18.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_b_e": {
+      "id": "w_multi_hall_b_e",
+      "name_ar": "جدار شرقي (قاعة الاجتماعات والتدريب (ب))",
+      "start": [
+        28.0,
+        -14.0
+      ],
+      "end": [
+        28.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_central_n": {
+      "id": "w_corridor_central_n",
+      "name_ar": "جدار شمالي (الشريان الحركي المركزي)",
+      "start": [
+        -18.0,
+        -6.0
+      ],
+      "end": [
+        28.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_corridor_central_s": {
+      "id": "w_corridor_central_s",
+      "name_ar": "جدار جنوبي (الشريان الحركي المركزي)",
+      "start": [
+        -18.0,
+        -2.0
+      ],
+      "end": [
+        28.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_central_w": {
+      "id": "w_corridor_central_w",
+      "name_ar": "جدار غربي (الشريان الحركي المركزي)",
+      "start": [
+        -18.0,
+        -6.0
+      ],
+      "end": [
+        -18.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_central_e": {
+      "id": "w_corridor_central_e",
+      "name_ar": "جدار شرقي (الشريان الحركي المركزي)",
+      "start": [
+        28.0,
+        -6.0
+      ],
+      "end": [
+        28.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_bypass_south_n": {
+      "id": "w_corridor_bypass_south_n",
+      "name_ar": "جدار شمالي (ممر الحركة الالتفافي (البديل))",
+      "start": [
+        -18.0,
+        12.0
+      ],
+      "end": [
+        28.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_corridor_bypass_south_s": {
+      "id": "w_corridor_bypass_south_s",
+      "name_ar": "جدار جنوبي (ممر الحركة الالتفافي (البديل))",
+      "start": [
+        -18.0,
+        15.0
+      ],
+      "end": [
+        28.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_bypass_south_w": {
+      "id": "w_corridor_bypass_south_w",
+      "name_ar": "جدار غربي (ممر الحركة الالتفافي (البديل))",
+      "start": [
+        -18.0,
+        12.0
+      ],
+      "end": [
+        -18.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_bypass_south_e": {
+      "id": "w_corridor_bypass_south_e",
+      "name_ar": "جدار شرقي (ممر الحركة الالتفافي (البديل))",
+      "start": [
+        28.0,
+        12.0
+      ],
+      "end": [
+        28.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_open_office_north_n": {
+      "id": "w_open_office_north_n",
+      "name_ar": "جدار شمالي (مكاتب الموظفين (الجناح الشمالي))",
+      "start": [
+        -18.0,
+        -2.0
+      ],
+      "end": [
+        4.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_open_office_north_s": {
+      "id": "w_open_office_north_s",
+      "name_ar": "جدار جنوبي (مكاتب الموظفين (الجناح الشمالي))",
+      "start": [
+        -18.0,
+        12.0
+      ],
+      "end": [
+        4.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_open_office_north_w": {
+      "id": "w_open_office_north_w",
+      "name_ar": "جدار غربي (مكاتب الموظفين (الجناح الشمالي))",
+      "start": [
+        -18.0,
+        -2.0
+      ],
+      "end": [
+        -18.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_open_office_north_e": {
+      "id": "w_open_office_north_e",
+      "name_ar": "جدار شرقي (مكاتب الموظفين (الجناح الشمالي))",
+      "start": [
+        4.0,
+        -2.0
+      ],
+      "end": [
+        4.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_open_office_south_n": {
+      "id": "w_open_office_south_n",
+      "name_ar": "جدار شمالي (مكاتب الموظفين (الجناح الجنوبي))",
+      "start": [
+        4.0,
+        -2.0
+      ],
+      "end": [
+        28.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_open_office_south_s": {
+      "id": "w_open_office_south_s",
+      "name_ar": "جدار جنوبي (مكاتب الموظفين (الجناح الجنوبي))",
+      "start": [
+        4.0,
+        12.0
+      ],
+      "end": [
+        28.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_open_office_south_w": {
+      "id": "w_open_office_south_w",
+      "name_ar": "جدار غربي (مكاتب الموظفين (الجناح الجنوبي))",
+      "start": [
+        4.0,
+        -2.0
+      ],
+      "end": [
+        4.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_open_office_south_e": {
+      "id": "w_open_office_south_e",
+      "name_ar": "جدار شرقي (مكاتب الموظفين (الجناح الجنوبي))",
+      "start": [
+        28.0,
+        -2.0
+      ],
+      "end": [
+        28.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_break_lounge_n": {
+      "id": "w_break_lounge_n",
+      "name_ar": "جدار شمالي (استراحة الموظفين والخدمات)",
+      "start": [
+        -6.0,
+        2.0
+      ],
+      "end": [
+        4.0,
+        2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_break_lounge_s": {
+      "id": "w_break_lounge_s",
+      "name_ar": "جدار جنوبي (استراحة الموظفين والخدمات)",
+      "start": [
+        -6.0,
+        12.0
+      ],
+      "end": [
+        4.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_break_lounge_w": {
+      "id": "w_break_lounge_w",
+      "name_ar": "جدار غربي (استراحة الموظفين والخدمات)",
+      "start": [
+        -6.0,
+        2.0
+      ],
+      "end": [
+        -6.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_break_lounge_e": {
+      "id": "w_break_lounge_e",
+      "name_ar": "جدار شرقي (استراحة الموظفين والخدمات)",
+      "start": [
+        4.0,
+        2.0
+      ],
+      "end": [
+        4.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    }
+  },
+  "openings": {
+    "door_reception": {
+      "id": "door_reception",
+      "name_ar": "باب (ردهة الاستقبال الرئيسية)",
+      "type": "door",
+      "wall_id": "w_reception_s",
+      "position": [
+        -12.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "reception",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_reception": {
+      "id": "win_reception",
+      "name_ar": "نافذة (ردهة الاستقبال الرئيسية)",
+      "type": "window",
+      "wall_id": "w_reception_n",
+      "position": [
+        -12.0,
+        -14.0
+      ],
+      "width": 4.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_waiting_hall": {
+      "id": "door_waiting_hall",
+      "name_ar": "باب (صالة انتظار المراجعين)",
+      "type": "door",
+      "wall_id": "w_waiting_hall_s",
+      "position": [
+        1.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "waiting_hall",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_waiting_hall": {
+      "id": "win_waiting_hall",
+      "name_ar": "نافذة (صالة انتظار المراجعين)",
+      "type": "window",
+      "wall_id": "w_waiting_hall_n",
+      "position": [
+        1.0,
+        -14.0
+      ],
+      "width": 5.6,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_multi_hall_a": {
+      "id": "door_multi_hall_a",
+      "name_ar": "باب (القاعة المتعددة المرنة (أ))",
+      "type": "door",
+      "wall_id": "w_multi_hall_a_s",
+      "position": [
+        13.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "multi_hall_a",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_multi_hall_a": {
+      "id": "win_multi_hall_a",
+      "name_ar": "نافذة (القاعة المتعددة المرنة (أ))",
+      "type": "window",
+      "wall_id": "w_multi_hall_a_n",
+      "position": [
+        13.0,
+        -14.0
+      ],
+      "width": 4.0,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_multi_hall_b": {
+      "id": "door_multi_hall_b",
+      "name_ar": "باب (قاعة الاجتماعات والتدريب (ب))",
+      "type": "door",
+      "wall_id": "w_multi_hall_b_s",
+      "position": [
+        23.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "multi_hall_b",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_multi_hall_b": {
+      "id": "win_multi_hall_b",
+      "name_ar": "نافذة (قاعة الاجتماعات والتدريب (ب))",
+      "type": "window",
+      "wall_id": "w_multi_hall_b_n",
+      "position": [
+        23.0,
+        -14.0
+      ],
+      "width": 4.0,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_corridor_central": {
+      "id": "door_corridor_central",
+      "name_ar": "باب (الشريان الحركي المركزي)",
+      "type": "door",
+      "wall_id": "w_corridor_central_s",
+      "position": [
+        5.0,
+        -2.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "corridor_central",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_corridor_central": {
+      "id": "win_corridor_central",
+      "name_ar": "نافذة (الشريان الحركي المركزي)",
+      "type": "window",
+      "wall_id": "w_corridor_central_n",
+      "position": [
+        5.0,
+        -6.0
+      ],
+      "width": 18.4,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_corridor_bypass_south": {
+      "id": "door_corridor_bypass_south",
+      "name_ar": "باب (ممر الحركة الالتفافي (البديل))",
+      "type": "door",
+      "wall_id": "w_corridor_bypass_south_s",
+      "position": [
+        5.0,
+        15.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "corridor_bypass_south",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_corridor_bypass_south": {
+      "id": "win_corridor_bypass_south",
+      "name_ar": "نافذة (ممر الحركة الالتفافي (البديل))",
+      "type": "window",
+      "wall_id": "w_corridor_bypass_south_n",
+      "position": [
+        5.0,
+        12.0
+      ],
+      "width": 18.4,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_open_office_north": {
+      "id": "door_open_office_north",
+      "name_ar": "باب (مكاتب الموظفين (الجناح الشمالي))",
+      "type": "door",
+      "wall_id": "w_open_office_north_s",
+      "position": [
+        -7.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "open_office_north",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_open_office_north": {
+      "id": "win_open_office_north",
+      "name_ar": "نافذة (مكاتب الموظفين (الجناح الشمالي))",
+      "type": "window",
+      "wall_id": "w_open_office_north_n",
+      "position": [
+        -7.0,
+        -2.0
+      ],
+      "width": 8.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_open_office_south": {
+      "id": "door_open_office_south",
+      "name_ar": "باب (مكاتب الموظفين (الجناح الجنوبي))",
+      "type": "door",
+      "wall_id": "w_open_office_south_s",
+      "position": [
+        16.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "open_office_south",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_open_office_south": {
+      "id": "win_open_office_south",
+      "name_ar": "نافذة (مكاتب الموظفين (الجناح الجنوبي))",
+      "type": "window",
+      "wall_id": "w_open_office_south_n",
+      "position": [
+        16.0,
+        -2.0
+      ],
+      "width": 9.6,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_break_lounge": {
+      "id": "door_break_lounge",
+      "name_ar": "باب (استراحة الموظفين والخدمات)",
+      "type": "door",
+      "wall_id": "w_break_lounge_s",
+      "position": [
+        -1.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "break_lounge",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_break_lounge": {
+      "id": "win_break_lounge",
+      "name_ar": "نافذة (استراحة الموظفين والخدمات)",
+      "type": "window",
+      "wall_id": "w_break_lounge_n",
+      "position": [
+        -1.0,
+        2.0
+      ],
+      "width": 4.0,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "d_main_entry": {
+      "id": "d_main_entry",
+      "name_ar": "المدخل الرئيسي للمبنى",
+      "type": "door",
+      "wall_id": "w_ext_west",
+      "position": [
+        -18.0,
+        -10.0
+      ],
+      "width": 1.8,
+      "height": 2.4,
+      "connects": [
+        "outside",
+        "reception"
+      ],
+      "flow_capacity_per_min": 60
+    },
+    "d_reception_corr": {
+      "id": "d_reception_corr",
+      "name_ar": "باب الاستقبال إلى الممر",
+      "type": "door",
+      "wall_id": "w_int_corridor_n",
+      "position": [
+        -12.0,
+        -6.0
+      ],
+      "width": 1.4,
+      "height": 2.2,
+      "connects": [
+        "reception",
+        "corridor_central"
+      ],
+      "flow_capacity_per_min": 45
+    },
+    "d_waiting_corr": {
+      "id": "d_waiting_corr",
+      "name_ar": "باب صالة الانتظار إلى الممر",
+      "type": "door",
+      "wall_id": "w_int_corridor_n",
+      "position": [
+        1.0,
+        -6.0
+      ],
+      "width": 1.6,
+      "height": 2.2,
+      "connects": [
+        "waiting_hall",
+        "corridor_central"
+      ],
+      "flow_capacity_per_min": 50
+    },
+    "d_multi_a_corr": {
+      "id": "d_multi_a_corr",
+      "name_ar": "باب القاعة أ إلى الممر",
+      "type": "door",
+      "wall_id": "w_int_corridor_n",
+      "position": [
+        13.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "multi_hall_a",
+        "corridor_central"
+      ],
+      "flow_capacity_per_min": 35
+    },
+    "d_multi_b_corr": {
+      "id": "d_multi_b_corr",
+      "name_ar": "باب القاعة ب إلى الممر",
+      "type": "door",
+      "wall_id": "w_int_corridor_n",
+      "position": [
+        23.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "multi_hall_b",
+        "corridor_central"
+      ],
+      "flow_capacity_per_min": 35
+    },
+    "d_office_n_corr": {
+      "id": "d_office_n_corr",
+      "name_ar": "باب مكاتب الشمال إلى الممر",
+      "type": "door",
+      "wall_id": "w_int_corridor_s",
+      "position": [
+        -7.0,
+        -2.0
+      ],
+      "width": 1.4,
+      "height": 2.2,
+      "connects": [
+        "open_office_north",
+        "corridor_central"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "d_office_s_corr": {
+      "id": "d_office_s_corr",
+      "name_ar": "باب مكاتب الجنوب إلى الممر",
+      "type": "door",
+      "wall_id": "w_int_corridor_s",
+      "position": [
+        16.0,
+        -2.0
+      ],
+      "width": 1.4,
+      "height": 2.2,
+      "connects": [
+        "open_office_south",
+        "corridor_central"
+      ],
+      "flow_capacity_per_min": 40
+    }
+  }
+}

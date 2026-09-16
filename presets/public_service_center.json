@@ -1,0 +1,1064 @@
+{
+  "id": "public_service_center",
+  "name_ar": "دائرة الأحوال المدنية والخدمات العامة (Case Study 3)",
+  "name_en": "Civil Affairs & Public Citizen Services Center",
+  "building_type": "government_service",
+  "spaces": {
+    "security_entrance": {
+      "id": "security_entrance",
+      "name_ar": "بوابة التحقق والاستعلامات",
+      "name_en": "Security Check & Information Desk",
+      "type": "public",
+      "capacity": 20,
+      "area_m2": 55.0,
+      "bounds": {
+        "x": -22,
+        "z": -14,
+        "width": 12,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#0984e3"
+    },
+    "citizen_grand_hall": {
+      "id": "citizen_grand_hall",
+      "name_ar": "صالة المراجعين الكبرى",
+      "name_en": "Grand Citizen Waiting & Service Hall",
+      "type": "public",
+      "capacity": 45,
+      "area_m2": 140.0,
+      "bounds": {
+        "x": -10,
+        "z": -14,
+        "width": 18,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#d63031"
+    },
+    "overflow_service_annex": {
+      "id": "overflow_service_annex",
+      "name_ar": "الجناح الخدمي التكيفي الملحق",
+      "name_en": "Flexible Overflow Civic Annex",
+      "type": "flexible",
+      "capacity": 25,
+      "area_m2": 75.0,
+      "bounds": {
+        "x": 8,
+        "z": -14,
+        "width": 12,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#00b894"
+    },
+    "vip_delegates": {
+      "id": "vip_delegates",
+      "name_ar": "قاعة كبار السن واللجان الخاصة",
+      "name_en": "Priority Citizens & Special Committee",
+      "type": "flexible",
+      "capacity": 15,
+      "area_m2": 50.0,
+      "bounds": {
+        "x": 20,
+        "z": -14,
+        "width": 10,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#fdcb6e"
+    },
+    "corridor_spine": {
+      "id": "corridor_spine",
+      "name_ar": "شريان التدفق الجماهيري الرئيسي",
+      "name_en": "Main Citizen Circulation Spine",
+      "type": "circulation",
+      "capacity": 55,
+      "area_m2": 95.0,
+      "bounds": {
+        "x": -22,
+        "z": -6,
+        "width": 52,
+        "depth": 4,
+        "height": 3.5
+      },
+      "color": "#636e72"
+    },
+    "corridor_fast_exit": {
+      "id": "corridor_fast_exit",
+      "name_ar": "مسار الإخلاء والخروج السريع",
+      "name_en": "Fast Exit & Evacuation Bypass",
+      "type": "circulation",
+      "capacity": 30,
+      "area_m2": 50.0,
+      "bounds": {
+        "x": -22,
+        "z": 12,
+        "width": 52,
+        "depth": 3,
+        "height": 3.5
+      },
+      "color": "#2d3436"
+    },
+    "counters_workzone": {
+      "id": "counters_workzone",
+      "name_ar": "كاونترات الموظفين وإنجاز المعاملات",
+      "name_en": "Staff Processing & Counter Stations",
+      "type": "workspace",
+      "capacity": 35,
+      "area_m2": 125.0,
+      "bounds": {
+        "x": -22,
+        "z": -2,
+        "width": 26,
+        "depth": 14,
+        "height": 3.5
+      },
+      "color": "#e17055"
+    },
+    "archive_server": {
+      "id": "archive_server",
+      "name_ar": "الأرشيف الرقمي والسجلات الوطنية",
+      "name_en": "Central Archive & Data Servers",
+      "type": "workspace",
+      "capacity": 10,
+      "area_m2": 45.0,
+      "bounds": {
+        "x": 4,
+        "z": -2,
+        "width": 14,
+        "depth": 14,
+        "height": 3.5
+      },
+      "color": "#6c5ce7"
+    },
+    "staff_amenity": {
+      "id": "staff_amenity",
+      "name_ar": "استراحة الموظفين وغرفة التحكم",
+      "name_en": "Staff Lounge & Facility Control",
+      "type": "amenity",
+      "capacity": 18,
+      "area_m2": 55.0,
+      "bounds": {
+        "x": 18,
+        "z": -2,
+        "width": 12,
+        "depth": 14,
+        "height": 3.5
+      },
+      "color": "#55efc4"
+    }
+  },
+  "partitions": {
+    "p_hall_annex": {
+      "id": "p_hall_annex",
+      "name_ar": "القاطع الهيدروليكي المرن (الصالة الكبرى - الجناح الخدمي)",
+      "between": [
+        "citizen_grand_hall",
+        "overflow_service_annex"
+      ],
+      "status": "closed",
+      "position": {
+        "x": 8,
+        "z": -14,
+        "width": 0.25,
+        "depth": 8,
+        "height": 3.5
+      },
+      "expansion_capacity": 25
+    }
+  },
+  "edges": [
+    {
+      "u": "security_entrance",
+      "v": "corridor_spine",
+      "distance": 5.0,
+      "width": 2.4,
+      "status": "active"
+    },
+    {
+      "u": "citizen_grand_hall",
+      "v": "corridor_spine",
+      "distance": 4.5,
+      "width": 3.0,
+      "status": "active"
+    },
+    {
+      "u": "citizen_grand_hall",
+      "v": "overflow_service_annex",
+      "distance": 2.0,
+      "width": 4.0,
+      "status": "closed_by_partition"
+    },
+    {
+      "u": "overflow_service_annex",
+      "v": "corridor_spine",
+      "distance": 4.5,
+      "width": 2.2,
+      "status": "active"
+    },
+    {
+      "u": "vip_delegates",
+      "v": "corridor_spine",
+      "distance": 5.0,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "counters_workzone",
+      "v": "corridor_spine",
+      "distance": 4.0,
+      "width": 2.4,
+      "status": "active"
+    },
+    {
+      "u": "archive_server",
+      "v": "corridor_spine",
+      "distance": 4.0,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "staff_amenity",
+      "v": "corridor_spine",
+      "distance": 5.0,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "counters_workzone",
+      "v": "corridor_fast_exit",
+      "distance": 8.0,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "archive_server",
+      "v": "corridor_fast_exit",
+      "distance": 8.0,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "corridor_spine",
+      "v": "corridor_fast_exit",
+      "distance": 18.0,
+      "width": 2.4,
+      "status": "active"
+    }
+  ],
+  "walls": {
+    "w_security_entrance_n": {
+      "id": "w_security_entrance_n",
+      "name_ar": "جدار شمالي (بوابة التحقق والاستعلامات)",
+      "start": [
+        -22.0,
+        -14.0
+      ],
+      "end": [
+        -10.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_security_entrance_s": {
+      "id": "w_security_entrance_s",
+      "name_ar": "جدار جنوبي (بوابة التحقق والاستعلامات)",
+      "start": [
+        -22.0,
+        -6.0
+      ],
+      "end": [
+        -10.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_security_entrance_w": {
+      "id": "w_security_entrance_w",
+      "name_ar": "جدار غربي (بوابة التحقق والاستعلامات)",
+      "start": [
+        -22.0,
+        -14.0
+      ],
+      "end": [
+        -22.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_security_entrance_e": {
+      "id": "w_security_entrance_e",
+      "name_ar": "جدار شرقي (بوابة التحقق والاستعلامات)",
+      "start": [
+        -10.0,
+        -14.0
+      ],
+      "end": [
+        -10.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_citizen_grand_hall_n": {
+      "id": "w_citizen_grand_hall_n",
+      "name_ar": "جدار شمالي (صالة المراجعين الكبرى)",
+      "start": [
+        -10.0,
+        -14.0
+      ],
+      "end": [
+        8.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_citizen_grand_hall_s": {
+      "id": "w_citizen_grand_hall_s",
+      "name_ar": "جدار جنوبي (صالة المراجعين الكبرى)",
+      "start": [
+        -10.0,
+        -6.0
+      ],
+      "end": [
+        8.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_citizen_grand_hall_w": {
+      "id": "w_citizen_grand_hall_w",
+      "name_ar": "جدار غربي (صالة المراجعين الكبرى)",
+      "start": [
+        -10.0,
+        -14.0
+      ],
+      "end": [
+        -10.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_citizen_grand_hall_e": {
+      "id": "w_citizen_grand_hall_e",
+      "name_ar": "جدار شرقي (صالة المراجعين الكبرى)",
+      "start": [
+        8.0,
+        -14.0
+      ],
+      "end": [
+        8.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_overflow_service_annex_n": {
+      "id": "w_overflow_service_annex_n",
+      "name_ar": "جدار شمالي (الجناح الخدمي التكيفي الملحق)",
+      "start": [
+        8.0,
+        -14.0
+      ],
+      "end": [
+        20.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_overflow_service_annex_s": {
+      "id": "w_overflow_service_annex_s",
+      "name_ar": "جدار جنوبي (الجناح الخدمي التكيفي الملحق)",
+      "start": [
+        8.0,
+        -6.0
+      ],
+      "end": [
+        20.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_overflow_service_annex_w": {
+      "id": "w_overflow_service_annex_w",
+      "name_ar": "جدار غربي (الجناح الخدمي التكيفي الملحق)",
+      "start": [
+        8.0,
+        -14.0
+      ],
+      "end": [
+        8.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_overflow_service_annex_e": {
+      "id": "w_overflow_service_annex_e",
+      "name_ar": "جدار شرقي (الجناح الخدمي التكيفي الملحق)",
+      "start": [
+        20.0,
+        -14.0
+      ],
+      "end": [
+        20.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_vip_delegates_n": {
+      "id": "w_vip_delegates_n",
+      "name_ar": "جدار شمالي (قاعة كبار السن واللجان الخاصة)",
+      "start": [
+        20.0,
+        -14.0
+      ],
+      "end": [
+        30.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_vip_delegates_s": {
+      "id": "w_vip_delegates_s",
+      "name_ar": "جدار جنوبي (قاعة كبار السن واللجان الخاصة)",
+      "start": [
+        20.0,
+        -6.0
+      ],
+      "end": [
+        30.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_vip_delegates_w": {
+      "id": "w_vip_delegates_w",
+      "name_ar": "جدار غربي (قاعة كبار السن واللجان الخاصة)",
+      "start": [
+        20.0,
+        -14.0
+      ],
+      "end": [
+        20.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_vip_delegates_e": {
+      "id": "w_vip_delegates_e",
+      "name_ar": "جدار شرقي (قاعة كبار السن واللجان الخاصة)",
+      "start": [
+        30.0,
+        -14.0
+      ],
+      "end": [
+        30.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_spine_n": {
+      "id": "w_corridor_spine_n",
+      "name_ar": "جدار شمالي (شريان التدفق الجماهيري الرئيسي)",
+      "start": [
+        -22.0,
+        -6.0
+      ],
+      "end": [
+        30.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_corridor_spine_s": {
+      "id": "w_corridor_spine_s",
+      "name_ar": "جدار جنوبي (شريان التدفق الجماهيري الرئيسي)",
+      "start": [
+        -22.0,
+        -2.0
+      ],
+      "end": [
+        30.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_spine_w": {
+      "id": "w_corridor_spine_w",
+      "name_ar": "جدار غربي (شريان التدفق الجماهيري الرئيسي)",
+      "start": [
+        -22.0,
+        -6.0
+      ],
+      "end": [
+        -22.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_spine_e": {
+      "id": "w_corridor_spine_e",
+      "name_ar": "جدار شرقي (شريان التدفق الجماهيري الرئيسي)",
+      "start": [
+        30.0,
+        -6.0
+      ],
+      "end": [
+        30.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_fast_exit_n": {
+      "id": "w_corridor_fast_exit_n",
+      "name_ar": "جدار شمالي (مسار الإخلاء والخروج السريع)",
+      "start": [
+        -22.0,
+        12.0
+      ],
+      "end": [
+        30.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_corridor_fast_exit_s": {
+      "id": "w_corridor_fast_exit_s",
+      "name_ar": "جدار جنوبي (مسار الإخلاء والخروج السريع)",
+      "start": [
+        -22.0,
+        15.0
+      ],
+      "end": [
+        30.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_fast_exit_w": {
+      "id": "w_corridor_fast_exit_w",
+      "name_ar": "جدار غربي (مسار الإخلاء والخروج السريع)",
+      "start": [
+        -22.0,
+        12.0
+      ],
+      "end": [
+        -22.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_fast_exit_e": {
+      "id": "w_corridor_fast_exit_e",
+      "name_ar": "جدار شرقي (مسار الإخلاء والخروج السريع)",
+      "start": [
+        30.0,
+        12.0
+      ],
+      "end": [
+        30.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_counters_workzone_n": {
+      "id": "w_counters_workzone_n",
+      "name_ar": "جدار شمالي (كاونترات الموظفين وإنجاز المعاملات)",
+      "start": [
+        -22.0,
+        -2.0
+      ],
+      "end": [
+        4.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_counters_workzone_s": {
+      "id": "w_counters_workzone_s",
+      "name_ar": "جدار جنوبي (كاونترات الموظفين وإنجاز المعاملات)",
+      "start": [
+        -22.0,
+        12.0
+      ],
+      "end": [
+        4.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_counters_workzone_w": {
+      "id": "w_counters_workzone_w",
+      "name_ar": "جدار غربي (كاونترات الموظفين وإنجاز المعاملات)",
+      "start": [
+        -22.0,
+        -2.0
+      ],
+      "end": [
+        -22.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_counters_workzone_e": {
+      "id": "w_counters_workzone_e",
+      "name_ar": "جدار شرقي (كاونترات الموظفين وإنجاز المعاملات)",
+      "start": [
+        4.0,
+        -2.0
+      ],
+      "end": [
+        4.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_archive_server_n": {
+      "id": "w_archive_server_n",
+      "name_ar": "جدار شمالي (الأرشيف الرقمي والسجلات الوطنية)",
+      "start": [
+        4.0,
+        -2.0
+      ],
+      "end": [
+        18.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_archive_server_s": {
+      "id": "w_archive_server_s",
+      "name_ar": "جدار جنوبي (الأرشيف الرقمي والسجلات الوطنية)",
+      "start": [
+        4.0,
+        12.0
+      ],
+      "end": [
+        18.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_archive_server_w": {
+      "id": "w_archive_server_w",
+      "name_ar": "جدار غربي (الأرشيف الرقمي والسجلات الوطنية)",
+      "start": [
+        4.0,
+        -2.0
+      ],
+      "end": [
+        4.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_archive_server_e": {
+      "id": "w_archive_server_e",
+      "name_ar": "جدار شرقي (الأرشيف الرقمي والسجلات الوطنية)",
+      "start": [
+        18.0,
+        -2.0
+      ],
+      "end": [
+        18.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_staff_amenity_n": {
+      "id": "w_staff_amenity_n",
+      "name_ar": "جدار شمالي (استراحة الموظفين وغرفة التحكم)",
+      "start": [
+        18.0,
+        -2.0
+      ],
+      "end": [
+        30.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_staff_amenity_s": {
+      "id": "w_staff_amenity_s",
+      "name_ar": "جدار جنوبي (استراحة الموظفين وغرفة التحكم)",
+      "start": [
+        18.0,
+        12.0
+      ],
+      "end": [
+        30.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_staff_amenity_w": {
+      "id": "w_staff_amenity_w",
+      "name_ar": "جدار غربي (استراحة الموظفين وغرفة التحكم)",
+      "start": [
+        18.0,
+        -2.0
+      ],
+      "end": [
+        18.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_staff_amenity_e": {
+      "id": "w_staff_amenity_e",
+      "name_ar": "جدار شرقي (استراحة الموظفين وغرفة التحكم)",
+      "start": [
+        30.0,
+        -2.0
+      ],
+      "end": [
+        30.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    }
+  },
+  "openings": {
+    "door_security_entrance": {
+      "id": "door_security_entrance",
+      "name_ar": "باب (بوابة التحقق والاستعلامات)",
+      "type": "door",
+      "wall_id": "w_security_entrance_s",
+      "position": [
+        -16.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "security_entrance",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_security_entrance": {
+      "id": "win_security_entrance",
+      "name_ar": "نافذة (بوابة التحقق والاستعلامات)",
+      "type": "window",
+      "wall_id": "w_security_entrance_n",
+      "position": [
+        -16.0,
+        -14.0
+      ],
+      "width": 4.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_citizen_grand_hall": {
+      "id": "door_citizen_grand_hall",
+      "name_ar": "باب (صالة المراجعين الكبرى)",
+      "type": "door",
+      "wall_id": "w_citizen_grand_hall_s",
+      "position": [
+        -1.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "citizen_grand_hall",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_citizen_grand_hall": {
+      "id": "win_citizen_grand_hall",
+      "name_ar": "نافذة (صالة المراجعين الكبرى)",
+      "type": "window",
+      "wall_id": "w_citizen_grand_hall_n",
+      "position": [
+        -1.0,
+        -14.0
+      ],
+      "width": 7.2,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_overflow_service_annex": {
+      "id": "door_overflow_service_annex",
+      "name_ar": "باب (الجناح الخدمي التكيفي الملحق)",
+      "type": "door",
+      "wall_id": "w_overflow_service_annex_s",
+      "position": [
+        14.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "overflow_service_annex",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_overflow_service_annex": {
+      "id": "win_overflow_service_annex",
+      "name_ar": "نافذة (الجناح الخدمي التكيفي الملحق)",
+      "type": "window",
+      "wall_id": "w_overflow_service_annex_n",
+      "position": [
+        14.0,
+        -14.0
+      ],
+      "width": 4.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_vip_delegates": {
+      "id": "door_vip_delegates",
+      "name_ar": "باب (قاعة كبار السن واللجان الخاصة)",
+      "type": "door",
+      "wall_id": "w_vip_delegates_s",
+      "position": [
+        25.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "vip_delegates",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_vip_delegates": {
+      "id": "win_vip_delegates",
+      "name_ar": "نافذة (قاعة كبار السن واللجان الخاصة)",
+      "type": "window",
+      "wall_id": "w_vip_delegates_n",
+      "position": [
+        25.0,
+        -14.0
+      ],
+      "width": 4.0,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_corridor_spine": {
+      "id": "door_corridor_spine",
+      "name_ar": "باب (شريان التدفق الجماهيري الرئيسي)",
+      "type": "door",
+      "wall_id": "w_corridor_spine_s",
+      "position": [
+        4.0,
+        -2.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "corridor_spine",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_corridor_spine": {
+      "id": "win_corridor_spine",
+      "name_ar": "نافذة (شريان التدفق الجماهيري الرئيسي)",
+      "type": "window",
+      "wall_id": "w_corridor_spine_n",
+      "position": [
+        4.0,
+        -6.0
+      ],
+      "width": 20.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_corridor_fast_exit": {
+      "id": "door_corridor_fast_exit",
+      "name_ar": "باب (مسار الإخلاء والخروج السريع)",
+      "type": "door",
+      "wall_id": "w_corridor_fast_exit_s",
+      "position": [
+        4.0,
+        15.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "corridor_fast_exit",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_corridor_fast_exit": {
+      "id": "win_corridor_fast_exit",
+      "name_ar": "نافذة (مسار الإخلاء والخروج السريع)",
+      "type": "window",
+      "wall_id": "w_corridor_fast_exit_n",
+      "position": [
+        4.0,
+        12.0
+      ],
+      "width": 20.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_counters_workzone": {
+      "id": "door_counters_workzone",
+      "name_ar": "باب (كاونترات الموظفين وإنجاز المعاملات)",
+      "type": "door",
+      "wall_id": "w_counters_workzone_s",
+      "position": [
+        -9.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "counters_workzone",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_counters_workzone": {
+      "id": "win_counters_workzone",
+      "name_ar": "نافذة (كاونترات الموظفين وإنجاز المعاملات)",
+      "type": "window",
+      "wall_id": "w_counters_workzone_n",
+      "position": [
+        -9.0,
+        -2.0
+      ],
+      "width": 10.4,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_archive_server": {
+      "id": "door_archive_server",
+      "name_ar": "باب (الأرشيف الرقمي والسجلات الوطنية)",
+      "type": "door",
+      "wall_id": "w_archive_server_s",
+      "position": [
+        11.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "archive_server",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_archive_server": {
+      "id": "win_archive_server",
+      "name_ar": "نافذة (الأرشيف الرقمي والسجلات الوطنية)",
+      "type": "window",
+      "wall_id": "w_archive_server_n",
+      "position": [
+        11.0,
+        -2.0
+      ],
+      "width": 5.6,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_staff_amenity": {
+      "id": "door_staff_amenity",
+      "name_ar": "باب (استراحة الموظفين وغرفة التحكم)",
+      "type": "door",
+      "wall_id": "w_staff_amenity_s",
+      "position": [
+        24.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "staff_amenity",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_staff_amenity": {
+      "id": "win_staff_amenity",
+      "name_ar": "نافذة (استراحة الموظفين وغرفة التحكم)",
+      "type": "window",
+      "wall_id": "w_staff_amenity_n",
+      "position": [
+        24.0,
+        -2.0
+      ],
+      "width": 4.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    }
+  }
+}

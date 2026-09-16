@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdaptiveTwin - التوأم الرقمي التكيفي للمباني الإدارية</title>
+    <!-- Google Fonts for Architecture Dashboard -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+    <!-- شريط رصد أخطاء JavaScript (يظهر فقط عند وجود خطأ) -->
+    <div id="js-error-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:99999; background:#c0392b; color:#fff; padding:10px 18px; font-size:13px; font-family:monospace; text-align:center; cursor:pointer;" onclick="this.style.display='none'">
+        ⚠️ خطأ في تحميل النظام — انقر هنا للإخفاء
+    </div>
+
+    <!-- Header Bar -->
+    <header>
+        <div class="logo-area">
+            <div class="logo-badge">AT</div>
+            <div class="logo-title">
+                <h1>التوأم الرقمي التكيفي (Adaptive Spatial Twin)</h1>
+                <span>تحسين الإشغال المكاني وإدارة المرافق بناءً على السلوك اللحظي للمستخدمين</span>
+            </div>
+        </div>
+
+        <div class="header-status">
+            <button class="btn-plan-manager" id="btn-new-project" style="background: rgba(234, 179, 8, 0.15); border-color: #eab308; color: #fde047;"
+                    data-tooltip-title="بدء مشروع معماري جديد"
+                    data-tooltip="تفريغ المشهد بالكامل والبدء من لوحة بيضاء نظيفة خالية من العناصر لبناء أو استيراد تصميم معماري جديد من الصفر في منتصف الشبكة المحورية.">
+                ✨ مشروع جديد
+            </button>
+            <button class="btn-plan-manager" id="btn-open-plan-manager"
+                    data-tooltip-title="إدارة واستيراد المخططات المعمارية"
+                    data-tooltip="فتح نافذة لاختيار دراسات الحالة الجاهزة (إدارية، صحية، خدمية) أو رفع مخططات BIM بصيغة IFC (Revit / ArchiCAD)، أو مخططات PDF معمارية، أو AutoCAD DXF.">
+                📐 المخططات المعمارية
+            </button>
+            <button class="btn-plan-manager" id="btn-open-iot-modal" style="background: rgba(0, 210, 255, 0.15); border-color: var(--accent-cyan); color: #7dd3fc;"
+                    data-tooltip-title="شبكة مستشعرات الـ IoT والتحليل المكاني"
+                    data-tooltip="عرض لوحة مراقبة شبكة الحساسات اللحظية (PIR، عدادات الأبواب، جودة الهواء CO2) ومصفوفة التدفق التبادلي بين الفضاءات.">
+                📡 مستشعرات IoT
+            </button>
+            <button class="btn-plan-manager" id="btn-open-reconfig-modal" style="background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #6ee7b7;"
+                    data-tooltip-title="محرك إعادة التشكيل والتوزيع الوظيفي"
+                    data-tooltip="اختبار خوارزميات التكيف المعماري وإعادة توزيع الفضاءات والمقارنة الإحصائية الدقيقة بين الوضع الراهن والمقترح.">
+                🔄 إعادة التشكيل والتوزيع
+            </button>
+            <a href="/CONVERSATION_HISTORY.html" target="_blank" class="btn-plan-manager" style="background: rgba(168, 85, 247, 0.2); border-color: #a855f7; color: #d8b4fe; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"
+               data-tooltip-title="سجل المحادثات وتوثيق التطوير"
+               data-tooltip="فتح سجل المحادثات الكامل بجميع أسئلتك وأوامرك وإجابات المساعد والخطوات الهندسية منذ بداية المشروع في صفحة تفاعلية قابلة للقراءة والطباعة والحفظ كـ PDF.">
+                📜 سجل المحادثات
+            </a>
+            <div class="status-pill"
+                 data-tooltip-title="المبنى المعماري النشط"
+                 data-tooltip="المبنى المعروض حالياً في بيئة التوأم الرقمي ثلاثي الأبعاد وتجري عليه محاكاة الإشغال الحركي.">
+                <span id="active-building-name" style="color:var(--accent-cyan); font-weight:600;">المبنى الإداري النموذجي</span>
+            </div>
+            <div class="status-pill"
+                 data-tooltip-title="بث بيانات الحساسات اللحظية"
+                 data-tooltip="حالة الاتصال بدفق حساسات IoT الافتراضية؛ تقوم بتوليد قياسات حركة وإشغال الأفراد كل 1.5 ثانية.">
+                <span class="pulse-dot"></span>
+                <span>بث IoT لحظي</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <div class="main-content">
+
+        <!-- 3D WebGL Viewport Container -->
+        <div id="viewport-container">
+            
+            <!-- Floating HUD (Quick Spatial KPIs) -->
+            <div class="viewport-hud">
+                <div class="hud-card accent-cyan"
+                     data-tooltip-title="مؤشر التوازن الفراغي (Spatial Balance)"
+                     data-tooltip="مقياس لمدى التوزيع المتوازن للمستخدمين بين الفضاءات، النسبة العالية تعني انعدام التكدس وتجنب الهدر المكاني.">
+                    <div class="label">التوازن الفراغي (Balance)</div>
+                    <div class="value" id="kpi-balance-score">85%</div>
+                </div>
+
+                <div class="hud-card accent-cyan"
+                     data-tooltip-title="مؤشر إجهاد الحركة الكلي (Circulation Effort)"
+                     data-tooltip="مجموع حاصل ضرب كثافة التدفق في مسافات السير بين الفضاءات (W = sum(Fij * Dij)). القيمة الأقل تعني كفاءة مكانية وتوفيراً في السير.">
+                    <div class="label">إجهاد الحركة (Circ. Work)</div>
+                    <div class="value" id="kpi-circ-work">1420</div>
+                </div>
+
+                <div class="hud-card accent-green"
+                     data-tooltip-title="الفضاءات المتكدسة (Overcrowded Spaces)"
+                     data-tooltip="عدد الغرف التي تجاوز فيها الإشغال الفعلي السعة الاستيعابية القصوى (>100%) وتتطلب تدخلاً تكيفياً عاجلاً.">
+                    <div class="label">فضاءات متكدسة</div>
+                    <div class="value" id="kpi-overcrowd-count">0</div>
+                </div>
+
+                <div class="hud-card accent-amber"
+                     data-tooltip-title="تدفق الممر الرئيسي (Circulation Flow)"
+                     data-tooltip="معدل مرور الأشخاص في الشريان الحركي المركزي مقاساً بوحدة (شخص/دقيقة) مقارنة بالطاقة الاستيعابية القصوى.">
+                    <div class="label">تدفق الممر الرئيسي</div>
+                    <div class="value" id="kpi-corridor-flow">24 ش/د</div>
+                </div>
+
+                <div class="hud-card accent-green" id="hud-card-co2"
+                     data-tooltip-title="مؤشر الازدحام البيئي (CO2 Telemetry)"
+                     data-tooltip="معدل تركيز غاز CO2 المستشعر لحظياً داخل الفضاءات المشغولة، مؤشر بيئي حاسم لرصد التكدس غير المرئي.">
+                    <div class="label">ازدحام بيئي (CO2)</div>
+                    <div class="value" id="kpi-co2-level">480 ppm</div>
+                </div>
+
+                <div class="hud-card accent-cyan"
+                     data-tooltip-title="قرارات التكيف النشطة (Active AI Decisions)"
+                     data-tooltip="عدد الإجراءات المعمارية التكيفية المنفذة آلياً بالزمن الحقيقي (مثل فتح القواطع المنزلقة أو تفعيل مسارات الالتفاف).">
+                    <div class="label">قرارات التكيف</div>
+                    <div class="value" id="kpi-active-actions">0</div>
+                </div>
+            </div>
+
+            <!-- Viewport Camera Controls -->
+            <div class="viewport-controls">
+                <button class="control-btn" id="btn-top-view"
+                        data-tooltip-title="تغيير المنظور (Camera View)"
+                        data-tooltip="التبديل بين المنظور ثلاثي الأبعاد والمسقط الأفقي العلوي (2D Top Plan View) لفحص العلاقات المكانية.">📐 منظور علوي 2D / 3D</button>
+                <button class="control-btn" id="btn-reset-view"
+                        data-tooltip-title="إعادة ضبط الكاميرا (Reset View)"
+                        data-tooltip="إعادة زاوية الرؤية ومستوى التقريب إلى الوضع الافتراضي الشامل للمبنى.">🔄 إعادة ضبط الكاميرا</button>
+            </div>
+
+            <!-- Blueprint Floor Plan HUD Overlay Controls (always visible for full control) -->
+            <div class="blueprint-hud-bar" id="blueprint-hud-bar" style="display:flex;"
+                 data-tooltip-title="لوحة تحكم المسقط المعماري الحقيقي (Blueprint Underlay)"
+                 data-tooltip="التحكم في عرض وشفافية المخطط المعماري المستورد ومطابقته مع الفضاءات والخرائط الحرارية.">
+                <div class="hud-bar-title">
+                    <span>📐 مسقط المخطط الأصلي</span>
+                </div>
+                <div class="hud-bar-control" id="hud-blueprint-opacity-ctrl" style="display:none;">
+                    <label>شفافية المخطط:</label>
+                    <input type="range" id="slider-blueprint-opacity" min="0" max="100" value="85"
+                           data-tooltip-title="شفافية المخطط الأصلي"
+                           data-tooltip="التحكم في درجة وضوح تفاصيل المخطط المعماري (الجدران، الأبواب، والأبعاد).">
+                    <span id="label-blueprint-opacity" style="font-size:11px; min-width:28px; color:var(--accent-cyan);">85%</span>
+                </div>
+                <div class="hud-bar-control" id="hud-zones-opacity-ctrl" style="display:none;">
+                    <label>شفافية الكتل 3D:</label>
+                    <input type="range" id="slider-zones-opacity" min="0" max="100" value="40"
+                           data-tooltip-title="شفافية كتل الفضاءات الحرارية"
+                           data-tooltip="تقليل شفافية الفضاءات ثلاثية الأبعاد لإظهار خطوط المخطط المعماري بالأسفل بوضوح فائق.">
+                    <span id="label-zones-opacity" style="font-size:11px; min-width:28px; color:var(--accent-cyan);">40%</span>
+                </div>
+                <div class="hud-bar-control" id="hud-page-controls" style="display:none;">
+                    <button class="hud-mini-btn" id="btn-pdf-prev" data-tooltip-title="الصفحة السابقة" data-tooltip="الانتقال إلى المخطط أو الطابق السابق في ملف الـ PDF.">◀</button>
+                    <span id="pdf-page-indicator" style="font-size:11px; font-weight:bold; color:var(--accent-cyan); min-width:65px; text-align:center;">صفحة 1 / 1</span>
+                    <button class="hud-mini-btn" id="btn-pdf-next" data-tooltip-title="الصفحة التالية" data-tooltip="الانتقال إلى المخطط أو الطابق التالي في ملف الـ PDF.">▶</button>
+                </div>
+                <button class="hud-toggle-btn" id="btn-toggle-iot-vis" style="background:rgba(0,210,255,0.15); border-color:var(--accent-cyan);"
+                        data-tooltip-title="إظهار / إخفاء مستشعرات الـ IoT في المشهد 3D"
+                        data-tooltip="التبديل بين إظهار أو إخفاء مجسمات حساسات الحركة PIR وعدادات الأبواب ثلاثية الأبعاد فوق الفضاءات.">📡 إخفاء الحساسات</button>
+                <button class="hud-toggle-btn" id="btn-toggle-labels-vis"
+                        data-tooltip-title="إظهار / إخفاء عناوين وشارات الفضاءات"
+                        data-tooltip="التبديل بين إظهار أو إخفاء الشارات وعناوين الغرف المعمارية وبيانات إشغالها في المشهد 3D.">🏷️ إخفاء العناوين</button>
+                <button class="hud-toggle-btn" id="btn-toggle-flow-vis"
+                        data-tooltip-title="إظهار / إخفاء تدفق الحركة (Spatial Flow)"
+                        data-tooltip="التبديل بين إظهار أو إخفاء جسيمات التدفق الحركي المعماري عبر شبكة الممرات والأبواب والقواطع التكيفية.">⚡ إخفاء تدفق الحركة</button>
+                <button class="hud-toggle-btn" id="btn-toggle-walls-vis"
+                        data-tooltip-title="إظهار / إخفاء الجدران والفتحات"
+                        data-tooltip="التبديل بين إظهار الجدران المعمارية ثلاثية الأبعاد بفتحات الأبواب والشبابيك الحقيقية أو إخفائها.">🧱 إخفاء الجدران</button>
+                <button class="hud-toggle-btn" id="btn-toggle-blueprint-vis"
+                        data-tooltip-title="إخفاء / إظهار المسقط"
+                        data-tooltip="التبديل بين إظهار المسقط المعماري الحقيقي أو الاكتفاء بالكتل ثلاثية الأبعاد فقط.">👁️ إخفاء المسقط</button>
+                <button class="hud-toggle-btn" id="btn-open-tracer-mode" style="background:rgba(0,210,255,0.2); border-color:var(--accent-cyan);"
+                        data-tooltip-title="أداة التحديد المعماري التفاعلي"
+                        data-tooltip="تفعيل الرسم التفاعلي المباشر للنقر وتحديد الجدران والأبواب والفتحات فوق المسقط وتجسيمها فورياً.">✏️ تحديد معالم المخطط</button>
+            </div>
+
+            <!-- Floating Architectural Blueprint Tracer Bar (Interactive Click-to-Draw) -->
+            <div class="blueprint-tracer-bar" id="blueprint-tracer-bar" style="display:none;">
+                <div class="tracer-header">
+                    <span style="color:var(--accent-cyan); font-weight:bold; font-size:12px;">✏️ أداة المعايرة المعمارية والرسم المباشر فوق المخطط</span>
+                    <span style="color:var(--text-muted); font-size:11px;" id="tracer-hint">انقر على أدوات الرسم لبناء العناصر فوق المسقط:</span>
+                </div>
+                <div class="tracer-tools">
+                    <button class="tracer-tool-btn active" data-tool="wall" id="tool-draw-wall"
+                            data-tooltip-title="رسم جدار فوق الـ PDF"
+                            data-tooltip="انقر نقطتين مباشرة فوق خطوط جدران المسقط المستورد لتجسيم جدار معماري ثلاثي الأبعاد.">🧱 رسم جدار</button>
+                    <button class="tracer-tool-btn" data-tool="door" id="tool-draw-door"
+                            data-tooltip-title="إضافة باب معماري"
+                            data-tooltip="انقر فوق أي جدار في المخطط لإنشاء فتحة باب وتفريغ الجدار وتثبيت العتبة وقوس الفتح.">🚪 إضافة باب</button>
+                    <button class="tracer-tool-btn" data-tool="window" id="tool-draw-window"
+                            data-tooltip-title="إضافة شباك"
+                            data-tooltip="انقر فوق أي جدار لإنشاء فتحة شباك بالزجاج المعماري الشفاف والعتبات.">🪟 إضافة شباك</button>
+                    <button class="tracer-tool-btn" data-tool="passage" id="tool-draw-passage"
+                            data-tooltip-title="فتحة عبور / ممر مفتوح"
+                            data-tooltip="انقر فوق أي جدار لإنشاء فتحة عبور وممر مفتوح بدون مصراع لتسهيل تدفق الحركة.">🔲 فتحة عبور</button>
+                    <button class="tracer-tool-btn" data-tool="room" id="tool-tag-room"
+                            data-tooltip-title="تحديد فضاء وغرفة"
+                            data-tooltip="انقر على زاويتين متقابلتين للغرفة في الـ PDF لتوليد فضاء إشغالي محاط بجدرانه وحساساته.">🏷️ تحديد فضاء</button>
+                    <button class="tracer-tool-btn" data-tool="enclosed-space" id="tool-enclosed-space" style="border-color:rgba(46,204,113,0.4); color:#2ecc71;"
+                            data-tooltip-title="إنشاء فضاء من 3+ جدران مغلقة"
+                            data-tooltip="انقر داخل مساحة محاطة بـ 3 جدران أو أكثر لكشفها وتوليد الفضاء وأرضيته فورياً، أو انقر فوق الجدران المحيطة تباعاً لإغلاق الفضاء.">📐 فضاء من 3+ جدران</button>
+                    <button class="tracer-tool-btn" data-tool="staircase" id="tool-draw-stair" style="border-color:rgba(52,152,219,0.5); color:#3498db;"
+                            data-tooltip-title="إضافة سلم معماري (حركة عمودية)"
+                            data-tooltip="انقر لتثبيت بيت درج / سلم معماري يربط الطابق بالحركة العمودية مع مؤشر الصعود ونقطة الربط بالممرات. اضغط R للتدوير 90 درجة.">🪜 إضافة سلم</button>
+                    <button class="tracer-tool-btn" data-tool="iot-sensor" id="tool-add-sensor" style="border-color:rgba(0,210,255,0.4); color:var(--accent-cyan);"
+                            data-tooltip-title="تثبيت مستشعر IoT"
+                            data-tooltip="انقر داخل أي فضاء أو فوق أي باب لتثبيت وبرمجة مستشعر IoT ذكي (PIR، تلوث/بيئي، ضوضاء، عداد حركة).">📡 مستشعر IoT</button>
+                    <button class="tracer-tool-btn" data-tool="move-wall" id="tool-move-wall" style="border-color:rgba(245,158,11,0.4); color:var(--accent-amber);"
+                            data-tooltip-title="تحريك وتدوير الجدار أو السلم (R للتدوير)"
+                            data-tooltip="انقر فوق أي جدار أو سلم لاختياره أو سحبه؛ اضغط مفتاح R لتدوير الجدار 45° أو تدوير السلم 90° مع تحديث الفتحات ومسارات الحركة.">↔️🔄 تحريك وتدوير (جدار / سلم)</button>
+                    <button class="tracer-tool-btn" data-tool="delete-wall" id="tool-delete-wall" style="border-color:rgba(231,76,60,0.4);"
+                            data-tooltip-title="حذف فتحة أو جدار أو سلم أو مستشعر"
+                            data-tooltip="انقر فوق أي باب أو شباك أو فتحة عبور أو سلم أو مستشعر IoT أو جدار أو فضاء ملون لحذفه فورياً.">🗑️ حذف عنصر / سلم</button>
+                    <button class="tracer-tool-btn" id="btn-clean-wall-joins" style="border-color:rgba(0,210,255,0.4); color:var(--accent-cyan);"
+                            data-tooltip-title="تنظيف وتوصيل تقاطعات الجدران"
+                            data-tooltip="معايرة هندسية آلية لربط وتوصيل نهايات الجدران المتقاطعة وزوايا الغرف نظيفاً دون فجوات أو تداخل.">📐 تنظيف التقاطعات</button>
+                    <button class="tracer-tool-btn" id="btn-clear-all-walls" style="border-color:rgba(231,76,60,0.3); color:#e74c3c;"
+                            data-tooltip-title="مسح الجدران والفضاءات والأرضيات الملونة"
+                            data-tooltip="حذف جميع الجدران والفتحات والكتل والأرضيات الملونة للبدء برسم مسقط الـ PDF من لوحة نظيفة تماماً.">🧹 مسح الجدران والفضاءات</button>
+                    <button class="tracer-tool-btn" id="tracer-toggle-view"
+                            data-tooltip-title="تبديل المنظور 2D / 3D"
+                            data-tooltip="التبديل بين المنظور العلوي العمودي (Top-down 2D) والمنظور المجسم 3D لسهولة الرسم فوق الـ PDF.">📐 مسقط علوي 2D</button>
+                    <button class="tracer-tool-btn" id="tracer-undo-btn"
+                            data-tooltip-title="تراجع عن آخر عنصر"
+                            data-tooltip="حذف آخر جدار أو فتحة أو فضاء تم رسمه في وضع المعايرة.">↩️ تراجع</button>
+                    <button class="tracer-done-btn" id="btn-close-tracer"
+                            data-tooltip-title="إنهاء وحفظ"
+                            data-tooltip="حفظ المخطط المعماري والخروج من وضع الرسم التفاعلي.">✓ إنهاء وحفظ</button>
+                </div>
+
+                <!-- Dedicated Transform & Rotation Control Bar for Selected Elements -->
+                <div class="tracer-transform-panel" id="tracer-transform-panel" style="display:none; margin-top:8px; padding:8px 14px; background:rgba(15,23,42,0.96); border:1px solid #f59e0b; border-radius:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; box-shadow:0 4px 20px rgba(245,158,11,0.25);">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="transform-panel-icon" style="font-size:16px;">↔️🔄</span>
+                        <span id="transform-panel-title" style="color:#f59e0b; font-weight:bold; font-size:12px;">عنصر محدد</span>
+                        <span style="color:var(--text-muted); font-size:11px;" id="transform-panel-hint">(اسحب لنقله، أو انقر أي موضع بالمسقط، أو استخدم أزرار الإزاحة والأسهم ⬆️⬇️⬅️➡️، أو اضغط R للتدوير)</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <!-- Stair Direction Controls (Shown when stair is selected) -->
+                        <div id="stair-direction-controls" style="display:none; align-items:center; gap:4px; margin-left:6px; padding-left:8px; border-left:1px solid rgba(255,255,255,0.15);">
+                            <span style="font-size:11px; color:#38bdf8; font-weight:bold;">الاتجاه:</span>
+                            <button class="tracer-tool-btn" id="btn-stair-dir-twoway" style="border-color:#00d2ff; color:#00d2ff; background:rgba(0,210,255,0.15); padding:4px 10px; font-size:11px;"
+                                    data-tooltip-title="سلم باتجاهين (صاعد / نازل)"
+                                    data-tooltip="سلم مزدوج بشاحطين متوازيين وبسطة استراحة وسطية يتيح الصعود والنزول.">🔁 باتجاهين</button>
+                            <button class="tracer-tool-btn" id="btn-stair-dir-up" style="border-color:#2ecc71; color:#2ecc71; background:rgba(46,204,113,0.1); padding:4px 10px; font-size:11px;"
+                                    data-tooltip-title="سلم صاعد باتجاه واحد"
+                                    data-tooltip="حركة عمودية صاعدة باتجاه واحد نحو الطابق الأعلى ⬆️.">⬆️ صاعد فقط</button>
+                            <button class="tracer-tool-btn" id="btn-stair-dir-down" style="border-color:#e67e22; color:#e67e22; background:rgba(230,126,34,0.1); padding:4px 10px; font-size:11px;"
+                                    data-tooltip-title="سلم نازل باتجاه واحد"
+                                    data-tooltip="حركة عمودية نازلة باتجاه واحد نحو الطابق الأدنى أو المخرج ⬇️.">⬇️ نازل فقط</button>
+                        </div>
+
+                        <!-- Directional Nudge Controls (Move Element) -->
+                        <div id="transform-nudge-controls" style="display:inline-flex; align-items:center; gap:3px; padding:2px 6px; background:rgba(255,255,255,0.06); border-radius:6px; border:1px solid rgba(245,158,11,0.35);">
+                            <span style="font-size:11px; color:#f59e0b; font-weight:bold; margin-right:2px;">إزاحة:</span>
+                            <button class="tracer-tool-btn" id="btn-nudge-up" style="padding:4px 8px; font-size:11px; min-width:28px;"
+                                    data-tooltip-title="إزاحة للأعلى (Z-)"
+                                    data-tooltip="إزاحة العنصر المحدد 0.5م نحو الأعلى.">⬆️</button>
+                            <button class="tracer-tool-btn" id="btn-nudge-down" style="padding:4px 8px; font-size:11px; min-width:28px;"
+                                    data-tooltip-title="إزاحة للأسفل (Z+)"
+                                    data-tooltip="إزاحة العنصر المحدد 0.5م نحو الأسفل.">⬇️</button>
+                            <button class="tracer-tool-btn" id="btn-nudge-left" style="padding:4px 8px; font-size:11px; min-width:28px;"
+                                    data-tooltip-title="إزاحة لليسار (X-)"
+                                    data-tooltip="إزاحة العنصر المحدد 0.5م نحو اليسار.">⬅️</button>
+                            <button class="tracer-tool-btn" id="btn-nudge-right" style="padding:4px 8px; font-size:11px; min-width:28px;"
+                                    data-tooltip-title="إزاحة لليمين (X+)"
+                                    data-tooltip="إزاحة العنصر المحدد 0.5م نحو اليمين.">➡️</button>
+                        </div>
+
+                        <!-- Rotation Controls -->
+                        <button class="tracer-tool-btn" id="btn-transform-rot-90" style="border-color:#f59e0b; color:#f59e0b; font-weight:bold; background:rgba(245,158,11,0.15); padding:5px 12px;"
+                                data-tooltip-title="تدوير 90° مع عقارب الساعة (R)"
+                                data-tooltip="تدوير العنصر المحدد 90 درجة مع تحديث موضعه ومسارات الحركة. يمكن استخدام مفتاح R أيضاً.">🔄 تدوير 90° (R)</button>
+                        <button class="tracer-tool-btn" id="btn-transform-rot-45" style="border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,0.1); padding:5px 12px;"
+                                data-tooltip-title="تدوير 45°"
+                                data-tooltip="تدوير العنصر المحدد 45 درجة (مناسب للجدران المائلة بزوايا 45 درجة).">🔄 تدوير 45°</button>
+                        <button class="tracer-tool-btn" id="btn-transform-rot-neg90" style="border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,0.1); padding:5px 12px;"
+                                data-tooltip-title="تدوير -90° عكس عقارب الساعة"
+                                data-tooltip="تدوير العنصر المحدد -90 درجة بالاتجاه المعاكس.">↺ تدوير -90°</button>
+
+                        <!-- Direct Delete Button -->
+                        <button class="tracer-tool-btn" id="btn-transform-delete" style="border-color:#e74c3c; color:#e74c3c; background:rgba(231,76,60,0.15); padding:5px 12px; font-weight:bold;"
+                                data-tooltip-title="حذف العنصر المحدد فورياً"
+                                data-tooltip="حذف هذا العنصر المحدد (جدار أو سلم) من النموذج وشبكة التدفق فوراً.">🗑️ حذف</button>
+
+                        <!-- Deselect Button -->
+                        <button class="tracer-tool-btn" id="btn-transform-deselect" style="border-color:#94a3b8; color:#94a3b8; background:rgba(148,163,184,0.1); padding:5px 12px;"
+                                data-tooltip-title="إلغاء التحديد (Esc)"
+                                data-tooltip="إلغاء تحديد العنصر الحالي وإنهاء وضع التعديل.">✖ إلغاء (Esc)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multi-Storey BIM Control Bar (shown only when IFC model has multiple storeys) -->
+            <div class="storey-control-bar" id="storey-control-bar" style="display:none;"
+                 data-tooltip-title="تحكم في طوابق المبنى (BIM Multi-Storey)"
+                 data-tooltip="تصفية عرض الطوابق وفصلها بصريًا عند استيراد ملف IFC متعدد الطوابق. اختر طابقًا لعرضه منفردًا أو اعرض الكل معًا، واستخدم زر الفصل للتوضيح المجسم.">
+                <div class="storey-bar-title">🏢 طوابق المبنى</div>
+                <div id="storey-btn-container" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                <button class="exploded-view-btn" id="btn-exploded-view"
+                        data-tooltip-title="فصل الطوابق (Exploded View)"
+                        data-tooltip="تباعد الطوابق رأسيًا لعرضها مجسمة بشكل منفصل وواضح — مفيد لتفحص كل طابق على حدة.">💥 فصل الطوابق</button>
+                <span class="bim-summary-pill" id="bim-summary-pill"></span>
+            </div>
+
+            <!-- Heatmap Color Legend -->
+            <div class="heatmap-legend"
+                 data-tooltip-title="دليل الخريطة الحرارية (3D Heatmap)"
+                 data-tooltip="تلوين ديناميكي لأرضيات الفضاءات يوضح مستوى الراحة والكثافة الإشغالية اللحظية من حساسات IoT.">
+                <span style="font-weight:bold; color:var(--text-main);">تدرج الإشغال:</span>
+                <div class="legend-item"
+                     data-tooltip-title="فضاء شاغر / خامل"
+                     data-tooltip="نسبة الإشغال أقل من 30%؛ يعبر عن فضاء غير مستغل بالكامل (هدر مكاني محتمل يمكن استثماره للأنشطة البديلة).">
+                    <div class="legend-dot" style="background:#0984e3;"></div>
+                    <span>شاغر / منخفض (&lt;30%)</span>
+                </div>
+                <div class="legend-item"
+                     data-tooltip-title="إشغال مريح ومتزن"
+                     data-tooltip="نسبة الإشغال بين 40% و 80%؛ المستوى المعماري المثالي الذي يحقق الراحة النفسية والوظيفية دون تكدس أو هدر.">
+                    <div class="legend-dot" style="background:#00b894;"></div>
+                    <span>متزن ومريح (40-80%)</span>
+                </div>
+                <div class="legend-item"
+                     data-tooltip-title="إشغال مرتفع"
+                     data-tooltip="نسبة الإشغال بين 80% و 100%؛ امتلاء عالي يقترب من السعة التصميمية القصوى للفضاء.">
+                    <div class="legend-dot" style="background:#e17055;"></div>
+                    <span>مرتفع (80-100%)</span>
+                </div>
+                <div class="legend-item"
+                     data-tooltip-title="تكدس حرج واختناق"
+                     data-tooltip="نسبة الإشغال تتجاوز 115%؛ حالة تكدس حرج تؤدي لاختناق الممرات وتستدعي فتح القواطع التكيفية فورياً.">
+                    <div class="legend-dot" style="background:#d63031;"></div>
+                    <span>تكدس حرج (&gt;115%)</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sidebar Management Panel -->
+        <aside class="sidebar">
+
+            <!-- 1. Mode Switcher -->
+            <div class="sidebar-section">
+                <div class="section-title">
+                    <span>نظام التشغيل والتكيف اللحظي</span>
+                </div>
+                <div class="mode-toggle-card"
+                     data-tooltip-title="مفتاح الخوارزمية التكيفية الذكية"
+                     data-tooltip="التبديل بين الوضع الثابت الافتراضي (Static Baseline) والوضع التكيفي المستقل (Autonomous Adaptive) الذي يعيد تشكيل المبنى آلياً.">
+                    <div class="mode-toggle-info">
+                        <h4>الخوارزمية التكيفية التلقائية</h4>
+                        <p id="mode-status-text">الوضع الثابت (Baseline)</p>
+                    </div>
+                    <label class="switch"
+                           data-tooltip-title="تفعيل/تعطيل التكيف"
+                           data-tooltip="انقر لتشغيل الذكاء الاصطناعي التكيفي لتحريك القواطع المنزلقة وإعادة توجيه مسارات الحركة فورياً.">
+                        <input type="checkbox" id="adaptive-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 1.5 Spatial Reconfiguration & Layout Modes (Research Core) -->
+            <div class="sidebar-section">
+                <div class="section-title">
+                    <span>إعادة التشكيل والتوزيع الوظيفي المكاني</span>
+                </div>
+                <div class="reconfig-grid" style="display:flex; flex-direction:column; gap:8px;">
+                    <button class="scenario-btn active" data-reconfig-mode="baseline" id="btn-reconfig-baseline"
+                            data-tooltip-title="الوضع الراهن الأصلي (Static Baseline)"
+                            data-tooltip="المخطط المعماري الأصلي الثابت بدون تكيف حركي أو إعادة توزيع وظيفي.">
+                        🏢 الوضع الراهن (Baseline)
+                    </button>
+                    <button class="scenario-btn" data-reconfig-mode="kinetic" id="btn-reconfig-kinetic"
+                            data-tooltip-title="التكيف الفيزيائي الحركي (Kinetic Partitions)"
+                            data-tooltip="فتح القواطع الذكية المنزلقة لدمج الفضاءات وتوسيع السعة الاستيعابية فور رصد التكدس.">
+                        🚪 التكيف الحركي بالقواطع
+                    </button>
+                    <button class="scenario-btn" data-reconfig-mode="functional_swap" id="btn-reconfig-swap"
+                            style="border-color: #10b981; color: #a7f3d0;"
+                            data-tooltip-title="التوزيع الوظيفي الأمثل لمسارات الحركة (Optimal Allocation)"
+                            data-tooltip="إعادة التوزيع الوظيفي الذكي: نقل الفعاليات ذات الإقبال العالي بالقرب من المدخل لتفادي اختراق الحشود للمبنى.">
+                        🔄 التوزيع الوظيفي الأمثل
+                    </button>
+                </div>
+                <div class="reconfig-impact-box" id="reconfig-impact-box" style="margin-top:10px; padding:10px; background:rgba(15,23,42,0.85); border:1px solid rgba(16,185,129,0.3); border-radius:8px; font-size:11px; display:none;">
+                    <div style="font-weight:bold; color:var(--accent-cyan); margin-bottom:6px;">📊 العائد المعماري للحل المقترح:</div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                        <span>تخفيض مسافات المشي:</span>
+                        <span style="color:var(--accent-green); font-weight:bold;" id="impact-walk-dist">-36.2%</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                        <span>تخفيض اختناق الممرات:</span>
+                        <span style="color:var(--accent-green); font-weight:bold;" id="impact-choke">-51.3%</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>كسب التوازن الفراغي:</span>
+                        <span style="color:var(--accent-cyan); font-weight:bold;" id="impact-balance">+18.0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Simulation Scenarios -->
+            <div class="sidebar-section">
+                <div class="section-title">
+                    <span>سيناريوهات المحاكاة الإشغالية</span>
+                </div>
+                <div class="scenario-grid">
+                    <button class="scenario-btn active" data-scenario="normal"
+                            data-tooltip-title="سيناريو: الوضع الطبيعي (Normal Flow)"
+                            data-tooltip="محاكاة تدفق اعتيادي متوازن للأفراد خلال ساعات العمل المستقرة بنسب إشغال تتراوح بين 40% و 75%.">
+                        🌿 الوضع الطبيعي
+                    </button>
+                    <button class="scenario-btn" data-scenario="morning_peak"
+                            data-tooltip-title="سيناريو: ذروة المراجعين الصباحية (Morning Rush)"
+                            data-tooltip="محاكاة تدفق أعداد ضخمة لصالة الانتظار (>150%) مع بقاء القاعة المجاورة شاغرة، لاختبار فتح القاطع المنزلق الذكي.">
+                        ⚡ ذروة المراجعين
+                    </button>
+                    <button class="scenario-btn" data-scenario="corridor_choke"
+                            data-tooltip-title="سيناريو: اختناق الممر الرئيسي (Corridor Bottleneck)"
+                            data-tooltip="محاكاة تدافع حركي يتجاوز الطاقة الاستيعابية للشريان المركزي (>120%) لاختبار إعادة التوجيه للممرات البديلة.">
+                        🚧 اختناق الممر
+                    </button>
+                    <button class="scenario-btn" data-scenario="after_hours"
+                            data-tooltip-title="سيناريو: بعد انتهاء الدوام (Off-Peak)"
+                            data-tooltip="محاكاة انخفاض النشاط الإشغالي بعد مغادرة الموظفين والمراجعين، لاختبار إغلاق القواطع وحفظ الطاقة والتبريد.">
+                        🌙 بعد الدوام
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. Adaptive Interventions Feed -->
+            <div class="sidebar-section">
+                <div class="section-title">
+                    <span>التدخلات المعمارية المقترحة لحظياً</span>
+                </div>
+                <div class="action-feed" id="action-feed-container"
+                     data-tooltip-title="سجل القرارات التكيفية الحية"
+                     data-tooltip="يعرض التوصيات والقرارات الهندسية التي تصدرها الخوارزمية فور رصد أي تكدس أو هدر فراغي لحل الاختناقات آلياً.">
+                    <div style="text-align:center; padding: 18px; color: var(--text-muted); font-size: 12px;">
+                        قم بتفعيل "الخوارزمية التكيفية التلقائية" أعلاه لمشاهدة قرارات إعادة التشكيل المكاني.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Academic Evaluation (Before vs After) -->
+            <div class="sidebar-section" style="flex:1;">
+                <div class="section-title">
+                    <span>مقارنة الأداء الأكاديمية (Before / After)</span>
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+                    بيانات قياس الكفاءة المكانية المعتمدة لرسالة الماجستير:
+                </p>
+                <table class="comparison-table"
+                       data-tooltip-title="مصفوفة المقارنة الأكاديمية (Evaluation Matrix)"
+                       data-tooltip="مقارنة إحصائية دقيقة تبرهن بالأرقام والنسب المئوية تفوق الحل المعماري التكيفي على الوضع الثابت التقليدي (تغطي الشهر التاسع من خطة البحث).">
+                    <thead>
+                        <tr>
+                            <th>المؤشر الفراغي</th>
+                            <th>الأصلي (قبل)</th>
+                            <th>التكيفي (بعد)</th>
+                            <th>نسبة التحسن</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="metric-name" data-tooltip="يقيس التوازن الإجمالي وتجنب الهدر والتكدس (كلما اقترب من 100% كان أفضل).">كفاءة التوازن الفراغي</td>
+                            <td id="tb-baseline-balance">85%</td>
+                            <td id="tb-adapted-balance">85%</td>
+                            <td id="tb-gain-balance">0%</td>
+                        </tr>
+                        <tr>
+                            <td class="metric-name" data-tooltip="عدد الفضاءات التي تعاني من اختناق مفرط يتجاوز سعتها القصوى.">الفضاءات المتكدسة</td>
+                            <td id="tb-baseline-overcrowd">0</td>
+                            <td id="tb-adapted-overcrowd">0</td>
+                            <td id="tb-gain-overcrowd">0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric-name" data-tooltip="مؤشر يمثل تأخير وضغط حركة المارين في الممرات والشرايين الرئيسية.">معامل اختناق الممرات</td>
+                            <td id="tb-baseline-circ">0.0</td>
+                            <td id="tb-adapted-circ">0.0</td>
+                            <td id="tb-gain-circ">0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button class="export-btn" id="btn-export-csv" style="flex:1; background:linear-gradient(135deg, #10b981, #059669); border-color:#34d399; font-size:12px; padding:8px 10px;"
+                            data-tooltip-title="تصدير بيانات البحث العلمي (CSV Dataset)"
+                            data-tooltip="توليد وتنزيل ملف بصيغة CSV يحتوي على كافة قراءات الحساسات اللحظية، مؤشرات الكفاءة المكانية، ومصفوفات التدفق لاستخدامها في التحليل الإحصائي (SPSS / Excel / Python) لرسالة الماجستير والأوراق البحثية.">
+                        📊 تصدير بيانات البحث (CSV)
+                    </button>
+                    <button class="export-btn" id="btn-export-data" style="flex:1; font-size:12px; padding:8px 10px;"
+                            data-tooltip-title="تصدير النتائج كـ JSON"
+                            data-tooltip="توليد وتنزيل ملف بصيغة JSON يحتوي على كامل السجل الزمني وأرقام المقارنة.">
+                        📥 ملف JSON
+                    </button>
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <!-- Plan Manager & Importer Modal -->
+    <div id="plan-modal" class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3>📐 إدارة واستيراد المخططات المعمارية (BIM & CAD Manager)</h3>
+                <button class="modal-close-btn" id="btn-close-plan-modal"
+                        data-tooltip-title="إغلاق النافذة"
+                        data-tooltip="العودة إلى لوحة تحكم التوأم الرقمي ثلاثي الأبعاد.">&times;</button>
+            </div>
+            
+            <div class="modal-tabs">
+                <button class="modal-tab-btn active" data-tab="presets"
+                        data-tooltip-title="دراسات الحالة الجاهزة (Presets)"
+                        data-tooltip="نماذج معمارية مكتملة ومعدة مسبقاً (إدارية، صحية، وخدمية) لاختبار كفاءة التكيف فورياً.">🏛️ دراسات الحالة الجاهزة (Presets)</button>
+                <button class="modal-tab-btn" data-tab="upload"
+                        data-tooltip-title="رفع واستيراد مخطط جديد"
+                        data-tooltip="استيراد مخططات BIM IFC (المصدرة من Revit / ArchiCAD)، أو مخططات PDF معمارية، أو AutoCAD DXF.">📁 رفع مخطط جديد (AutoCAD DXF / BIM JSON)</button>
+                <button class="modal-tab-btn" data-tab="spaces"
+                        data-tooltip-title="محرر الفضاءات والسعات"
+                        data-tooltip="تعديل وتخصيص مساحات وسعات أي غرفة في المبنى الحالي ورؤية أثرها المباشر على التوازن الفراغي.">⚙️ محرر الفضاءات والسعات</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Tab 1: Presets -->
+                <div class="modal-tab-content active" id="tab-presets">
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+                        اختر إحدى دراسات الحالة المعمارية المعدة مسبقاً لاختبارها ومحاكاتها بالتوأم الرقمي:
+                    </p>
+                    <div class="presets-grid" id="presets-list-container">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Tab 2: Upload File -->
+                <div class="modal-tab-content" id="tab-upload">
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+                        اسحب وأفلت مخطط <strong>PDF معماري</strong>، أو صورة مسقط <strong>PNG / JPG / SVG</strong>، أو ملف <strong>BIM IFC</strong> (Revit / ArchiCAD)، أو <strong>AutoCAD DXF</strong>:
+                    </p>
+                    <div class="file-dropzone" id="file-dropzone"
+                         data-tooltip-title="منطقة سحب وإفلات الملفات"
+                         data-tooltip="انقر هنا لاختيار ملف من جهازك، أو اسحبه وأفلته مباشرة لتصييره كمسقط معماري وإسقاط التوأم الرقمي فوقه.">
+                        <div class="dropzone-icon">📥</div>
+                        <h4>انقر أو اسحب المخطط المعماري إلى هنا</h4>
+                        <p style="margin-top:4px;">يدعم: <strong>PDF (مخططات معمارية حقيقية)</strong> • <strong>صور المساقط (PNG, JPG, SVG)</strong> • <strong>IFC (Revit / ArchiCAD)</strong> • <strong>DXF</strong> • <strong>JSON</strong></p>
+                        <input type="file" id="file-upload-input" accept=".pdf,.png,.jpg,.jpeg,.svg,.ifc,.dxf,.json" style="display:none;">
+                    </div>
+                </div>
+
+                <!-- Tab 3: Spaces Editor -->
+                <div class="modal-tab-content" id="tab-spaces">
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+                        تعديل مساحات وسعات الفضاءات للمبنى الحالي لحساب تأثيرها على كفاءة الإشغال:
+                    </p>
+                    <div style="overflow-x:auto;">
+                        <table class="spaces-table"
+                               data-tooltip-title="جدول معايير الفضاءات"
+                               data-tooltip="تعديل السعات القصوى ومساحات الغرف بالمتر المربع وملاحظة تحديث السعات الفعالة فور حفظها.">
+                            <thead>
+                                <tr>
+                                    <th>الفضاء المعماري</th>
+                                    <th>الوظيفة</th>
+                                    <th>المساحة (م²)</th>
+                                    <th>السعة القصوى</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spaces-editor-tbody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- IoT Sensor Network Modal -->
+    <div id="iot-modal" class="modal-overlay">
+        <div class="modal-window" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3>📡 شبكة مستشعرات إنترنت الأشياء والتحليل المكاني اللحظي (BIM-IoT Live Telemetry)</h3>
+                <button class="modal-close-btn" id="btn-close-iot-modal">&times;</button>
+            </div>
+            
+            <div class="modal-body" style="padding: 20px;">
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                    رصد لحظي مباشر لبيانات حساسات الحركة (PIR)، عدادات مرور المشاة عند الأبواب، والمؤشرات البيئية (CO2 والضوضاء) المرتبطة بفضاءات نموذج الـ BIM:
+                </p>
+
+                <!-- IoT Sensors Network Management Section (إدارة وبرمجة شبكة مستشعرات الـ IoT) -->
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--accent-cyan); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="color: var(--accent-cyan); font-size: 14px; margin: 0;">🛠️ إدارة وبرمجة شبكة مستشعرات الـ IoT (Sensor Network Inventory & Provisioning)</h4>
+                        <span style="font-size: 11px; color: var(--text-muted);">إضافة وتعيين وحذف الحساسات في النموذج الرقمي</span>
+                    </div>
+
+                    <!-- Sensor Addition Form -->
+                    <form id="form-add-iot-sensor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) 120px; gap: 10px; align-items: end; background: rgba(30, 41, 59, 0.6); padding: 12px; border-radius: 6px; margin-bottom: 14px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">نوع المستشعر:</label>
+                            <select id="iot-new-sensor-type" style="width: 100%; padding: 6px 10px; background: #0f172a; border: 1px solid var(--panel-border); color: var(--text-main); border-radius: 4px; font-size: 12px;">
+                                <option value="PIR_OCCUPANCY">📡 حساس حركة وإشغال (PIR)</option>
+                                <option value="ENVIRONMENTAL_TELEMETRY">🌿 مستشعر بيئي وCO2 (Environmental)</option>
+                                <option value="ACOUSTIC_NOISE">🔊 حساس ضوضاء وصوت (Acoustic Node)</option>
+                                <option value="OPTICAL_DOOR_COUNTER">🚪 عداد تدفق الأبواب (Door Counter)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">الفضاء أو الباب المستهدف:</label>
+                            <select id="iot-new-sensor-target" style="width: 100%; padding: 6px 10px; background: #0f172a; border: 1px solid var(--panel-border); color: var(--text-main); border-radius: 4px; font-size: 12px;">
+                                <!-- Dynamic Options -->
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">اسم المستشعر (اختياري):</label>
+                            <input type="text" id="iot-new-sensor-name" placeholder="مثال: حساس قاعة المؤتمرات" style="width: 100%; padding: 6px 10px; background: #0f172a; border: 1px solid var(--panel-border); color: var(--text-main); border-radius: 4px; font-size: 12px;">
+                        </div>
+                        <div>
+                            <button type="submit" id="btn-submit-add-sensor" style="width: 100%; padding: 7px 12px; background: var(--accent-cyan); color: #0b132b; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s;">
+                                ➕ إضافة وتفعيل
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Sensor Inventory Table -->
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        <table class="comparison-table" style="font-size: 11px; width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>معرف المستشعر</th>
+                                    <th>الاسم المعماري</th>
+                                    <th>النوع</th>
+                                    <th>الموقع المرتبط</th>
+                                    <th>الإحداثيات (X, Y, Z)</th>
+                                    <th>الحالة التشغيلية</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="iot-sensors-inventory-tbody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent-cyan); font-size: 14px; margin-bottom: 10px;">📊 جدول القياسات الآنية للفضاءات المعمارية (Spatial Telemetry Grid)</h4>
+                <div style="overflow-x: auto; margin-bottom: 24px;">
+                    <table class="comparison-table" style="font-size: 12px; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>الفضاء المعماري</th>
+                                <th>النوع</th>
+                                <th>السعة</th>
+                                <th>الإشغال اللحظي</th>
+                                <th>نسبة الاستغلال</th>
+                                <th>متوسط المكوث</th>
+                                <th>مستوى CO2</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="iot-telemetry-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4 style="color: var(--accent-amber); font-size: 14px; margin-bottom: 10px;">🚪 عدادات تدفق المشاة ونقاط الاختناق عند الأبواب والفتحات (Door Threshold Flow)</h4>
+                <div style="overflow-x: auto;">
+                    <table class="comparison-table" style="font-size: 12px; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>الفتحة / الباب</th>
+                                <th>إجمالي الدخول</th>
+                                <th>إجمالي الخروج</th>
+                                <th>معدل التدفق (شخص/دقيقة)</th>
+                                <th>مؤشر الاختناق</th>
+                                <th>التقييم الحركي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="iot-doors-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spatial Reconfiguration & Layout Optimization Modal -->
+    <div id="reconfig-modal" class="modal-overlay">
+        <div class="modal-window" style="max-width: 950px;">
+            <div class="modal-header">
+                <h3>🔄 محرك إعادة التشكيل والتوزيع الوظيفي الذكي (Spatial Layout Optimization)</h3>
+                <button class="modal-close-btn" id="btn-close-reconfig-modal">&times;</button>
+            </div>
+            
+            <div class="modal-body" style="padding: 24px;">
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--panel-border); border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="color: var(--accent-cyan); font-size: 15px; margin-bottom: 8px;">🎯 صياغة الإشكالية الرياضية والمعمارية للبحث:</h4>
+                    <p style="font-size: 13px; color: var(--text-main); line-height: 1.8;">
+                        تهدف الخوارزمية إلى خفض مسافات السير التراكمية وإجهاد الحركة بين الفضاءات، من خلال دالة التحسين:
+                        <code style="color: var(--accent-green); background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 4px;">min Σ (F_ij × D_ij)</code>
+                        حيث <strong style="color:var(--accent-cyan);">F_ij</strong> كثافة التدفق المرصود بالمستشعرات، و <strong style="color:var(--accent-cyan);">D_ij</strong> المسافة المكانية الفعلية بين الفضاءات.
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid var(--panel-border); border-radius: 10px; padding: 16px;">
+                        <h4 style="color: #f87171; font-size: 14px; margin-bottom: 10px;">❌ تشخيص الخلل في الوضع الراهن (Baseline Flaws):</h4>
+                        <ul style="font-size: 12px; color: var(--text-muted); line-height: 1.9; padding-right: 20px;">
+                            <li>وضع الفعاليات ذات الإقبال العالي (قاعة التدريب/الخدمات العامة) في أقصى شرق المبنى.</li>
+                            <li>إجبار كافة المراجعين على اختراق الممر المركزي بالكامل (46 متراً) وصولاً للخدمة.</li>
+                            <li>تولد اختناقات مزمنة عند مدخل الممر المركزي وتباطؤ سرعة السير.</li>
+                            <li>هدر فراغي في القاعات المجاورة لعدم فتح القواطع التكيفية.</li>
+                        </ul>
+                    </div>
+
+                    <div style="background: rgba(6, 78, 59, 0.3); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; padding: 16px;">
+                        <h4 style="color: #34d399; font-size: 14px; margin-bottom: 10px;">✅ الحل التكيفي وإعادة التوزيع الوظيفي (Optimized Plan):</h4>
+                        <ul style="font-size: 12px; color: #e2e8f0; line-height: 1.9; padding-right: 20px;">
+                            <li>تبديل وظيفة القاعة العامة ذات التدفق المرتفع لتكون مجاورة لردهة الاستقبال مباشرة.</li>
+                            <li>نقل المكاتب الإدارية الهادئة إلى الأجنحة الداخلية بعيداً عن صخب المراجعين.</li>
+                            <li>فتح القاطع المنزلق الذكي تلقائياً عند تجاوز الإشغال 100% لمضاعفة السعة.</li>
+                            <li>تفعيل الممر الالتفافي لتصريف 35% من حشود الذروة.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: center; margin-top: 10px;">
+                    <button class="btn-plan-manager" id="btn-modal-apply-baseline" style="padding: 10px 20px; font-weight: bold;">
+                        🏢 تفعيل الوضع الراهن (Baseline)
+                    </button>
+                    <button class="btn-plan-manager" id="btn-modal-apply-kinetic" style="padding: 10px 20px; font-weight: bold; background: rgba(0, 210, 255, 0.2); border-color: var(--accent-cyan);">
+                        🚪 تطبيق التكيف الحركي بالقواطع
+                    </button>
+                    <button class="btn-plan-manager" id="btn-modal-apply-swap" style="padding: 10px 20px; font-weight: bold; background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399; color: white;">
+                        🔄 تطبيق التوزيع الوظيفي الأمثل
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Bar -->
+    <footer class="main-footer"
+            data-tooltip-title="حقوق الملكية الفكرية والبحث الأكاديمي"
+            data-tooltip="هذا العمل جزء من متطلبات رسالة الماجستير في هندسة العمارة - الجامعة التكنولوجية.">
+        <p>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</p>
+    </footer>
+
+    <!-- Scripts: Three.js and OrbitControls via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- PDF.js CDN for High-Resolution Vector/Raster Architectural Floor Plan Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <!-- Global Error Catcher: يلتقط أي أخطاء JS ويُظهرها فوراً للمستخدم -->
+    <script>
+        window.__fatalErrors = [];
+        window.onerror = function(msg, src, line, col, err) {
+            const banner = document.getElementById('js-error-banner');
+            const info = `⚠️ خطأ في النظام: ${msg} (السطر ${line} في ${src ? src.split('/').pop() : 'غير معروف'})`;
+            window.__fatalErrors.push(info);
+            if (banner) {
+                banner.textContent = info;
+                banner.style.display = 'block';
+            }
+            return false; // allow default handling too
+        };
+    </script>
+
+    <!-- Application Scripts -->
+    <script src="/js/viewer3d.js"></script>
+    <script src="/js/analytics.js"></script>
+    <script src="/js/plan_manager.js"></script>
+    <script src="/js/tooltip.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

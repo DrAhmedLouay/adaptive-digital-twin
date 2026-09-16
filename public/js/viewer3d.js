@@ -1,0 +1,3101 @@
+// public/js/viewer3d.js
+/**
+ * Three.js 3D WebGL Digital Twin Engine
+ * Renders the architectural BIM layout, real-time spatial heatmaps,
+ * animated movable partitions, and circulation flow particles.
+ */
+
+class Twin3DViewer {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.roomMeshes = {};
+        this.partitionMeshes = {};
+        this.labelSprites = {};
+        this.labelsVisible = true;
+        this.particleSystem = null;
+        this.buildingData = null;
+        this.isTopView = false;
+        this.blueprintMesh = null;
+        this.blueprintOpacity = 0.85;
+        this.spacesOpacity = 0.40;
+        this.blueprintVisible = true;
+        this.wallMeshes = {};
+        this.openingMeshes = {};
+        this.stairMeshes = {};
+        this.stairBadges = {};
+        this.spaceWireframes = {};
+        this.storeyGroups = {};
+        this.slabMeshes = {};
+        this.columnMeshes = {};
+        this.activeStoreyFilter = 'all';
+        this.isExplodedView = false;
+        this.wallsVisible = true;
+        this.flowVisible = true;
+        this.clock = new THREE.Clock();
+        this.circulationRoutes = [];
+        this.particleAgents = [];
+        this.particleTexture = null;
+        this.corridorFlowState = {};
+        
+        this.init();
+    }
+
+    init() {
+        const width = this.container.clientWidth || window.innerWidth - 380;
+        const height = this.container.clientHeight || window.innerHeight - 60;
+
+        // 1. Scene
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x0c111a);
+        // تم إلغاء الضباب تماماً لضمان بقاء المخطط والمسقط ناصعاً وواضحاً دون أي اسوداد عند الابتعاد (Zoom Out)
+        this.scene.fog = null;
+
+        // 2. Camera — توسيع مدى الرؤية الأقصى (Far Plane = 2500) لمنع تلاشي أو قطع المخطط عند الابتعاد
+        this.camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 2500);
+        this.camera.position.set(0, 45, 38);
+
+        // 3. Renderer
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setSize(width, height);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.container.appendChild(this.renderer.domElement);
+
+        // 4. OrbitControls — مع معالجة حالة فشل تحميل المكتبة من CDN
+        try {
+            const ControlsClass = (THREE.OrbitControls) || (window.OrbitControls);
+            if (ControlsClass) {
+                this.controls = new ControlsClass(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.maxPolarAngle = Math.PI / 2.05;
+                this.controls.minDistance = 2.0;
+                this.controls.maxDistance = 1000.0;
+                this.controls.target.set(0, 0, 0);
+            } else {
+                console.warn("OrbitControls not found — camera controls disabled.");
+                this.controls = { update: () => {}, enableDamping: false };
+            }
+        } catch(e) {
+            console.warn("OrbitControls init failed:", e);
+            this.controls = { update: () => {}, enableDamping: false };
+        }
+
+        // 5. Lighting
+        this.setupLighting();
+
+        // 6. Architectural Grid — شبكة معمارية ممتدة (180م) تغطي الرؤية الشاملة للمسقط
+        const grid = new THREE.GridHelper(180, 60, 0x1f3048, 0x141f2e);
+        grid.position.y = -0.05;
+        this.scene.add(grid);
+
+        // محاور الشبكة المحورية للشاشة (X: أحمر، Y: أخضر، Z: أزرق) لإبراز نقطة الأصل (0, 0, 0)
+        const axesHelper = new THREE.AxesHelper(15);
+        axesHelper.position.y = 0.01;
+        this.scene.add(axesHelper);
+
+        // 7. Circulation Flow Particles
+        this.setupCirculationParticles();
+
+        // 8. Resize Listener
+        window.addEventListener('resize', () => this.onWindowResize());
+
+        // 9. Blueprint HUD Event Listeners
+        this.setupBlueprintHudEvents();
+
+        // 10. Animation Loop
+        this.animate();
+    }
+
+    setupLighting() {
+        const ambient = new THREE.AmbientLight(0xdbe6f6, 0.7);
+        this.scene.add(ambient);
+
+        const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+        sun.position.set(25, 45, 20);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        sun.shadow.camera.near = 0.5;
+        sun.shadow.camera.far = 150;
+        const d = 35;
+        sun.shadow.camera.left = -d;
+        sun.shadow.camera.right = d;
+        sun.shadow.camera.top = d;
+        sun.shadow.camera.bottom = -d;
+        this.scene.add(sun);
+
+        const fillLight = new THREE.DirectionalLight(0x00d2ff, 0.3);
+        fillLight.position.set(-20, 20, -20);
+        this.buildingGroup = new THREE.Group();
+        this.scene.add(this.buildingGroup);
+    }
+
+    clearBuilding() {
+        if (this.blueprintMesh) {
+            if (this.blueprintMesh.geometry) this.blueprintMesh.geometry.dispose();
+            if (this.blueprintMesh.material) {
+                if (this.blueprintMesh.material.map) this.blueprintMesh.material.map.dispose();
+                this.blueprintMesh.material.dispose();
+            }
+            if (this.buildingGroup) this.buildingGroup.remove(this.blueprintMesh);
+            this.blueprintMesh = null;
+        }
+        if (this.buildingGroup) {
+            while (this.buildingGroup.children.length > 0) {
+                const obj = this.buildingGroup.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                    else obj.material.dispose();
+                }
+                this.buildingGroup.remove(obj);
+            }
+        }
+        this.roomMeshes = {};
+        this.partitionMeshes = {};
+        this.labelSprites = {};
+        this.wallMeshes = {};
+        this.openingMeshes = {};
+        if (this.stairMeshes) {
+            for (const grp of Object.values(this.stairMeshes)) {
+                if (grp && this.buildingGroup) this.buildingGroup.remove(grp);
+            }
+        }
+        this.stairMeshes = {};
+        if (this.stairBadges) {
+            for (const sp of Object.values(this.stairBadges)) {
+                if (sp && this.buildingGroup) this.buildingGroup.remove(sp);
+            }
+        }
+        this.stairBadges = {};
+        this.spaceWireframes = {};
+        this.storeyGroups = {};
+        this.slabMeshes = {};
+        this.columnMeshes = {};
+        this.activeStoreyFilter = 'all';
+        this.isExplodedView = false;
+        this.clearCirculationParticles();
+    }
+
+    loadBuildingModel(modelData) {
+        this.clearBuilding();
+        this.buildingData = modelData;
+        const spaces = modelData.spaces || {};
+
+        // 1. تصيير المسقط المعماري الأصلي كخلفية مسقط أرضي ثلاثي الأبعاد (High-Resolution Blueprint Ground Mesh)
+        const hasBlueprint = Boolean(modelData.blueprintCanvas || modelData.blueprintImage || modelData.blueprintTexture);
+        const bpOpCtrl = document.getElementById('hud-blueprint-opacity-ctrl');
+        const zonesOpCtrl = document.getElementById('hud-zones-opacity-ctrl');
+        if (hasBlueprint) {
+            const source = modelData.blueprintCanvas || modelData.blueprintImage;
+            let texture = modelData.blueprintTexture;
+            if (!texture && source) {
+                texture = new THREE.CanvasTexture(source);
+            }
+            if (texture) {
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                texture.anisotropy = 16;
+            }
+
+            // حساب أبعاد المسقط المعماري بناءً على النسبة الطولية العرضية للمخطط
+            let bpWidth = 64.0;
+            let bpDepth = 48.0;
+            if (source && source.width && source.height) {
+                const aspect = source.width / source.height;
+                if (aspect >= 1) {
+                    bpWidth = 64.0;
+                    bpDepth = 64.0 / aspect;
+                } else {
+                    bpDepth = 52.0;
+                    bpWidth = 52.0 * aspect;
+                }
+            }
+            if (modelData.blueprintBounds) {
+                bpWidth = modelData.blueprintBounds.width || bpWidth;
+                bpDepth = modelData.blueprintBounds.depth || bpDepth;
+            }
+
+            const bpGeo = new THREE.PlaneGeometry(bpWidth, bpDepth);
+            const bpMat = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                opacity: this.blueprintOpacity,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            this.blueprintMesh = new THREE.Mesh(bpGeo, bpMat);
+            this.blueprintMesh.rotation.x = -Math.PI / 2;
+            this.blueprintMesh.position.set(0, 0.02, 0); // رفع مليمترى لمنع التداخل مع الشبكة
+            this.blueprintMesh.visible = this.blueprintVisible;
+            this.buildingGroup.add(this.blueprintMesh);
+
+            // إظهار عناصر التحكم المتعلقة بالمسقط عند تحميله
+            if (bpOpCtrl) bpOpCtrl.style.display = 'flex';
+            if (zonesOpCtrl) zonesOpCtrl.style.display = 'flex';
+        } else {
+            // إخفاء عناصر التحكم المتعلقة بالمسقط عند غيابه
+            if (bpOpCtrl) bpOpCtrl.style.display = 'none';
+            if (zonesOpCtrl) zonesOpCtrl.style.display = 'none';
+        }
+
+        // 1.ب تهيئة مجموعات الطوابق والمستويات المعمارية (Storey Groups)
+        if (modelData.storeys && Object.keys(modelData.storeys).length > 0) {
+            for (const [sId, s] of Object.entries(modelData.storeys)) {
+                const grp = new THREE.Group();
+                grp.userData = { isStoreyGroup: true, storeyId: sId, elevation: s.elevation || 0 };
+                this.buildingGroup.add(grp);
+                this.storeyGroups[sId] = grp;
+            }
+        }
+
+        // 2. إنشاء أرضيات وجدران الفضاءات المعمارية (سواء كانت مستطيلة أو مضلعة بـ 3 جدران أو أكثر)
+        for (const [id, space] of Object.entries(spaces)) {
+            const poly = space.polygon;
+            let centerX, centerZ, floorGeo;
+
+            if (poly && Array.isArray(poly) && poly.length >= 3) {
+                // فضاء مضلع محاط بـ 3 جدران أو أكثر
+                if (space.centroid && Array.isArray(space.centroid)) {
+                    centerX = space.centroid[0];
+                    centerZ = space.centroid[1];
+                } else {
+                    centerX = poly.reduce((sum, pt) => sum + pt[0], 0) / poly.length;
+                    centerZ = poly.reduce((sum, pt) => sum + pt[1], 0) / poly.length;
+                }
+
+                const shape = new THREE.Shape();
+                shape.moveTo(poly[0][0] - centerX, -(poly[0][1] - centerZ));
+                for (let i = 1; i < poly.length; i++) {
+                    shape.lineTo(poly[i][0] - centerX, -(poly[i][1] - centerZ));
+                }
+                shape.closePath();
+
+                const extrudeSettings = {
+                    depth: 0.15,
+                    bevelEnabled: false
+                };
+                floorGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                // تدوير بزاوية -90 درجة حول محور X لكي تسقط الأرضية على المستوي الأفقي XZ وتتجه للأعلى (+Y)
+                floorGeo.rotateX(-Math.PI / 2);
+            } else {
+                const b = space.bounds || { x: 0, z: 0, width: 6, depth: 6 };
+                centerX = b.x + b.width / 2;
+                centerZ = b.z + b.depth / 2;
+                floorGeo = new THREE.BoxGeometry(b.width, 0.15, b.depth);
+            }
+
+            const baseElev = space.base_elevation || 0;
+
+            const hasRealSlabs = modelData.slabs && Object.keys(modelData.slabs).length > 0;
+            const hasRealWalls = modelData.walls && Object.keys(modelData.walls).length > 0;
+
+            // أ. بلاطة الأرضية (Floor Slab) - شبه شفافة مع المخطط المعماري
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: this.getOccupancyColor(0.5),
+                roughness: 0.25,
+                metalness: 0.1,
+                transparent: true,
+                opacity: hasBlueprint ? this.spacesOpacity : (hasRealSlabs ? 0.35 : 0.85)
+            });
+            const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            floorMesh.position.set(centerX, baseElev + 0.08, centerZ);
+            floorMesh.receiveShadow = true;
+            floorMesh.userData = { type: 'space', spaceId: id, storeyId: space.storey_id, baseY: baseElev + 0.08 };
+
+            // حواف معمارية محددة مضيئة (Luminous Architectural Edges)
+            const floorEdges = new THREE.EdgesGeometry(floorGeo);
+            const edgeLine = new THREE.LineSegments(floorEdges, new THREE.LineBasicMaterial({
+                color: (poly && poly.length >= 3) ? 0x2ecc71 : 0x00d2ff,
+                transparent: true,
+                opacity: 0.75
+            }));
+            floorMesh.add(edgeLine);
+
+            const spaceParent = (space.storey_id && this.storeyGroups[space.storey_id]) || this.buildingGroup;
+            spaceParent.add(floorMesh);
+            this.roomMeshes[id] = floorMesh;
+
+            // ب. جدران حدودية زجاجية شفافة للمبنى للمكعبات المستطيلة التقليدية
+            // يتم رسمها فقط في حال عدم وجود جدران معمارية حقيقية في النموذج
+            if (!hasRealWalls && (!poly || poly.length < 3)) {
+                const b = space.bounds || { x: 0, z: 0, width: 6, depth: 6 };
+                const wallGeo = new THREE.BoxGeometry(b.width, 1.8, b.depth);
+                const wallWire = new THREE.WireframeGeometry(wallGeo);
+                const wireLine = new THREE.LineSegments(wallWire, new THREE.LineBasicMaterial({
+                    color: 0x2a4468,
+                    transparent: true,
+                    opacity: 0.35
+                }));
+                wireLine.position.set(centerX, baseElev + 0.9, centerZ);
+                wireLine.userData = { storeyId: space.storey_id, baseY: baseElev + 0.9 };
+                spaceParent.add(wireLine);
+                this.spaceWireframes[id] = wireLine;
+            }
+
+            // ج. لوحة نصية عائمة (Floating Space Badge) في مركز الثقل الفراغي
+            this.createRoomBadge(id, space, centerX, centerZ);
+        }
+
+        // إنشاء القواطع المرنة التكيفية (Movable Partitions)
+        for (const [pId, part] of Object.entries(modelData.partitions || {})) {
+            const p = part.position;
+            const pGeo = new THREE.BoxGeometry(p.width, 2.8, p.depth);
+            const pMat = new THREE.MeshStandardMaterial({
+                color: 0x2ecc71,
+                roughness: 0.2,
+                metalness: 0.8,
+                emissive: 0x1a452a,
+                emissiveIntensity: 0.3
+            });
+            const pMesh = new THREE.Mesh(pGeo, pMat);
+            pMesh.position.set(p.x, 1.4, p.z + p.depth / 2);
+            pMesh.castShadow = true;
+            this.buildingGroup.add(pMesh);
+            this.partitionMeshes[pId] = {
+                mesh: pMesh,
+                defaultZ: p.z + p.depth / 2,
+                openZ: (p.z + p.depth / 2) + p.depth // sliding animation target
+            };
+        }
+
+        // 3. بناء وتجسيم البلاطات المعمارية (Floor Slabs & Roof Slabs)
+        this.buildSlabs(modelData.slabs, modelData.storeys);
+
+        // 3.أ بناء وتجسيم الأعمدة الإنشائية (Structural Columns)
+        this.buildColumns(modelData.columns, modelData.storeys);
+
+        // 3.ب بناء وتجسيم الجدران المعمارية ثلاثية الأبعاد بفتحات الأبواب والشبابيك
+        this.buildWallsAndOpenings(modelData.walls, modelData.openings, spaces);
+
+        // 3.ج بناء وتجسيم السلالم المعمارية وعقد الحركة العمودية
+        this.buildStaircases(modelData.stairs);
+
+        // 4. بناء وتفعيل شبكة التدفق الحركي المعماري ثلاثية الأبعاد (Multi-Path Circulation Network)
+        this.setupCirculationParticles(modelData);
+
+        // 5. بناء وتجسيم شبكة مجسمات مستشعرات إنترنت الأشياء ثلاثية الأبعاد (3D IoT Sensor Nodes)
+        this.initIoTSensors();
+
+        // 6. توسيط وضبط الكاميرا بدقة على منتصف الشبكة المحورية للشاشة (0, 0, 0) وتأطير المشهد
+        this.frameBuildingInView(modelData);
+    }
+
+    createRoomBadge(id, space, x, z) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.fillStyle = 'rgba(15, 23, 36, 0.9)';
+        ctx.roundRect(10, 10, 236, 108, 12);
+        ctx.fill();
+        ctx.strokeStyle = '#00d2ff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(space.name_ar, 128, 48);
+
+        ctx.fillStyle = '#8fa0b5';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`السعة: ${space.capacity} م²: ${space.area_m2}`, 128, 85);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(spriteMat);
+        const baseElev = space.base_elevation || 0;
+        sprite.position.set(x, baseElev + 4.0, z);
+        sprite.scale.set(6, 3, 1);
+        sprite.userData = { storeyId: space.storey_id, baseY: baseElev + 4.0 };
+        sprite.visible = this.labelsVisible !== false;
+        const badgeParent = (space.storey_id && this.storeyGroups[space.storey_id]) || this.buildingGroup;
+        badgeParent.add(sprite);
+
+        this.labelSprites[id] = { sprite, canvas, ctx, texture, space };
+    }
+
+    updateRoomBadge(id, currentOcc, maxCap) {
+        const badge = this.labelSprites[id];
+        if (!badge) return;
+
+        const { canvas, ctx, texture, space } = badge;
+        const ratio = currentOcc / maxCap;
+
+        ctx.clearRect(0, 0, 256, 128);
+        ctx.fillStyle = 'rgba(15, 23, 36, 0.9)';
+        ctx.roundRect(10, 10, 236, 108, 12);
+        ctx.fill();
+
+        let strokeColor = '#00d2ff';
+        if (ratio > 1.0) strokeColor = '#e74c3c';
+        else if (ratio < 0.25) strokeColor = '#3498db';
+        else strokeColor = '#2ecc71';
+
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(space.name_ar, 128, 44);
+
+        ctx.fillStyle = strokeColor;
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText(`${currentOcc} / ${maxCap} (${Math.round(ratio * 100)}%)`, 128, 85);
+
+        texture.needsUpdate = true;
+    }
+
+    createParticleTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        grad.addColorStop(0.2, 'rgba(0, 210, 255, 0.95)');
+        grad.addColorStop(0.55, 'rgba(0, 140, 255, 0.45)');
+        grad.addColorStop(1, 'rgba(0, 40, 120, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 64, 64);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+    }
+
+    clearCirculationParticles() {
+        if (this.particleSystem) {
+            if (this.particleSystem.geometry) this.particleSystem.geometry.dispose();
+            if (this.particleSystem.material) this.particleSystem.material.dispose();
+            this.scene.remove(this.particleSystem);
+            this.particleSystem = null;
+        }
+        this.particleAgents = [];
+        this.circulationRoutes = [];
+    }
+
+    checkSegmentWallCollision(p1, p2, walls, openings, partitions) {
+        if (!walls) return false;
+        const x1 = p1.x, z1 = p1.z;
+        const x2 = p2.x, z2 = p2.z;
+
+        for (const wall of Object.values(walls)) {
+            const wx1 = wall.start[0], wz1 = wall.start[1];
+            const wx2 = wall.end[0], wz2 = wall.end[1];
+
+            const denom = (wz2 - wz1) * (x2 - x1) - (wx2 - wx1) * (z2 - z1);
+            if (Math.abs(denom) < 1e-9) continue;
+
+            const ua = ((wx2 - wx1) * (z1 - wz1) - (wz2 - wz1) * (x1 - wx1)) / denom;
+            const ub = ((x2 - x1) * (z1 - wz1) - (z2 - z1) * (x1 - wx1)) / denom;
+
+            if (ua > 0.005 && ua < 0.995 && ub > 0.005 && ub < 0.995) {
+                const ix = x1 + ua * (x2 - x1);
+                const iz = z1 + ua * (z2 - z1);
+
+                // 1. فحص هل نقطة التقاطع تمر عبر فتحة باب أو ممر عبور نشط
+                let hitDoor = false;
+                for (const op of Object.values(openings || {})) {
+                    if (op.type === 'door' || op.type === 'passage') {
+                        const opx = Array.isArray(op.position) ? op.position[0] : op.position?.x;
+                        const opz = Array.isArray(op.position) ? op.position[1] : op.position?.z;
+                        if (opx !== undefined && opz !== undefined) {
+                            const d = Math.hypot(ix - opx, iz - opz);
+                            const w = op.width || 1.2;
+                            if (d <= (w * 0.5 + 0.35)) {
+                                hitDoor = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (hitDoor) continue; // عبور شرعي عبر فتحة
+
+                // 2. فحص هل نقطة التقاطع تمر عبر قاطع مرن مفتوح
+                let hitPartition = false;
+                for (const part of Object.values(partitions || {})) {
+                    if (part.status === 'open') {
+                        const px = part.position?.x;
+                        const pz = part.position?.z;
+                        if (px !== undefined && pz !== undefined) {
+                            const d = Math.hypot(ix - px, iz - pz);
+                            if (d <= 3.8) {
+                                hitPartition = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (hitPartition) continue; // عبور شرعي عبر قاطع مفتوح
+
+                // اختراق غير مسموح لجدار مصمت مغلق!
+                return true;
+            }
+        }
+        return false;
+    }
+
+    buildCirculationNetwork(modelData) {
+        const routes = [];
+        if (!modelData) return routes;
+
+        const spaces = modelData.spaces || {};
+        const openings = modelData.openings || {};
+        const partitions = modelData.partitions || {};
+        const walls = modelData.walls || {};
+
+        // فحص هل النموذج هو المبنى الإداري النموذجي (Case Study 1)
+        const isStandardOffice = Boolean(spaces['reception'] && spaces['waiting_hall'] && spaces['corridor_central']);
+
+        if (isStandardOffice) {
+            // دوال مساعدة لجلب معرفات وإحداثيات الفتحات المعمارية بمرونة تدعم كافة مسميات المخططات
+            const getOp = (...keys) => {
+                for (const k of keys) {
+                    if (openings[k]) return openings[k];
+                }
+                return null;
+            };
+            const getOpId = (...keys) => {
+                for (const k of keys) {
+                    if (openings[k]) return k;
+                }
+                return null;
+            };
+            const posOf = (op, defX, defZ) => {
+                if (!op) return { x: defX, z: defZ };
+                const x = Array.isArray(op.position) ? op.position[0] : (op.position?.x ?? defX);
+                const z = Array.isArray(op.position) ? op.position[1] : (op.position?.z ?? defZ);
+                return { x, z };
+            };
+
+            const opMain = getOp('d_main_entry', 'door_main', 'door_reception_main', 'door_main_entry');
+            const idMain = getOpId('d_main_entry', 'door_main', 'door_reception_main', 'door_main_entry') || 'd_main_entry';
+
+            const opRec = getOp('d_reception_corr', 'door_reception', 'd_reception');
+            const idRec = getOpId('d_reception_corr', 'door_reception', 'd_reception') || 'd_reception_corr';
+
+            const opWait = getOp('d_waiting_corr', 'door_waiting_hall', 'd_waiting');
+            const idWait = getOpId('d_waiting_corr', 'door_waiting_hall', 'd_waiting') || 'd_waiting_corr';
+
+            const opMultiA = getOp('d_multi_a_corr', 'door_multi_hall_a', 'd_multi_a');
+            const idMultiA = getOpId('d_multi_a_corr', 'door_multi_hall_a', 'd_multi_a') || 'd_multi_a_corr';
+
+            const opMultiB = getOp('d_multi_b_corr', 'door_multi_hall_b', 'd_multi_b');
+            const idMultiB = getOpId('d_multi_b_corr', 'door_multi_hall_b', 'd_multi_b') || 'd_multi_b_corr';
+
+            const opOffN = getOp('d_office_n_corr', 'door_open_office_north', 'door_corridor_central', 'd_office_n');
+            const idOffN = getOpId('d_office_n_corr', 'door_open_office_north', 'door_corridor_central', 'd_office_n') || 'd_office_n_corr';
+
+            const opOffS = getOp('d_office_s_corr', 'door_open_office_south', 'd_office_s');
+            const idOffS = getOpId('d_office_s_corr', 'door_open_office_south', 'd_office_s') || 'd_office_s_corr';
+
+            // 1. دورة المراجعين والخدمة العامة (المدخل الخارجي -> الاستقبال -> الممر -> صالة الانتظار -> الخروج)
+            if (opMain && opRec && opWait) {
+                const pMain = posOf(opMain, -18, -10);
+                const pRec = posOf(opRec, -12, -6);
+                const pWait = posOf(opWait, 1, -6);
+                routes.push({
+                    id: 'journey_visitor_public',
+                    name_ar: 'رحلة المراجعين (المدخل - الاستقبال - صالة الانتظار - المغادرة)',
+                    category: 'visitor',
+                    points: [
+                        { x: -22, y: 0.38, z: pMain.z },
+                        { x: pMain.x, y: 0.38, z: pMain.z },
+                        { x: -14, y: 0.38, z: pMain.z },
+                        { x: pRec.x, y: 0.38, z: -7.5 },
+                        { x: pRec.x, y: 0.38, z: pRec.z },
+                        { x: pRec.x, y: 0.38, z: -4 },
+                        { x: pWait.x, y: 0.38, z: -4 },
+                        { x: pWait.x, y: 0.38, z: pWait.z },
+                        { x: pWait.x, y: 0.38, z: -10 },
+                        { x: -2, y: 0.38, z: -10 },
+                        { x: pWait.x, y: 0.38, z: -10 },
+                        { x: pWait.x, y: 0.38, z: pWait.z },
+                        { x: pWait.x, y: 0.38, z: -4 },
+                        { x: pRec.x, y: 0.38, z: -4 },
+                        { x: pRec.x, y: 0.38, z: pRec.z },
+                        { x: -14, y: 0.38, z: pMain.z },
+                        { x: pMain.x, y: 0.38, z: pMain.z },
+                        { x: -22, y: 0.38, z: pMain.z }
+                    ],
+                    doorPositions: [
+                        { x: pMain.x, z: pMain.z, width: opMain.width || 1.8 },
+                        { x: pRec.x, z: pRec.z, width: opRec.width || 1.4 },
+                        { x: pWait.x, z: pWait.z, width: opWait.width || 1.6 }
+                    ],
+                    doorIds: [idMain, idRec, idWait],
+                    corridorId: 'corridor_central',
+                    active: true,
+                    weight: 1.5
+                });
+            }
+
+            // 2. رحلة رواد القاعة المتعددة المرنة (أ) لحضور الفعاليات والاستشارات
+            if (opMain && opRec && opMultiA) {
+                const pMain = posOf(opMain, -18, -10);
+                const pRec = posOf(opRec, -12, -6);
+                const pA = posOf(opMultiA, 13, -6);
+                routes.push({
+                    id: 'journey_visitor_hall_a',
+                    name_ar: 'رحلة رواد القاعة المتعددة المرنة (أ)',
+                    category: 'visitor',
+                    points: [
+                        { x: -22, y: 0.38, z: pMain.z },
+                        { x: pMain.x, y: 0.38, z: pMain.z },
+                        { x: -14, y: 0.38, z: pMain.z },
+                        { x: pRec.x, y: 0.38, z: -7.5 },
+                        { x: pRec.x, y: 0.38, z: pRec.z },
+                        { x: pRec.x, y: 0.38, z: -4 },
+                        { x: pA.x, y: 0.38, z: -4 },
+                        { x: pA.x, y: 0.38, z: pA.z },
+                        { x: pA.x, y: 0.38, z: -10 },
+                        { x: 10, y: 0.38, z: -10 },
+                        { x: pA.x, y: 0.38, z: -10 },
+                        { x: pA.x, y: 0.38, z: pA.z },
+                        { x: pA.x, y: 0.38, z: -4 },
+                        { x: pRec.x, y: 0.38, z: -4 },
+                        { x: pRec.x, y: 0.38, z: pRec.z },
+                        { x: -14, y: 0.38, z: pMain.z },
+                        { x: pMain.x, y: 0.38, z: pMain.z },
+                        { x: -22, y: 0.38, z: pMain.z }
+                    ],
+                    doorPositions: [
+                        { x: pMain.x, z: pMain.z, width: opMain.width || 1.8 },
+                        { x: pRec.x, z: pRec.z, width: opRec.width || 1.4 },
+                        { x: pA.x, z: pA.z, width: opMultiA.width || 1.2 }
+                    ],
+                    doorIds: [idMain, idRec, idMultiA],
+                    corridorId: 'corridor_central',
+                    active: true,
+                    weight: 1.2
+                });
+            }
+
+            // 3. رحلة رواد قاعة الاجتماعات والتدريب (ب)
+            if (opMain && opRec && opMultiB) {
+                const pMain = posOf(opMain, -18, -10);
+                const pRec = posOf(opRec, -12, -6);
+                const pB = posOf(opMultiB, 23, -6);
+                routes.push({
+                    id: 'journey_visitor_hall_b',
+                    name_ar: 'رحلة رواد قاعة الاجتماعات والتدريب (ب)',
+                    category: 'visitor',
+                    points: [
+                        { x: -22, y: 0.38, z: pMain.z },
+                        { x: pMain.x, y: 0.38, z: pMain.z },
+                        { x: -14, y: 0.38, z: pMain.z },
+                        { x: pRec.x, y: 0.38, z: -7.5 },
+                        { x: pRec.x, y: 0.38, z: pRec.z },
+                        { x: pRec.x, y: 0.38, z: -4 },
+                        { x: pB.x, y: 0.38, z: -4 },
+                        { x: pB.x, y: 0.38, z: pB.z },
+                        { x: pB.x, y: 0.38, z: -10 },
+                        { x: 20, y: 0.38, z: -10 },
+                        { x: pB.x, y: 0.38, z: -10 },
+                        { x: pB.x, y: 0.38, z: pB.z },
+                        { x: pB.x, y: 0.38, z: -4 },
+                        { x: pRec.x, y: 0.38, z: -4 },
+                        { x: pRec.x, y: 0.38, z: pRec.z },
+                        { x: -14, y: 0.38, z: pMain.z },
+                        { x: pMain.x, y: 0.38, z: pMain.z },
+                        { x: -22, y: 0.38, z: pMain.z }
+                    ],
+                    doorPositions: [
+                        { x: pMain.x, z: pMain.z, width: opMain.width || 1.8 },
+                        { x: pRec.x, z: pRec.z, width: opRec.width || 1.4 },
+                        { x: pB.x, z: pB.z, width: opMultiB.width || 1.2 }
+                    ],
+                    doorIds: [idMain, idRec, idMultiB],
+                    corridorId: 'corridor_central',
+                    active: true,
+                    weight: 1.0
+                });
+            }
+
+            // 4. التدفق التكيفي المباشر عبر القاطع المنزلق (صالة الانتظار <-> القاعة أ)
+            if (partitions['p_waiting_multi'] && opWait && opMultiA) {
+                const pWait = posOf(opWait, 1, -6);
+                const pA = posOf(opMultiA, 13, -6);
+                routes.push({
+                    id: 'journey_adaptive_waiting_hall_a',
+                    name_ar: 'التدفق التكيفي المباشر عبر القاطع المنزلق (صالة الانتظار - قاعة أ)',
+                    category: 'adaptive',
+                    points: [
+                        { x: 1, y: 0.38, z: -10 },
+                        { x: 4, y: 0.38, z: -10 },
+                        { x: 8, y: 0.38, z: -10 },
+                        { x: 11, y: 0.38, z: -10 },
+                        { x: pA.x, y: 0.38, z: -10 },
+                        { x: pA.x, y: 0.38, z: pA.z },
+                        { x: pA.x, y: 0.38, z: -4 },
+                        { x: pWait.x, y: 0.38, z: -4 },
+                        { x: pWait.x, y: 0.38, z: pWait.z },
+                        { x: 1, y: 0.38, z: -10 }
+                    ],
+                    doorPositions: [
+                        { x: 8, z: -10, width: 2.5 },
+                        { x: pA.x, z: pA.z, width: opMultiA.width || 1.2 },
+                        { x: pWait.x, z: pWait.z, width: opWait.width || 1.6 }
+                    ],
+                    doorIds: [idMultiA, idWait],
+                    partitionId: 'p_waiting_multi',
+                    requiresOpen: true,
+                    active: (partitions['p_waiting_multi']?.status === 'open'),
+                    weight: 1.4
+                });
+            }
+
+            // 5. حركة كوادر الجناح الشمالي ومرفق استراحة الموظفين والخدمات
+            if (opOffN) {
+                const pOffN = posOf(opOffN, -7, -2);
+                routes.push({
+                    id: 'journey_staff_north_lounge',
+                    name_ar: 'حركة كوادر الجناح الشمالي ومرفق استراحة الموظفين',
+                    category: 'staff',
+                    points: [
+                        { x: -12, y: 0.38, z: -4 },
+                        { x: pOffN.x, y: 0.38, z: -4 },
+                        { x: pOffN.x, y: 0.38, z: pOffN.z },
+                        { x: pOffN.x, y: 0.38, z: 2 },
+                        { x: -12, y: 0.38, z: 5 },
+                        { x: -4, y: 0.38, z: 6 },
+                        { x: -1, y: 0.38, z: 7 },
+                        { x: -4, y: 0.38, z: 4 },
+                        { x: pOffN.x, y: 0.38, z: 2 },
+                        { x: pOffN.x, y: 0.38, z: pOffN.z },
+                        { x: pOffN.x, y: 0.38, z: -4 },
+                        { x: -12, y: 0.38, z: -4 }
+                    ],
+                    doorPositions: [{ x: pOffN.x, z: pOffN.z, width: opOffN.width || 1.4 }],
+                    doorIds: [idOffN],
+                    corridorId: 'corridor_central',
+                    active: true,
+                    weight: 1.3
+                });
+            }
+
+            // 6. حركة كوادر الجناح الجنوبي ومرفق استراحة الموظفين والخدمات
+            if (opOffS) {
+                const pOffS = posOf(opOffS, 16, -2);
+                routes.push({
+                    id: 'journey_staff_south_lounge',
+                    name_ar: 'حركة كوادر الجناح الجنوبي ومرفق استراحة الموظفين',
+                    category: 'staff',
+                    points: [
+                        { x: 1, y: 0.38, z: -4 },
+                        { x: pOffS.x, y: 0.38, z: -4 },
+                        { x: pOffS.x, y: 0.38, z: pOffS.z },
+                        { x: pOffS.x, y: 0.38, z: 3 },
+                        { x: 12, y: 0.38, z: 6 },
+                        { x: 3, y: 0.38, z: 7 },
+                        { x: -1, y: 0.38, z: 7 },
+                        { x: 5, y: 0.38, z: 5 },
+                        { x: pOffS.x, y: 0.38, z: 3 },
+                        { x: pOffS.x, y: 0.38, z: pOffS.z },
+                        { x: pOffS.x, y: 0.38, z: -4 },
+                        { x: 1, y: 0.38, z: -4 }
+                    ],
+                    doorPositions: [{ x: pOffS.x, z: pOffS.z, width: opOffS.width || 1.4 }],
+                    doorIds: [idOffS],
+                    corridorId: 'corridor_central',
+                    active: true,
+                    weight: 1.3
+                });
+            }
+
+            // 7. الشريان الحركي المركزي الرئيسي (داخل الممر بدقة دون اختراق الجدران)
+            routes.push({
+                id: 'journey_central_spine',
+                name_ar: 'الشريان الحركي المركزي الرئيسي',
+                category: 'spine',
+                points: [
+                    { x: -16, y: 0.38, z: -4 },
+                    { x: -12, y: 0.38, z: -4 },
+                    { x: -7, y: 0.38, z: -4 },
+                    { x: 1, y: 0.38, z: -4 },
+                    { x: 13, y: 0.38, z: -4 },
+                    { x: 16, y: 0.38, z: -4 },
+                    { x: 23, y: 0.38, z: -4 },
+                    { x: 26, y: 0.38, z: -4 },
+                    { x: 23, y: 0.38, z: -4 },
+                    { x: 16, y: 0.38, z: -4 },
+                    { x: 13, y: 0.38, z: -4 },
+                    { x: 1, y: 0.38, z: -4 },
+                    { x: -7, y: 0.38, z: -4 },
+                    { x: -12, y: 0.38, z: -4 },
+                    { x: -16, y: 0.38, z: -4 }
+                ],
+                doorPositions: [],
+                corridorId: 'corridor_central',
+                active: true,
+                weight: 1.4
+            });
+
+            // 8. ممر الحركة الالتفافي البديل لتخفيف الازدحام عبر الأبواب المعمارية
+            if (opOffN && opOffS) {
+                const pOffN = posOf(opOffN, -7, -2);
+                const pOffS = posOf(opOffS, 16, -2);
+                routes.push({
+                    id: 'journey_southern_bypass',
+                    name_ar: 'ممر الحركة الالتفافي البديل لتخفيف الازدحام',
+                    category: 'bypass',
+                    points: [
+                        { x: pOffN.x, y: 0.38, z: -4 },
+                        { x: pOffN.x, y: 0.38, z: pOffN.z },
+                        { x: pOffN.x, y: 0.38, z: 4 },
+                        { x: pOffN.x, y: 0.38, z: 13.5 },
+                        { x: 0, y: 0.38, z: 13.5 },
+                        { x: 8, y: 0.38, z: 13.5 },
+                        { x: pOffS.x, y: 0.38, z: 13.5 },
+                        { x: pOffS.x, y: 0.38, z: 4 },
+                        { x: pOffS.x, y: 0.38, z: pOffS.z },
+                        { x: pOffS.x, y: 0.38, z: -4 },
+                        { x: 1, y: 0.38, z: -4 },
+                        { x: pOffN.x, y: 0.38, z: -4 }
+                    ],
+                    doorPositions: [
+                        { x: pOffN.x, z: pOffN.z, width: opOffN.width || 1.4 },
+                        { x: pOffS.x, z: pOffS.z, width: opOffS.width || 1.4 }
+                    ],
+                    doorIds: [idOffN, idOffS],
+                    corridorId: 'corridor_bypass_south',
+                    isBypass: true,
+                    active: true,
+                    weight: 1.1
+                });
+            }
+        }
+
+        // 9. التحليل والربط الطوبولوجي التلقائي لكافة الفتحات والأبواب (المضافة حديثاً أو في المخططات المخصصة والمستوردة)
+        const coveredDoorIds = new Set();
+        for (const r of routes) {
+            if (r.doorIds) {
+                for (const dId of r.doorIds) coveredDoorIds.add(dId);
+            }
+        }
+
+        const unroutedOpenings = Object.entries(openings).filter(([dId, op]) => {
+            return (op.type === 'door' || op.type === 'passage') && !coveredDoorIds.has(dId);
+        });
+
+        const findSpaceAtPoint = (x, z) => {
+            for (const [sId, sp] of Object.entries(spaces)) {
+                if (!sp.bounds) continue;
+                const b = sp.bounds;
+                if (x >= b.x && x <= b.x + b.width && z >= b.z && z <= b.z + b.depth) {
+                    return { id: sId, space: sp };
+                }
+            }
+            return null;
+        };
+
+        for (const [dId, op] of unroutedOpenings) {
+            const dx = (Array.isArray(op.position) ? op.position[0] : op.position?.x) || 0;
+            const dz = (Array.isArray(op.position) ? op.position[1] : op.position?.z) || 0;
+            const pDoor = { x: dx, y: 0.38, z: dz };
+
+            // تحديد الجدار الحاضن للفتحة لحساب المتجه العمودي بدقة هندسية
+            let hostWall = walls[op.wall_id];
+            if (!hostWall) {
+                let minDist = Infinity;
+                for (const w of Object.values(walls)) {
+                    const x1 = w.start[0], z1 = w.start[1];
+                    const x2 = w.end[0], z2 = w.end[1];
+                    const wx = x2 - x1, wz = z2 - z1;
+                    const wlen2 = wx * wx + wz * wz;
+                    if (wlen2 < 0.01) continue;
+                    const u = Math.max(0, Math.min(1, ((dx - x1) * wx + (dz - z1) * wz) / wlen2));
+                    const px = x1 + u * wx, pz = z1 + u * wz;
+                    const d = Math.hypot(dx - px, dz - pz);
+                    if (d < minDist) {
+                        minDist = d;
+                        hostWall = w;
+                    }
+                }
+            }
+
+            let nx = 0, nz = 1;
+            if (hostWall) {
+                const wx = hostWall.end[0] - hostWall.start[0];
+                const wz = hostWall.end[1] - hostWall.start[1];
+                const wlen = Math.hypot(wx, wz) || 1;
+                nx = -wz / wlen;
+                nz = wx / wlen;
+            }
+
+            const step = 1.6;
+            const pIn = { x: dx + nx * step, y: 0.38, z: dz + nz * step };
+            const pOut = { x: dx - nx * step, y: 0.38, z: dz - nz * step };
+
+            const spIn = findSpaceAtPoint(pIn.x, pIn.z);
+            const spOut = findSpaceAtPoint(pOut.x, pOut.z);
+
+            // تحديد نقاط الارتكاز العميقة داخل كل فضاء مع التحقق من عدم اختراق الجدران
+            let anchorIn = pIn;
+            if (spIn) {
+                const b = spIn.space.bounds;
+                const cin = { x: b.x + b.width / 2, y: 0.38, z: b.z + b.depth / 2 };
+                if (!this.checkSegmentWallCollision(pIn, cin, walls, openings, partitions)) {
+                    anchorIn = cin;
+                } else {
+                    const deepPt = { x: dx + nx * 2.8, y: 0.38, z: dz + nz * 2.8 };
+                    if (deepPt.x >= b.x + 0.3 && deepPt.x <= b.x + b.width - 0.3 &&
+                        deepPt.z >= b.z + 0.3 && deepPt.z <= b.z + b.depth - 0.3 &&
+                        !this.checkSegmentWallCollision(pIn, deepPt, walls, openings, partitions)) {
+                        anchorIn = deepPt;
+                    }
+                }
+            } else {
+                anchorIn = { x: dx + nx * 4.0, y: 0.38, z: dz + nz * 4.0 };
+            }
+
+            let anchorOut = pOut;
+            if (spOut) {
+                const b = spOut.space.bounds;
+                const cout = { x: b.x + b.width / 2, y: 0.38, z: b.z + b.depth / 2 };
+                if (!this.checkSegmentWallCollision(pOut, cout, walls, openings, partitions)) {
+                    anchorOut = cout;
+                } else {
+                    const deepPt = { x: dx - nx * 2.8, y: 0.38, z: dz - nz * 2.8 };
+                    if (deepPt.x >= b.x + 0.3 && deepPt.x <= b.x + b.width - 0.3 &&
+                        deepPt.z >= b.z + 0.3 && deepPt.z <= b.z + b.depth - 0.3 &&
+                        !this.checkSegmentWallCollision(pOut, deepPt, walls, openings, partitions)) {
+                        anchorOut = deepPt;
+                    }
+                }
+            } else {
+                anchorOut = { x: dx - nx * 4.0, y: 0.38, z: dz - nz * 4.0 };
+            }
+
+            const dynamicPoints = [anchorIn, pIn, pDoor, pOut, anchorOut, pOut, pDoor, pIn, anchorIn];
+            const routeName = op.name_ar || (op.type === 'door' ? `مسار الباب (${dId})` : `مسار فتحة العبور (${dId})`);
+
+            routes.push({
+                id: `dynamic_route_${dId}`,
+                name_ar: routeName,
+                category: op.type === 'passage' ? 'bypass' : 'adaptive',
+                points: dynamicPoints,
+                doorPositions: [{ x: dx, z: dz, width: op.width || 1.2 }],
+                doorIds: [dId],
+                active: true,
+                weight: 1.2
+            });
+        }
+
+        // توليد مسارات تكيفية للقواطع التي لم يتم تغطيتها
+        for (const [pId, part] of Object.entries(partitions)) {
+            const hasPartitionRoute = routes.some(r => r.partitionId === pId);
+            if (!hasPartitionRoute) {
+                const between = part.between || [];
+                if (between.length >= 2 && spaces[between[0]] && spaces[between[1]]) {
+                    const sp1 = spaces[between[0]], sp2 = spaces[between[1]];
+                    const c1 = { x: sp1.bounds.x + sp1.bounds.width / 2, y: 0.38, z: sp1.bounds.z + sp1.bounds.depth / 2 };
+                    const c2 = { x: sp2.bounds.x + sp2.bounds.width / 2, y: 0.38, z: sp2.bounds.z + sp2.bounds.depth / 2 };
+                    const px = part.position?.x !== undefined ? part.position.x : ((c1.x + c2.x) / 2);
+                    const pz = part.position?.z !== undefined ? part.position.z : ((c1.z + c2.z) / 2);
+                    const pMid = { x: px, y: 0.38, z: pz };
+                    routes.push({
+                        id: `partition_route_${pId}`,
+                        name_ar: `التدفق التكيفي عبر ${part.name_ar || pId}`,
+                        category: 'adaptive',
+                        points: [c1, pMid, c2, pMid, c1],
+                        doorPositions: [{ x: px, z: pz, width: 2.5 }],
+                        doorIds: [],
+                        partitionId: pId,
+                        requiresOpen: true,
+                        active: (part.status === 'open'),
+                        weight: 1.3
+                    });
+                }
+            }
+        }
+
+        // توليد مسارات الحركة والتدفق العمودي للسلالم المعمارية المربوطة بالممرات
+        for (const [stairId, stair] of Object.entries(modelData.stairs || {})) {
+            const sx = (stair.position && stair.position[0] !== undefined) ? stair.position[0] : 0;
+            const sz = (stair.position && stair.position[1] !== undefined) ? stair.position[1] : 0;
+            const rotRad = ((stair.rotation || 0) * Math.PI) / 180.0;
+            const depth = stair.depth || 4.5;
+            
+            let lx = sx, lz = sz;
+            if (stair.landing_pos && Array.isArray(stair.landing_pos)) {
+                lx = stair.landing_pos[0];
+                lz = stair.landing_pos[1];
+            } else {
+                lx = sx + Math.sin(rotRad) * (depth / 2.0);
+                lz = sz + Math.cos(rotRad) * (depth / 2.0);
+            }
+
+            const pStairTop = { x: sx, y: 0.38, z: sz };
+            const pLanding = { x: lx, y: 0.38, z: lz };
+
+            // تحديد نقطة ربط بالممر أو الساحة أمام السلم
+            const stepOut = 1.8;
+            let dirX = lx - sx;
+            let dirZ = lz - sz;
+            const dirLen = Math.hypot(dirX, dirZ) || 1;
+            dirX /= dirLen;
+            dirZ /= dirLen;
+
+            const pCorridor = { x: lx + dirX * stepOut, y: 0.38, z: lz + dirZ * stepOut };
+            const canStepOut = !this.checkSegmentWallCollision(pLanding, pCorridor, walls, openings, partitions);
+            const pTarget = canStepOut ? pCorridor : pLanding;
+
+            const stairPoints = [
+                pStairTop,
+                pLanding,
+                pTarget,
+                pLanding,
+                pStairTop
+            ];
+
+            routes.push({
+                id: `stair_route_${stairId}`,
+                name_ar: `تدفق الحركة العمودية عبر (${stair.name_ar || stairId})`,
+                category: 'stair',
+                stairId: stairId,
+                points: stairPoints,
+                doorPositions: [{ x: lx, z: lz, width: stair.width || 2.4 }],
+                doorIds: [],
+                active: true,
+                weight: 1.5
+            });
+        }
+
+        // فحص وتصفية مسارات الحركة هندسياً: استبعاد أي مسار يخترق جداراً مصمتاً دون فتحة
+        const validRoutes = [];
+        for (const r of routes) {
+            let hasIllegalCollision = false;
+            for (let i = 0; i < r.points.length - 1; i++) {
+                if (this.checkSegmentWallCollision(r.points[i], r.points[i + 1], walls, openings, partitions)) {
+                    hasIllegalCollision = true;
+                    console.warn(`[Circulation] مسار ملغي لاختراقه جداراً مصمتاً: ${r.name_ar}`);
+                    break;
+                }
+            }
+            if (!hasIllegalCollision) {
+                validRoutes.push(r);
+            }
+        }
+
+        // حساب أطوال القطع المستقيمة والمترية بدقة لكل مسار (Arc-Length Parameterization)
+        for (const r of validRoutes) {
+            r.segmentLengths = [];
+            r.cumulativeLengths = [0];
+            let total = 0;
+            for (let i = 0; i < r.points.length - 1; i++) {
+                const p1 = r.points[i];
+                const p2 = r.points[i + 1];
+                const d = Math.hypot(p2.x - p1.x, p2.z - p1.z);
+                r.segmentLengths.push(d);
+                total += d;
+                r.cumulativeLengths.push(total);
+            }
+            r.totalLength = Math.max(0.1, total);
+        }
+
+        return validRoutes;
+    }
+
+    evaluateRoutePosition(route, dist, laneOffset = 0) {
+        if (!route || !route.points || route.points.length < 2) {
+            return { x: 0, y: 0.38, z: 0 };
+        }
+        const L = route.totalLength;
+        let clampedDist = dist % L;
+        if (clampedDist < 0) clampedDist += L;
+
+        let k = 0;
+        while (k < route.segmentLengths.length - 1 && clampedDist > route.cumulativeLengths[k + 1]) {
+            k++;
+        }
+
+        const segLen = route.segmentLengths[k] || 1;
+        const segDist = clampedDist - route.cumulativeLengths[k];
+        const t = Math.max(0, Math.min(1, segDist / segLen));
+
+        const p0 = route.points[k];
+        const p1 = route.points[k + 1];
+
+        let x = p0.x + (p1.x - p0.x) * t;
+        const y = 0.38;
+        let z = p0.z + (p1.z - p0.z) * t;
+
+        // تضييق انزياح الحارة (laneOffset) تلقائياً عند الاقتراب من أي باب للمرور من مركز الفتحة تماماً دون ملامسة الجدار
+        let effLane = laneOffset;
+        if (route.doorPositions && route.doorPositions.length > 0) {
+            let minDoorDist = Infinity;
+            for (const dp of route.doorPositions) {
+                const d = Math.hypot(x - dp.x, z - dp.z);
+                if (d < minDoorDist) minDoorDist = d;
+            }
+            if (minDoorDist < 1.2) {
+                const factor = Math.max(0, (minDoorDist - 0.2) / 1.0);
+                effLane *= (factor * factor);
+            }
+        }
+
+        if (effLane !== 0) {
+            const dx = p1.x - p0.x;
+            const dz = p1.z - p0.z;
+            const len = Math.hypot(dx, dz) || 1;
+            const nx = -dz / len;
+            const nz = dx / len;
+            x += nx * effLane;
+            z += nz * effLane;
+        }
+
+        return { x, y, z };
+    }
+
+    setupCirculationParticles(modelData) {
+        this.clearCirculationParticles();
+
+        const data = modelData || this.buildingData;
+        if (!data) return;
+
+        this.circulationRoutes = this.buildCirculationNetwork(data);
+        if (!this.circulationRoutes || this.circulationRoutes.length === 0) return;
+
+        const particleCount = 200;
+        this.particleAgents = [];
+
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+
+        const activeRoutes = this.circulationRoutes.filter(r => r.active);
+        const candidates = activeRoutes.length > 0 ? activeRoutes : this.circulationRoutes;
+
+        for (let i = 0; i < particleCount; i++) {
+            const assignedRoute = candidates[i % candidates.length];
+            const actualRouteIndex = this.circulationRoutes.indexOf(assignedRoute);
+            const dist = (i / particleCount) * assignedRoute.totalLength;
+            const speed = 1.6 + (i % 6) * 0.18;
+            const dir = 1; // تدفق أمامي مستمر يحاكي حركة المشاة الواقعية
+            const laneOffset = ((i % 5) - 2) * 0.12;
+
+            let baseColor = 0x00d2ff;
+            if (assignedRoute.category === 'staff') baseColor = 0x2ecc71;
+            else if (assignedRoute.category === 'adaptive') baseColor = 0xa55eea;
+            else if (assignedRoute.category === 'bypass') baseColor = 0x00e676;
+            else if (assignedRoute.category === 'stair') baseColor = 0x00d2ff;
+
+            const agent = {
+                routeIndex: actualRouteIndex,
+                dist: dist,
+                speed: speed,
+                dir: dir,
+                laneOffset: laneOffset,
+                speedMultiplier: 1.0,
+                currentColor: new THREE.Color(baseColor)
+            };
+            this.particleAgents.push(agent);
+
+            const pos = this.evaluateRoutePosition(assignedRoute, dist, laneOffset);
+            positions[i * 3] = pos.x;
+            positions[i * 3 + 1] = pos.y;
+            positions[i * 3 + 2] = pos.z;
+
+            colors[i * 3] = agent.currentColor.r;
+            colors[i * 3 + 1] = agent.currentColor.g;
+            colors[i * 3 + 2] = agent.currentColor.b;
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        if (!this.particleTexture) {
+            this.particleTexture = this.createParticleTexture();
+        }
+
+        const mat = new THREE.PointsMaterial({
+            size: 1.15,
+            map: this.particleTexture,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.92,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        this.particleSystem = new THREE.Points(geometry, mat);
+        this.particleSystem.visible = (this.flowVisible !== false);
+        this.scene.add(this.particleSystem);
+    }
+
+    updateRealtimeState(state) {
+        if (!state) return;
+        const readings = state.sensor_readings || {};
+        const partitions = state.partitions || {};
+        const flows = state.corridor_flows || {};
+        this.corridorFlowState = flows;
+
+        // 1. تحديث الألوان الحرارية والشارات للغرف
+        for (const [id, count] of Object.entries(readings)) {
+            const mesh = this.roomMeshes[id];
+            const space = this.buildingData?.spaces?.[id];
+            if (mesh && space) {
+                const effectiveCap = (id === 'waiting_hall' && partitions['p_waiting_multi']?.status === 'open')
+                    ? space.capacity + 18
+                    : space.capacity;
+                const ratio = count / Math.max(1, effectiveCap);
+                mesh.material.color.set(this.getOccupancyColor(ratio));
+                this.updateRoomBadge(id, count, effectiveCap);
+            }
+        }
+
+        // 2. تحديث حركة القواطع المرنة (انزلاق تدريجي)
+        for (const [pId, partData] of Object.entries(partitions)) {
+            const pObj = this.partitionMeshes[pId];
+            if (pObj) {
+                const targetZ = partData.status === 'open' ? pObj.openZ : pObj.defaultZ;
+                pObj.mesh.position.z += (targetZ - pObj.mesh.position.z) * 0.1;
+                pObj.mesh.material.color.set(partData.status === 'open' ? 0x00d2ff : 0x2ecc71);
+            }
+        }
+
+        // 3. تحديث مسارات التدفق الحركي التكيفية استناداً إلى حالة القواطع والازدحام وسلامة الأبواب
+        if (this.circulationRoutes && this.circulationRoutes.length > 0) {
+            for (const route of this.circulationRoutes) {
+                if (route.partitionId) {
+                    const p = partitions[route.partitionId];
+                    const isOpen = p ? (p.status === 'open') : false;
+                    route.active = isOpen;
+                }
+                // فحص الأبواب والفتحات: إذا تم حذف أي باب في المسار، يتم تعطيل المسار فوراً
+                if (route.doorIds && route.doorIds.length > 0) {
+                    const allDoorsExist = route.doorIds.every(dId => Boolean(this.buildingData?.openings?.[dId]));
+                    if (!allDoorsExist) {
+                        route.active = false;
+                    }
+                }
+            }
+
+            const centralFlow = flows['corridor_central'] || 30;
+            const isCongested = (centralFlow > 52);
+
+            for (let i = 0; i < this.particleAgents.length; i++) {
+                const agent = this.particleAgents[i];
+                let route = this.circulationRoutes[agent.routeIndex];
+
+                if (route && !route.active) {
+                    const activeRoutes = this.circulationRoutes.filter(r => r.active);
+                    if (activeRoutes.length > 0) {
+                        const newRoute = activeRoutes[Math.floor(Math.random() * activeRoutes.length)];
+                        agent.routeIndex = this.circulationRoutes.indexOf(newRoute);
+                        agent.dist = Math.random() * newRoute.totalLength;
+                        route = newRoute;
+                    }
+                }
+
+                if (route) {
+                    if (route.category === 'bypass' || route.isBypass) {
+                        if (isCongested) {
+                            agent.currentColor.setHex(0x00e676); // أخضر فسفوري متوهج لتصريف الازدحام
+                            agent.speedMultiplier = 1.65;
+                        } else {
+                            agent.currentColor.setHex(0x2ecc71);
+                            agent.speedMultiplier = 1.0;
+                        }
+                    } else if (route.category === 'adaptive' || route.partitionId) {
+                        agent.currentColor.setHex(0xa55eea); // بنفسجي إشعاعي مميز للمسار التكيفي للقاطع
+                        agent.speedMultiplier = 1.4;
+                    } else if (route.category === 'staff') {
+                        agent.currentColor.setHex(0x26de81); // أخضر حيوي لكوادر المكاتب ومرفق الاستراحة
+                        agent.speedMultiplier = 1.05;
+                    } else if (route.category === 'stair') {
+                        agent.currentColor.setHex(0x00d2ff); // سماوي ساطع للحركة العمودية
+                        agent.speedMultiplier = 0.65; // تباطؤ طبيعي لسرعة صعود ونزول الدرج علمياً
+                    } else if (route.category === 'spine') {
+                        if (isCongested) {
+                            agent.currentColor.setHex(centralFlow > 65 ? 0xeb3b5a : 0xfa8231);
+                            agent.speedMultiplier = 0.72; // تباطؤ الاحتكاك والازدحام
+                        } else {
+                            agent.currentColor.setHex(0x00d2ff);
+                            agent.speedMultiplier = 1.1;
+                        }
+                    } else {
+                        // زوار ومراجعون
+                        agent.currentColor.setHex(0x00d2ff); // فيروزي كهربائي للمراجعين والجمهور
+                        agent.speedMultiplier = 1.0;
+                    }
+                }
+            }
+        }
+    }
+
+    getOccupancyColor(ratio) {
+        if (ratio > 1.15) return 0xd63031; // تكدس حاد (أحمر ناري)
+        if (ratio > 0.90) return 0xe17055; // اقتراب من الامتلاء (برتقالي)
+        if (ratio >= 0.40) return 0x00b894; // مثالي متزن (أخضر زمردي)
+        return 0x0984e3;                   // إشغال منخفض / شاغر (أزرق بارد)
+    }
+
+    toggleCameraView() {
+        this.setCameraView(!this.isTopView);
+    }
+
+    setCameraView(isTop) {
+        this.isTopView = Boolean(isTop);
+        if (this.isTopView) {
+            this.camera.position.set(0, 60, 0.01);
+            this.controls.target.set(0, 0, 0);
+        } else {
+            this.camera.position.set(0, 45, 38);
+            this.controls.target.set(0, 0, 0);
+        }
+        this.controls.update();
+    }
+
+    resetCamera() {
+        this.setCameraView(false);
+    }
+
+    frameBuildingInView(modelData = null) {
+        // 1. إعادة ضبط وتثبيت نقطة ارتكاز الكاميرا في منتصف الشبكة المحورية (0, 0, 0)
+        if (this.controls && this.controls.target) {
+            this.controls.target.set(0, 0, 0);
+        }
+
+        // 2. احتساب المدى الفراغي والأبعاد الهندسية للمسقط أو المبنى
+        let maxDim = 45.0;
+        if (modelData && modelData.blueprintBounds) {
+            maxDim = Math.max(modelData.blueprintBounds.width || 45, modelData.blueprintBounds.depth || 45);
+        } else if (this.buildingGroup) {
+            const box = new THREE.Box3().setFromObject(this.buildingGroup);
+            if (!box.isEmpty()) {
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                maxDim = Math.max(size.x, size.z, 20.0);
+            }
+        }
+
+        // 3. ضبط زاوية ومسافة الكاميرا لتأطير المبنى أو المسقط في منتصف الشاشة بدقة
+        if (this.isTopView) {
+            this.camera.position.set(0, Math.max(55, maxDim * 1.35), 0.01);
+        } else {
+            const dist = Math.max(42, maxDim * 1.15);
+            this.camera.position.set(0, dist * 0.95, dist * 0.85);
+        }
+
+        if (this.controls && typeof this.controls.update === 'function') {
+            this.controls.update();
+        }
+    }
+
+    clearBlueprint() {
+        if (this.blueprintMesh) {
+            if (this.blueprintMesh.geometry) this.blueprintMesh.geometry.dispose();
+            if (this.blueprintMesh.material) {
+                if (this.blueprintMesh.material.map) this.blueprintMesh.material.map.dispose();
+                this.blueprintMesh.material.dispose();
+            }
+            if (this.buildingGroup) this.buildingGroup.remove(this.blueprintMesh);
+            this.blueprintMesh = null;
+        }
+        const bpOpCtrl = document.getElementById('hud-blueprint-opacity-ctrl');
+        const zonesOpCtrl = document.getElementById('hud-zones-opacity-ctrl');
+        if (bpOpCtrl) bpOpCtrl.style.display = 'none';
+        if (zonesOpCtrl) zonesOpCtrl.style.display = 'none';
+    }
+
+    animate() {
+        requestAnimationFrame(() => this.animate());
+
+        const delta = Math.min(this.clock.getDelta(), 0.08);
+
+        // تحريك وتحديث جسيمات التدفق الحركي المعماري عبر شبكة المسارات
+        if (this.particleSystem && this.particleAgents && this.particleAgents.length > 0 && this.circulationRoutes.length > 0) {
+            const positions = this.particleSystem.geometry.attributes.position.array;
+            const colors = this.particleSystem.geometry.attributes.color.array;
+            const activeRoutes = this.circulationRoutes.filter(r => r.active);
+
+            for (let i = 0; i < this.particleAgents.length; i++) {
+                const agent = this.particleAgents[i];
+                let route = this.circulationRoutes[agent.routeIndex];
+
+                if (!route || !route.active) {
+                    if (activeRoutes.length > 0) {
+                        route = activeRoutes[Math.floor(Math.random() * activeRoutes.length)];
+                        agent.routeIndex = this.circulationRoutes.indexOf(route);
+                        agent.dist = Math.random() * route.totalLength;
+                    } else {
+                        continue;
+                    }
+                }
+
+                // تقدم الجسيم على طول مسار الرحلة المعمارية باتجاه أمامي مستمر
+                const speedMul = agent.speedMultiplier || 1.0;
+                agent.dist += agent.speed * agent.dir * delta * speedMul;
+
+                // عند إتمام دورة الرحلة المعمارية، إعادة التدفق المستمر من بداية المسار بانسيابية تامة
+                if (agent.dist >= route.totalLength) {
+                    agent.dist = agent.dist % route.totalLength;
+
+                    // إمكانية انتقال الجسيم لرحلة وظيفية متصلة تبدأ من نفس الموقع (عند المدخل أو الشريان)
+                    if (Math.random() < 0.35 && activeRoutes.length > 1) {
+                        const startPt = route.points[0];
+                        const connectingCandidates = [];
+                        for (const cand of activeRoutes) {
+                            if (cand === route) continue;
+                            const candStart = cand.points[0];
+                            if (Math.hypot(candStart.x - startPt.x, candStart.z - startPt.z) < 2.0) {
+                                connectingCandidates.push(cand);
+                            }
+                        }
+                        if (connectingCandidates.length > 0) {
+                            const chosen = connectingCandidates[Math.floor(Math.random() * connectingCandidates.length)];
+                            agent.routeIndex = this.circulationRoutes.indexOf(chosen);
+                            agent.dist = 0;
+                            route = chosen;
+                        }
+                    }
+                } else if (agent.dist < 0) {
+                    agent.dist = 0;
+                }
+
+                // احتساب الإحداثيات ثلاثية الأبعاد الدقيقة مع انزياح حارة السير
+                const pos = this.evaluateRoutePosition(route, agent.dist, agent.laneOffset);
+                positions[i * 3] = pos.x;
+                positions[i * 3 + 1] = pos.y;
+                positions[i * 3 + 2] = pos.z;
+
+                // تحديث ألوان الجسيمات
+                colors[i * 3] = agent.currentColor.r;
+                colors[i * 3 + 1] = agent.currentColor.g;
+                colors[i * 3 + 2] = agent.currentColor.b;
+            }
+
+            this.particleSystem.geometry.attributes.position.needsUpdate = true;
+            this.particleSystem.geometry.attributes.color.needsUpdate = true;
+        }
+
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    setupBlueprintHudEvents() {
+        // 1. منزلق شفافية المخطط المعماري
+        const sliderBp = document.getElementById('slider-blueprint-opacity');
+        const labelBp = document.getElementById('label-blueprint-opacity');
+        if (sliderBp) {
+            sliderBp.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value) / 100;
+                this.setBlueprintOpacity(val);
+                if (labelBp) labelBp.textContent = `${e.target.value}%`;
+            });
+        }
+
+        // 2. منزلق شفافية كتل الفضاءات ثلاثية الأبعاد
+        const sliderZones = document.getElementById('slider-zones-opacity');
+        const labelZones = document.getElementById('label-zones-opacity');
+        if (sliderZones) {
+            sliderZones.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value) / 100;
+                this.setSpacesOpacity(val);
+                if (labelZones) labelZones.textContent = `${e.target.value}%`;
+            });
+        }
+
+        // 3. زر إظهار / إخفاء المخطط المعماري
+        const toggleVisBtn = document.getElementById('btn-toggle-blueprint-vis');
+        if (toggleVisBtn) {
+            toggleVisBtn.addEventListener('click', () => {
+                this.blueprintVisible = !this.blueprintVisible;
+                this.setBlueprintVisible(this.blueprintVisible);
+                toggleVisBtn.textContent = this.blueprintVisible ? '👁️ إخفاء المسقط' : '👁️ إظهار المسقط';
+            });
+        }
+
+        // 4. زر إظهار / إخفاء الجدران والفتحات المعمارية ثلاثية الأبعاد
+        const toggleWallsBtn = document.getElementById('btn-toggle-walls-vis');
+        if (toggleWallsBtn) {
+            toggleWallsBtn.addEventListener('click', () => {
+                this.toggleWallsVisibility();
+                toggleWallsBtn.textContent = this.wallsVisible ? '🧱 إخفاء الجدران' : '🧱 إظهار الجدران';
+            });
+        }
+
+        // 5. زر إظهار / إخفاء تدفق الحركة الحركية المعمارية (Spatial Flow)
+        const toggleFlowBtn = document.getElementById('btn-toggle-flow-vis');
+        if (toggleFlowBtn) {
+            toggleFlowBtn.addEventListener('click', () => {
+                this.flowVisible = !this.flowVisible;
+                if (this.particleSystem) {
+                    this.particleSystem.visible = this.flowVisible;
+                }
+                toggleFlowBtn.textContent = this.flowVisible ? '⚡ إخفاء تدفق الحركة' : '⚡ إظهار تدفق الحركة';
+            });
+        }
+
+        // 6. زر إظهار / إخفاء مستشعرات الـ IoT في المشهد ثلاثي الأبعاد
+        const toggleIoTBtn = document.getElementById('btn-toggle-iot-vis');
+        if (toggleIoTBtn) {
+            toggleIoTBtn.addEventListener('click', () => {
+                this.toggleIoTSensorsVisibility();
+            });
+        }
+
+        // 7. زر إظهار / إخفاء عناوين وشارات الفضاءات المعمارية
+        const toggleLabelsBtn = document.getElementById('btn-toggle-labels-vis');
+        if (toggleLabelsBtn) {
+            toggleLabelsBtn.addEventListener('click', () => {
+                this.toggleSpaceLabelsVisibility();
+            });
+        }
+    }
+
+    initIoTSensors() {
+        if (this.iotSensorsGroup && this.buildingGroup) {
+            this.buildingGroup.remove(this.iotSensorsGroup);
+            this.iotSensorsGroup.traverse(child => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                    else child.material.dispose();
+                }
+            });
+        }
+        this.iotSensorsGroup = new THREE.Group();
+        this.iotSensorsVisible = true;
+        this.sensorMeshes = {};
+        this.hoveredSensorId = null;
+        if (this.buildingGroup) {
+            this.buildingGroup.add(this.iotSensorsGroup);
+        }
+
+        fetch('/api/iot/sensors')
+            .then(res => res.json())
+            .then(data => {
+                const sensors = data.sensors || {};
+                for (const [sId, s] of Object.entries(sensors)) {
+                    this.addIoTSensorMesh(s);
+                }
+            })
+            .catch(e => console.warn("Failed to load 3D IoT sensors:", e));
+    }
+
+    addIoTSensorMesh(s) {
+        if (!s || !s.id) return null;
+        if (!this.iotSensorsGroup) {
+            this.iotSensorsGroup = new THREE.Group();
+            if (this.buildingGroup) this.buildingGroup.add(this.iotSensorsGroup);
+        }
+        if (!this.sensorMeshes) {
+            this.sensorMeshes = {};
+        }
+        if (this.sensorMeshes[s.id]) {
+            this.removeIoTSensorMesh(s.id);
+        }
+
+        const sensorGroup = new THREE.Group();
+        sensorGroup.name = `sensor_${s.id}`;
+        sensorGroup.userData = { type: 'iot_sensor', sensorId: s.id, sensor: s };
+
+        const pos = s.position || { x: 0, y: 3.2, z: 0 };
+        const sType = s.type || 'PIR_OCCUPANCY';
+
+        if (sType === 'PIR_OCCUPANCY') {
+            // 1. مستشعر PIR سقفي: قاعدة تثبيت معدنية + قبة كروية مشعة + حلقة رصد إشعاعي
+            const baseGeom = new THREE.CylinderGeometry(0.28, 0.28, 0.05, 16);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+            const baseMesh = new THREE.Mesh(baseGeom, baseMat);
+            baseMesh.position.set(0, 0.1, 0);
+            baseMesh.userData = sensorGroup.userData;
+            sensorGroup.add(baseMesh);
+
+            const domeGeom = new THREE.SphereGeometry(0.24, 16, 16);
+            const domeMat = new THREE.MeshBasicMaterial({ color: 0x00d2ff });
+            const domeMesh = new THREE.Mesh(domeGeom, domeMat);
+            domeMesh.position.set(0, 0, 0);
+            domeMesh.userData = sensorGroup.userData;
+            sensorGroup.add(domeMesh);
+
+            const ringGeom = new THREE.RingGeometry(0.4, 0.75, 24);
+            ringGeom.rotateX(-Math.PI / 2);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+            const ring = new THREE.Mesh(ringGeom, ringMat);
+            ring.position.set(0, -0.05, 0);
+            ring.userData = sensorGroup.userData;
+            sensorGroup.add(ring);
+
+            sensorGroup.position.set(pos.x, pos.y || 3.35, pos.z);
+        } else if (sType === 'ENVIRONMENTAL_TELEMETRY') {
+            // 2. مستشعر بيئي وCO2: كبسولة خضراء مع حلقة LED زمردية
+            const capGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.35, 16);
+            const capMat = new THREE.MeshStandardMaterial({ color: 0x065f46, roughness: 0.4 });
+            const capMesh = new THREE.Mesh(capGeom, capMat);
+            capMesh.userData = sensorGroup.userData;
+            sensorGroup.add(capMesh);
+
+            const ledGeom = new THREE.TorusGeometry(0.2, 0.03, 8, 24);
+            ledGeom.rotateX(Math.PI / 2);
+            const ledMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+            const ledMesh = new THREE.Mesh(ledGeom, ledMat);
+            ledMesh.position.set(0, 0, 0);
+            ledMesh.userData = sensorGroup.userData;
+            sensorGroup.add(ledMesh);
+
+            sensorGroup.position.set(pos.x, pos.y || 2.5, pos.z);
+        } else if (sType === 'ACOUSTIC_NOISE') {
+            // 3. مستشعر صوتي وضوضاء: قبة بنفسجية مع حلقة تموجات صوتية
+            const domeGeom = new THREE.SphereGeometry(0.22, 12, 12);
+            const domeMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+            const domeMesh = new THREE.Mesh(domeGeom, domeMat);
+            domeMesh.userData = sensorGroup.userData;
+            sensorGroup.add(domeMesh);
+
+            const waveGeom = new THREE.RingGeometry(0.3, 0.6, 16);
+            waveGeom.rotateX(-Math.PI / 2);
+            const waveMat = new THREE.MeshBasicMaterial({ color: 0xc084fc, side: THREE.DoubleSide, transparent: true, opacity: 0.45 });
+            const wave = new THREE.Mesh(waveGeom, waveMat);
+            wave.position.set(0, -0.05, 0);
+            wave.userData = sensorGroup.userData;
+            sensorGroup.add(wave);
+
+            sensorGroup.position.set(pos.x, pos.y || 3.1, pos.z);
+        } else if (sType === 'OPTICAL_DOOR_COUNTER') {
+            // 4. عداد بصري للأبواب: عارضة أفقية ذهبية فوق العتبة + شعاع رصد عمودي مخروطي
+            const barGeom = new THREE.BoxGeometry(0.65, 0.1, 0.15);
+            const barMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3 });
+            const barMesh = new THREE.Mesh(barGeom, barMat);
+            barMesh.userData = sensorGroup.userData;
+            sensorGroup.add(barMesh);
+
+            const beamGeom = new THREE.ConeGeometry(0.35, 2.1, 16, 1, true);
+            beamGeom.rotateX(Math.PI);
+            beamGeom.translate(0, -1.05, 0);
+            const beamMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.25, side: THREE.DoubleSide });
+            const beamMesh = new THREE.Mesh(beamGeom, beamMat);
+            beamMesh.userData = sensorGroup.userData;
+            sensorGroup.add(beamMesh);
+
+            sensorGroup.position.set(pos.x, pos.y || 2.25, pos.z);
+        } else {
+            const geom = new THREE.SphereGeometry(0.25, 12, 12);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.userData = sensorGroup.userData;
+            sensorGroup.add(mesh);
+            sensorGroup.position.set(pos.x, pos.y || 3.0, pos.z);
+        }
+
+        this.iotSensorsGroup.add(sensorGroup);
+        this.sensorMeshes[s.id] = sensorGroup;
+        return sensorGroup;
+    }
+
+    removeIoTSensorMesh(sensorId) {
+        if (!this.sensorMeshes || !this.sensorMeshes[sensorId]) return;
+        const group = this.sensorMeshes[sensorId];
+        if (this.iotSensorsGroup) {
+            this.iotSensorsGroup.remove(group);
+        }
+        group.traverse(child => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+                if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                else child.material.dispose();
+            }
+        });
+        delete this.sensorMeshes[sensorId];
+    }
+
+    highlightIoTSensor(sensorId) {
+        this.clearIoTSensorHighlight();
+        if (!this.sensorMeshes || !this.sensorMeshes[sensorId]) return;
+        const group = this.sensorMeshes[sensorId];
+        group.scale.set(1.4, 1.4, 1.4);
+        this.hoveredSensorId = sensorId;
+    }
+
+    clearIoTSensorHighlight() {
+        if (this.hoveredSensorId && this.sensorMeshes && this.sensorMeshes[this.hoveredSensorId]) {
+            this.sensorMeshes[this.hoveredSensorId].scale.set(1.0, 1.0, 1.0);
+        }
+        this.hoveredSensorId = null;
+    }
+
+    toggleIoTSensorsVisibility() {
+        this.iotSensorsVisible = !this.iotSensorsVisible;
+        if (this.iotSensorsGroup) {
+            this.iotSensorsGroup.visible = this.iotSensorsVisible;
+        }
+        const btn = document.getElementById('btn-toggle-iot-vis');
+        if (btn) {
+            btn.textContent = this.iotSensorsVisible ? '📡 إخفاء الحساسات' : '📡 إظهار الحساسات';
+        }
+    }
+
+    toggleSpaceLabelsVisibility() {
+        this.labelsVisible = !this.labelsVisible;
+        if (this.labelSprites) {
+            for (const badge of Object.values(this.labelSprites)) {
+                if (badge && badge.sprite) {
+                    badge.sprite.visible = this.labelsVisible;
+                }
+            }
+        }
+        if (this.stairBadges) {
+            for (const sprite of Object.values(this.stairBadges)) {
+                if (sprite) {
+                    sprite.visible = this.labelsVisible;
+                }
+            }
+        }
+        const btn = document.getElementById('btn-toggle-labels-vis');
+        if (btn) {
+            btn.textContent = this.labelsVisible ? '🏷️ إخفاء العناوين' : '🏷️ إظهار العناوين';
+        }
+    }
+
+    buildStaircases(stairs) {
+        if (this.stairMeshes) {
+            for (const [id, grp] of Object.entries(this.stairMeshes)) {
+                if (grp) {
+                    if (grp.parent) grp.parent.remove(grp);
+                    grp.traverse(child => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                            else child.material.dispose();
+                        }
+                    });
+                }
+            }
+        }
+        this.stairMeshes = {};
+        if (this.stairBadges) {
+            for (const [id, sp] of Object.entries(this.stairBadges)) {
+                if (sp) {
+                    if (sp.parent) sp.parent.remove(sp);
+                    if (sp.material?.map) sp.material.map.dispose();
+                    if (sp.material) sp.material.dispose();
+                }
+            }
+        }
+        this.stairBadges = {};
+
+        if (!stairs) return;
+        if (!this.buildingData) this.buildingData = {};
+        this.buildingData.stairs = stairs;
+
+        for (const [sId, stair] of Object.entries(stairs)) {
+            const stairGroup = new THREE.Group();
+            stairGroup.userData = { type: 'stair', stairId: sId };
+
+            const posX = stair.position ? stair.position[0] : 0;
+            const posZ = stair.position ? stair.position[1] : 0;
+            const width = stair.width || 2.4;
+            const depth = stair.depth || 4.5;
+            const numSteps = stair.num_steps || 18;
+            const floorHeight = 2.8;
+            const rotDeg = stair.rotation || 0;
+            const rotRad = (rotDeg * Math.PI) / 180.0;
+            const direction = stair.direction || (stair.stair_type === 'emergency' ? 'down' : 'two_way');
+
+            const isEmergency = stair.stair_type === 'emergency';
+            const stepMat = new THREE.MeshStandardMaterial({
+                color: isEmergency ? 0x7f8c8d : 0x34495e,
+                roughness: 0.35,
+                metalness: 0.25
+            });
+            const edgeMat = new THREE.LineBasicMaterial({
+                color: isEmergency ? 0xe74c3c : (direction === 'down' ? 0xe67e22 : (direction === 'up' ? 0x2ecc71 : 0x00d2ff)),
+                transparent: true,
+                opacity: 0.85
+            });
+
+            const railMat = new THREE.MeshStandardMaterial({
+                color: 0xecf0f1,
+                metalness: 0.85,
+                roughness: 0.15
+            });
+            const railRadius = 0.032;
+            const railHeight = 0.9;
+
+            const startZ = -depth / 2.0;
+
+            if (direction === 'two_way') {
+                // ==========================================
+                // 1. سلم مزدوج باتجاهين (Dogleg Staircase - شاحطين مع بسطة وسطية)
+                // ==========================================
+                const halfSteps = Math.max(6, Math.floor(numSteps / 2));
+                const midHeight = floorHeight / 2.0; // 1.4m
+                const stepRise = midHeight / halfSteps;
+                const flightRun = (depth * 0.46) / halfSteps;
+                const flightWidth = (width * 0.88 - 0.15) / 2.0;
+                const xFlight1 = -(width * 0.44 - flightWidth / 2.0); // الشاحط الأيسر (صعود)
+                const xFlight2 = (width * 0.44 - flightWidth / 2.0);  // الشاحط الأيمن (نزول / إكمال)
+
+                // أ. الشاحط الأول (صعود من 0 إلى بسطة الاستراحة 1.4م)
+                for (let i = 0; i < halfSteps; i++) {
+                    const sHeight = stepRise * (i + 1);
+                    const sGeo = new THREE.BoxGeometry(flightWidth, sHeight, flightRun * 1.05);
+                    const sMesh = new THREE.Mesh(sGeo, stepMat);
+                    sMesh.position.set(xFlight1, sHeight / 2.0, startZ + i * flightRun + flightRun / 2.0);
+                    sMesh.castShadow = true;
+                    sMesh.receiveShadow = true;
+                    sMesh.userData = { type: 'stair', stairId: sId };
+                    sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), edgeMat));
+                    stairGroup.add(sMesh);
+                }
+
+                // ب. بسطة الاستراحة الوسطية (Intermediate Landing) في الخلف
+                const landingDepth = depth * 0.48;
+                const landingGeo = new THREE.BoxGeometry(width * 0.88, 0.22, landingDepth);
+                const landingMat = new THREE.MeshStandardMaterial({
+                    color: isEmergency ? 0xc0392b : 0x2980b9,
+                    roughness: 0.3,
+                    metalness: 0.3
+                });
+                const landingMesh = new THREE.Mesh(landingGeo, landingMat);
+                landingMesh.position.set(0, midHeight - 0.11, depth / 2.0 - landingDepth / 2.0);
+                landingMesh.castShadow = true;
+                landingMesh.receiveShadow = true;
+                landingMesh.userData = { type: 'stair', stairId: sId };
+                stairGroup.add(landingMesh);
+
+                // ج. الشاحط الثاني (صعود من بسطة الاستراحة 1.4م إلى الطابق التالي 2.8م)
+                for (let i = 0; i < halfSteps; i++) {
+                    const sHeight = midHeight + stepRise * (i + 1);
+                    const sGeo = new THREE.BoxGeometry(flightWidth, sHeight, flightRun * 1.05);
+                    const sMesh = new THREE.Mesh(sGeo, stepMat);
+                    // عكس اتجاه الشاحط الثاني أو متوازي صاعد
+                    sMesh.position.set(xFlight2, sHeight / 2.0, startZ + (halfSteps - 1 - i) * flightRun + flightRun / 2.0);
+                    sMesh.castShadow = true;
+                    sMesh.receiveShadow = true;
+                    sMesh.userData = { type: 'stair', stairId: sId };
+                    sMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), edgeMat));
+                    stairGroup.add(sMesh);
+                }
+
+                // د. درابزينات الأمان (Handrails) للشاحطين والوسط
+                const run1Total = halfSteps * flightRun;
+                const rail1Length = Math.hypot(run1Total, midHeight);
+                const rail1Angle = Math.atan2(midHeight, run1Total);
+
+                // درابزين الشاحط الأول (صعود)
+                [-width * 0.44, 0].forEach(xOff => {
+                    const rGeo = new THREE.CylinderGeometry(railRadius, railRadius, rail1Length, 8);
+                    const rMesh = new THREE.Mesh(rGeo, railMat);
+                    rMesh.rotation.x = Math.PI / 2 - rail1Angle;
+                    rMesh.position.set(xOff, midHeight / 2.0 + railHeight, startZ + run1Total / 2.0);
+                    rMesh.userData = { type: 'stair', stairId: sId };
+                    stairGroup.add(rMesh);
+                });
+
+                // درابزين الشاحط الثاني
+                [0, width * 0.44].forEach(xOff => {
+                    const rGeo = new THREE.CylinderGeometry(railRadius, railRadius, rail1Length, 8);
+                    const rMesh = new THREE.Mesh(rGeo, railMat);
+                    rMesh.rotation.x = -(Math.PI / 2 - rail1Angle);
+                    rMesh.position.set(xOff, midHeight + midHeight / 2.0 + railHeight, startZ + run1Total / 2.0);
+                    rMesh.userData = { type: 'stair', stairId: sId };
+                    stairGroup.add(rMesh);
+                });
+
+                // هـ. مؤشرات التدفق المزدوج (صعود ⬆️ ونزول ⬇️)
+                const arrowAscent = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(xFlight1, 0.08, startZ - 0.2), 1.5, 0x00d2ff, 0.4, 0.25);
+                stairGroup.add(arrowAscent);
+
+                const arrowDescent = new THREE.ArrowHelper(new THREE.Vector3(0, 0, -1), new THREE.Vector3(xFlight2, 0.08, startZ + 1.3), 1.5, 0x2ecc71, 0.4, 0.25);
+                stairGroup.add(arrowDescent);
+
+                // منارة الربط المضيئة عند المدخلين
+                const bGeo1 = new THREE.RingGeometry(0.2, 0.45, 24);
+                const bMat1 = new THREE.MeshBasicMaterial({ color: 0x00d2ff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+                const bMesh1 = new THREE.Mesh(bGeo1, bMat1);
+                bMesh1.rotation.x = -Math.PI / 2;
+                bMesh1.position.set(xFlight1, 0.05, startZ);
+                bMesh1.userData = { type: 'stair', stairId: sId };
+                stairGroup.add(bMesh1);
+
+                const bMat2 = new THREE.MeshBasicMaterial({ color: 0x2ecc71, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+                const bMesh2 = new THREE.Mesh(bGeo1, bMat2);
+                bMesh2.rotation.x = -Math.PI / 2;
+                bMesh2.position.set(xFlight2, 0.05, startZ);
+                bMesh2.userData = { type: 'stair', stairId: sId };
+                stairGroup.add(bMesh2);
+
+            } else {
+                // ==========================================
+                // 2. سلم شاحط مفرد (صاعد باتجاه واحد أو نازل باتجاه واحد)
+                // ==========================================
+                const stepRise = floorHeight / numSteps;
+                const stepRun = (depth * 0.72) / numSteps;
+                const isDown = direction === 'down';
+
+                for (let i = 0; i < numSteps; i++) {
+                    const stepIdx = isDown ? (numSteps - 1 - i) : i;
+                    const sHeight = stepRise * (stepIdx + 1);
+                    const sGeo = new THREE.BoxGeometry(width * 0.88, sHeight, stepRun * 1.05);
+                    const stepMesh = new THREE.Mesh(sGeo, stepMat);
+                    stepMesh.position.set(0, sHeight / 2.0, startZ + i * stepRun + stepRun / 2.0);
+                    stepMesh.castShadow = true;
+                    stepMesh.receiveShadow = true;
+                    stepMesh.userData = { type: 'stair', stairId: sId };
+                    stepMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(sGeo), edgeMat));
+                    stairGroup.add(stepMesh);
+                }
+
+                // بسطة وصول
+                const landingDepth = depth * 0.28;
+                const landingGeo = new THREE.BoxGeometry(width * 0.88, 0.2, landingDepth);
+                const landingMat = new THREE.MeshStandardMaterial({
+                    color: isEmergency ? 0xc0392b : (isDown ? 0xd35400 : 0x2980b9),
+                    roughness: 0.3,
+                    metalness: 0.3
+                });
+                const landingMesh = new THREE.Mesh(landingGeo, landingMat);
+                const landingZPos = isDown ? (startZ + landingDepth / 2.0 - 0.2) : (depth / 2.0 - landingDepth / 2.0);
+                landingMesh.position.set(0, floorHeight - 0.1, landingZPos);
+                landingMesh.castShadow = true;
+                landingMesh.receiveShadow = true;
+                landingMesh.userData = { type: 'stair', stairId: sId };
+                stairGroup.add(landingMesh);
+
+                // درابزينات الأمان
+                const runTotal = numSteps * stepRun;
+                const railLength = Math.hypot(runTotal, floorHeight);
+                const railAngle = Math.atan2(floorHeight, runTotal);
+
+                [-width * 0.44, width * 0.44].forEach(xOffset => {
+                    const railGeo = new THREE.CylinderGeometry(railRadius, railRadius, railLength, 8);
+                    const railMesh = new THREE.Mesh(railGeo, railMat);
+                    railMesh.rotation.x = isDown ? -(Math.PI / 2 - railAngle) : (Math.PI / 2 - railAngle);
+                    railMesh.position.set(xOffset, floorHeight / 2.0 + railHeight, startZ + runTotal / 2.0);
+                    railMesh.userData = { type: 'stair', stairId: sId };
+                    stairGroup.add(railMesh);
+                });
+
+                // سهم اتجاه الحركة (صاعد ⬆️ أو نازل ⬇️)
+                const arrowLength = Math.min(2.2, depth * 0.45);
+                const arrowDir = isDown ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 0, 1);
+                const arrowOrigin = isDown ? new THREE.Vector3(0, 0.06, depth / 2.0) : new THREE.Vector3(0, 0.06, startZ - 0.2);
+                const arrowColor = isEmergency ? 0xff4757 : (isDown ? 0xe67e22 : 0x2ecc71);
+                const arrowHelper = new THREE.ArrowHelper(arrowDir, arrowOrigin, arrowLength, arrowColor, 0.5, 0.32);
+                stairGroup.add(arrowHelper);
+
+                // منارة الربط المضيئة
+                const beaconGeo = new THREE.RingGeometry(0.35, 0.65, 32);
+                const beaconMat = new THREE.MeshBasicMaterial({
+                    color: arrowColor,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+                beaconMesh.rotation.x = -Math.PI / 2;
+                beaconMesh.position.set(0, 0.05, isDown ? depth / 2.0 : startZ);
+                beaconMesh.userData = { type: 'stair', stairId: sId };
+                stairGroup.add(beaconMesh);
+            }
+
+            const baseY = stair.base_elevation || 0;
+            stairGroup.position.set(posX, baseY, posZ);
+            stairGroup.rotation.y = rotRad;
+            stairGroup.userData = { type: 'stair', stairId: sId, storeyId: stair.storey_id, baseY: baseY };
+
+            const stairParent = (stair.storey_id && this.storeyGroups[stair.storey_id]) || this.buildingGroup;
+            stairParent.add(stairGroup);
+            this.stairMeshes[sId] = stairGroup;
+
+            // لوحة نصية عائمة (Floating Staircase Badge)
+            this.createStairBadge(sId, stair, posX, posZ);
+        }
+    }
+
+    createStairBadge(id, stair, x, z) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 280;
+        canvas.height = 136;
+        const ctx = canvas.getContext('2d');
+
+        const isEmergency = stair.stair_type === 'emergency';
+        const direction = stair.direction || (isEmergency ? 'down' : 'two_way');
+
+        let dirTitle = '🔁 باتجاهين (صاعد / نازل)';
+        let dirColor = '#00d2ff';
+        let borderColor = '#00d2ff';
+        if (direction === 'up') {
+            dirTitle = '⬆️ صاعد باتجاه واحد';
+            dirColor = '#2ecc71';
+            borderColor = '#2ecc71';
+        } else if (direction === 'down') {
+            dirTitle = '⬇️ نازل باتجاه واحد';
+            dirColor = '#e67e22';
+            borderColor = '#e67e22';
+        }
+        if (isEmergency) {
+            dirTitle = '🚨 مخرج طوارئ وهروب';
+            dirColor = '#e74c3c';
+            borderColor = '#e74c3c';
+        }
+
+        ctx.fillStyle = 'rgba(15, 23, 36, 0.94)';
+        ctx.roundRect(8, 8, 264, 120, 14);
+        ctx.fill();
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(stair.name_ar || 'سلم معماري', 140, 42);
+
+        ctx.fillStyle = dirColor;
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText(dirTitle, 140, 74);
+
+        ctx.fillStyle = '#a4b0be';
+        ctx.font = '13px sans-serif';
+        ctx.fillText(`عرض: ${stair.width || 2.4}م | ${stair.num_steps || 18} درجات`, 140, 104);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(spriteMat);
+        const baseY = stair.base_elevation || 0;
+        sprite.position.set(x, baseY + 4.2, z);
+        sprite.scale.set(6.5, 3.2, 1);
+        sprite.userData = { type: 'stair', stairId: id, storeyId: stair.storey_id, baseY: baseY + 4.2 };
+        sprite.visible = this.labelsVisible !== false;
+        const badgeParent = (stair.storey_id && this.storeyGroups[stair.storey_id]) || this.buildingGroup;
+        badgeParent.add(sprite);
+
+        if (!this.stairBadges) this.stairBadges = {};
+        this.stairBadges[id] = sprite;
+    }
+
+    buildSlabs(slabs, storeys) {
+        if (this.slabMeshes) {
+            for (const [id, mesh] of Object.entries(this.slabMeshes)) {
+                if (mesh && mesh.parent) {
+                    mesh.parent.remove(mesh);
+                    if (mesh.geometry) mesh.geometry.dispose();
+                    if (mesh.material) {
+                        if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose());
+                        else mesh.material.dispose();
+                    }
+                }
+            }
+        }
+        this.slabMeshes = {};
+        if (!slabs || Object.keys(slabs).length === 0) return;
+
+        const floorSlabMat = new THREE.MeshStandardMaterial({
+            color: 0x141f2e,
+            roughness: 0.45,
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0.92
+        });
+
+        const roofSlabMat = new THREE.MeshStandardMaterial({
+            color: 0x1e293b,
+            roughness: 0.35,
+            metalness: 0.3,
+            transparent: true,
+            opacity: 0.95
+        });
+
+        for (const [sId, slab] of Object.entries(slabs)) {
+            const b = slab.bounds || { x: -18, z: -14, width: 36, depth: 28 };
+            const thick = slab.thickness || 0.25;
+            const baseY = slab.base_elevation || 0;
+            const isRoof = slab.type === 'roof';
+            const poly = slab.polygon;
+
+            let geo;
+            let cx, cz;
+
+            if (poly && Array.isArray(poly) && poly.length >= 3) {
+                cx = poly.reduce((sum, pt) => sum + pt[0], 0) / poly.length;
+                cz = poly.reduce((sum, pt) => sum + pt[1], 0) / poly.length;
+
+                const shape = new THREE.Shape();
+                shape.moveTo(poly[0][0] - cx, -(poly[0][1] - cz));
+                for (let i = 1; i < poly.length; i++) {
+                    shape.lineTo(poly[i][0] - cx, -(poly[i][1] - cz));
+                }
+                shape.closePath();
+
+                const extrudeSettings = {
+                    depth: thick,
+                    bevelEnabled: false
+                };
+                geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                geo.rotateX(-Math.PI / 2);
+            } else {
+                geo = new THREE.BoxGeometry(b.width, thick, b.depth);
+                cx = b.x + b.width / 2;
+                cz = b.z + b.depth / 2;
+            }
+
+            const mat = isRoof ? roofSlabMat : floorSlabMat;
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(cx, baseY - thick / 2, cz);
+            mesh.receiveShadow = true;
+            mesh.userData = { type: 'slab', slabId: sId, storeyId: slab.storey_id, baseY: baseY - thick / 2 };
+
+            const edgeGeo = new THREE.EdgesGeometry(geo);
+            const edgeLine = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({
+                color: isRoof ? 0x64748b : 0x00d2ff,
+                transparent: true,
+                opacity: 0.65
+            }));
+            mesh.add(edgeLine);
+
+            const targetParent = (slab.storey_id && this.storeyGroups[slab.storey_id]) || this.buildingGroup;
+            targetParent.add(mesh);
+            this.slabMeshes[sId] = mesh;
+        }
+    }
+
+    buildColumns(columns, storeys) {
+        if (this.columnMeshes) {
+            for (const [id, mesh] of Object.entries(this.columnMeshes)) {
+                if (mesh && mesh.parent) {
+                    mesh.parent.remove(mesh);
+                    if (mesh.geometry) mesh.geometry.dispose();
+                    if (mesh.material) {
+                        if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose());
+                        else mesh.material.dispose();
+                    }
+                }
+            }
+        }
+        this.columnMeshes = {};
+        if (!columns || Object.keys(columns).length === 0) return;
+
+        const colMat = new THREE.MeshStandardMaterial({
+            color: 0x2b394e,
+            roughness: 0.3,
+            metalness: 0.4
+        });
+
+        for (const [cId, col] of Object.entries(columns)) {
+            const pos = col.position || [0, 0];
+            const w = col.width || 0.45;
+            const d = col.depth || 0.45;
+            const h = col.height || 3.5;
+            const baseY = col.base_elevation || 0;
+
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geo, colMat);
+            mesh.position.set(pos[0], baseY + h / 2, pos[1]);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = { type: 'column', columnId: cId, storeyId: col.storey_id, baseY: baseY + h / 2 };
+
+            const edgeGeo = new THREE.EdgesGeometry(geo);
+            const edgeLine = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({
+                color: 0x4a6585,
+                transparent: true,
+                opacity: 0.7
+            }));
+            mesh.add(edgeLine);
+
+            const targetParent = (col.storey_id && this.storeyGroups[col.storey_id]) || this.buildingGroup;
+            targetParent.add(mesh);
+            this.columnMeshes[cId] = mesh;
+        }
+    }
+
+    buildWallsAndOpenings(walls, openings, spaces) {
+        // تنظيف وحذف أي كائنات جدران سابقة لمنع التراكم والتداخل عند التعديل والحذف
+        if (this.wallMeshes) {
+            for (const [oldId, oldGroup] of Object.entries(this.wallMeshes)) {
+                if (oldGroup && this.buildingGroup) {
+                    this.buildingGroup.remove(oldGroup);
+                    oldGroup.traverse((child) => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                            else child.material.dispose();
+                        }
+                    });
+                }
+            }
+        }
+        this.wallMeshes = {};
+        this.openingMeshes = {};
+
+        if (this.jointCapsGroup && this.buildingGroup) {
+            this.buildingGroup.remove(this.jointCapsGroup);
+            this.jointCapsGroup.traverse((child) => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                    else child.material.dispose();
+                }
+            });
+        }
+        this.jointCapsGroup = new THREE.Group();
+        this.jointCapsGroup.visible = this.wallsVisible;
+        this.buildingGroup.add(this.jointCapsGroup);
+
+        // إذا لم تكن الجدران معرفة صراحة (null/undefined)، نولد جدران محيطية وفتحات تلقائياً من الفضاءات
+        if (walls === undefined || walls === null) {
+            walls = {};
+            openings = openings || {};
+            for (const [sid, space] of Object.entries(spaces || {})) {
+                const b = space.bounds;
+                const wn = `w_${sid}_n`, ws = `w_${sid}_s`, ww = `w_${sid}_w`, we = `w_${sid}_e`;
+                walls[wn] = { id: wn, start: [b.x, b.z], end: [b.x + b.width, b.z], thickness: 0.25, height: 2.8, type: "exterior" };
+                walls[ws] = { id: ws, start: [b.x, b.z + b.depth], end: [b.x + b.width, b.z + b.depth], thickness: 0.25, height: 2.8, type: "interior" };
+                walls[ww] = { id: ww, start: [b.x, b.z], end: [b.x, b.z + b.depth], thickness: 0.25, height: 2.8, type: "interior" };
+                walls[we] = { id: we, start: [b.x + b.width, b.z], end: [b.x + b.width, b.z + b.depth], thickness: 0.25, height: 2.8, type: "interior" };
+
+                const did = `door_${sid}`;
+                openings[did] = {
+                    id: did,
+                    type: "door",
+                    wall_id: ws,
+                    position: [b.x + b.width * 0.5, b.z + b.depth],
+                    width: 1.2,
+                    height: 2.2
+                };
+            }
+        }
+
+        if (!this.buildingData) this.buildingData = {};
+        this.buildingData.walls = walls;
+        this.buildingData.openings = openings;
+
+        const wallMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1f2e44,
+            roughness: 0.35,
+            metalness: 0.15,
+            transparent: true,
+            opacity: 0.88
+        });
+
+        // تدرجات لونية وخامات معمارية عالية التباين والجمالية للأبواب والفتحات والشبابيك
+        // 1. خامة إطار الباب الخشبي الداكن / البرونز المعماري
+        const doorFrameMaterial = new THREE.MeshStandardMaterial({
+            color: 0xb45309, // خشب كهرماني دافئ / برونز
+            emissive: 0x451a03,
+            roughness: 0.35,
+            metalness: 0.2
+        });
+
+        // 2. خامة مصراع الباب ثلاثي الأبعاد المفتوح بزاوية معمارية
+        const doorLeafMaterial = new THREE.MeshStandardMaterial({
+            color: 0xf59e0b, // خشب بلوط عسلي دافئ ساطع
+            emissive: 0x78350f, // إشعاع دافئ خفيف لمنع الخفوت
+            roughness: 0.25,
+            metalness: 0.15
+        });
+
+        // 3. خامة عتبة الباب النحاسية الذهبية المضيئة
+        const doorThresholdMaterial = new THREE.MeshStandardMaterial({
+            color: 0xfbbf24,
+            emissive: 0x92400e,
+            roughness: 0.2,
+            metalness: 0.7
+        });
+
+        // 4. خامة مقبض الباب الكرومي الفضي اللامع
+        const doorHandleMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.1,
+            metalness: 0.95
+        });
+
+        // 5. خامة إطار فتحة العبور / الممر المفتوح بلون زمردي نيون عالي التباين
+        const passageArchitraveMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00e676, // أخضر زمردي نيون عالي الوضوح
+            emissive: 0x004d40,
+            roughness: 0.25,
+            metalness: 0.3
+        });
+
+        // 6. خامة عتبة ممر العبور الزمردية المضيئة
+        const passageThresholdMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00e676,
+            emissive: 0x00796b,
+            roughness: 0.2,
+            metalness: 0.5
+        });
+
+        // 7. خامة إطار النافذة المعماري الألمنيوم وجلسة الشباك
+        const windowFrameMaterial = new THREE.MeshStandardMaterial({
+            color: 0xe2e8f0, // ألمنيوم معماري نقي عالي التباين
+            roughness: 0.25,
+            metalness: 0.6
+        });
+        const windowSillMaterial = new THREE.MeshStandardMaterial({
+            color: 0x94a3b8, // حجر/رخام جلسة شباك بارز
+            roughness: 0.35,
+            metalness: 0.1
+        });
+        const glassMaterial = new THREE.MeshStandardMaterial({
+            color: 0x38bdf8,
+            roughness: 0.1,
+            metalness: 0.3,
+            transparent: true,
+            opacity: 0.5
+        });
+
+        for (const [wId, wall] of Object.entries(walls)) {
+            const x1 = wall.start[0], z1 = wall.start[1];
+            const x2 = wall.end[0], z2 = wall.end[1];
+            const dx = x2 - x1, dz = z2 - z1;
+            const length = Math.sqrt(dx * dx + dz * dz);
+            if (length < 0.5) continue;
+
+            const angle = Math.atan2(dz, dx);
+            const wallH = wall.height || 2.8;
+            const wallT = wall.thickness || 0.25;
+
+            // استخراج الفتحات الواقعة على هذا الجدار
+            const wallOpenings = [];
+            for (const [opId, op] of Object.entries(openings || {})) {
+                if (op.wall_id === wId) {
+                    const opx = op.position[0], opz = op.position[1];
+                    const proj = ((opx - x1) * dx + (opz - z1) * dz) / length;
+                    if (proj >= 0 && proj <= length) {
+                        wallOpenings.push({ ...op, offset: proj });
+                    }
+                }
+            }
+            const baseY = wall.base_elevation || wall.elevation || 0;
+            const wallGroup = new THREE.Group();
+            wallGroup.position.set(x1, baseY, z1);
+            wallGroup.rotation.y = -angle;
+
+            if (wallOpenings.length === 0) {
+                // جدار صامت مصمت بدون فتحات
+                const geo = new THREE.BoxGeometry(length, wallH, wallT);
+                const mesh = new THREE.Mesh(geo, wallMaterial);
+                mesh.position.set(length / 2, wallH / 2, 0);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                wallGroup.add(mesh);
+
+                const edgeGeo = new THREE.EdgesGeometry(geo);
+                const edgeLine = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({
+                    color: 0x2e4a70,
+                    transparent: true,
+                    opacity: 0.6
+                }));
+                mesh.add(edgeLine);
+            } else {
+                // جدار مفرغ هندسياً بفتحات أبواب وشبابيك حقيقية
+                let currentX = 0;
+                for (const op of wallOpenings) {
+                    const opW = op.width || 1.2;
+                    const opStart = Math.max(currentX, op.offset - opW / 2);
+                    const opEnd = Math.min(length, op.offset + opW / 2);
+
+                    // جزء الجدار المصمت قبل الفتحة
+                    if (opStart > currentX + 0.1) {
+                        const segLen = opStart - currentX;
+                        const segGeo = new THREE.BoxGeometry(segLen, wallH, wallT);
+                        const segMesh = new THREE.Mesh(segGeo, wallMaterial);
+                        segMesh.position.set(currentX + segLen / 2, wallH / 2, 0);
+                        segMesh.castShadow = true;
+                        wallGroup.add(segMesh);
+                    }
+
+                    if (op.type === "door") {
+                        // 1. فتحة باب: عتبة الجدار العلوية (Wall Header / Lintel)
+                        const doorH = op.height || 2.2;
+                        const opData = { type: 'opening', openingId: op.id || opId, wallId: wId, openingType: 'door' };
+                        if (wallH > doorH) {
+                            const lintelH = wallH - doorH;
+                            const lintelGeo = new THREE.BoxGeometry(opEnd - opStart, lintelH, wallT);
+                            const lintelMesh = new THREE.Mesh(lintelGeo, wallMaterial);
+                            lintelMesh.position.set((opStart + opEnd) / 2, doorH + lintelH / 2, 0);
+                            lintelMesh.userData = opData;
+                            wallGroup.add(lintelMesh);
+                            this.trackOpeningMesh(op.id || opId, lintelMesh);
+
+                            // حلية تاج إطار الباب العلوي (Door Frame Header Trim)
+                            const headerTrimGeo = new THREE.BoxGeometry(opEnd - opStart + 0.14, 0.08, wallT * 1.22);
+                            const headerTrimMesh = new THREE.Mesh(headerTrimGeo, doorFrameMaterial);
+                            headerTrimMesh.position.set((opStart + opEnd) / 2, doorH - 0.04, 0);
+                            headerTrimMesh.userData = opData;
+                            wallGroup.add(headerTrimMesh);
+                            this.trackOpeningMesh(op.id || opId, headerTrimMesh);
+                        }
+
+                        // 2. عتبة الباب النحاسية الذهبية المضيئة (Golden Brass Threshold)
+                        const threshGeo = new THREE.BoxGeometry(opEnd - opStart, 0.045, wallT * 1.35);
+                        const threshMesh = new THREE.Mesh(threshGeo, doorThresholdMaterial);
+                        threshMesh.position.set((opStart + opEnd) / 2, 0.0225, 0);
+                        threshMesh.userData = opData;
+                        wallGroup.add(threshMesh);
+                        this.trackOpeningMesh(op.id || opId, threshMesh);
+
+                        // 3. قوائم إطار الباب الجانبية البارزة (Side Architrave Posts)
+                        const postW = 0.08;
+                        const postGeo = new THREE.BoxGeometry(postW, doorH, wallT * 1.22);
+                        const leftPost = new THREE.Mesh(postGeo, doorFrameMaterial);
+                        leftPost.position.set(opStart + postW / 2, doorH / 2, 0);
+                        leftPost.userData = opData;
+                        const rightPost = new THREE.Mesh(postGeo, doorFrameMaterial);
+                        rightPost.position.set(opEnd - postW / 2, doorH / 2, 0);
+                        rightPost.userData = opData;
+                        wallGroup.add(leftPost);
+                        wallGroup.add(rightPost);
+                        this.trackOpeningMesh(op.id || opId, leftPost);
+                        this.trackOpeningMesh(op.id || opId, rightPost);
+
+                        // 4. مصراع الباب ثلاثي الأبعاد المفتوح بزاوية معمارية (3D Open Wood Door Leaf)
+                        const leafW = Math.max(0.6, (opEnd - opStart) - 0.1);
+                        const leafH = Math.max(1.8, doorH - 0.06);
+                        const leafT = 0.045;
+                        const hingeGroup = new THREE.Group();
+                        hingeGroup.position.set(opStart + postW, 0, 0);
+                        hingeGroup.rotation.y = -Math.PI * 0.35; // زاوية فتح ~63 درجة
+                        hingeGroup.userData = opData;
+
+                        const leafGeo = new THREE.BoxGeometry(leafW, leafH, leafT);
+                        const leafMesh = new THREE.Mesh(leafGeo, doorLeafMaterial);
+                        leafMesh.position.set(leafW / 2, leafH / 2 + 0.03, 0);
+                        leafMesh.castShadow = true;
+                        leafMesh.userData = opData;
+                        hingeGroup.add(leafMesh);
+
+                        // مقبض الباب الكرومي الفضي (Door Lever Handle)
+                        const handlePlateGeo = new THREE.BoxGeometry(0.04, 0.18, leafT + 0.02);
+                        const handlePlate = new THREE.Mesh(handlePlateGeo, doorHandleMaterial);
+                        handlePlate.position.set(leafW - 0.09, 1.05, 0);
+                        handlePlate.userData = opData;
+                        hingeGroup.add(handlePlate);
+
+                        const handleLeverGeo = new THREE.BoxGeometry(0.12, 0.025, 0.025);
+                        const handleLever = new THREE.Mesh(handleLeverGeo, doorHandleMaterial);
+                        handleLever.position.set(leafW - 0.13, 1.05, leafT / 2 + 0.03);
+                        handleLever.userData = opData;
+                        hingeGroup.add(handleLever);
+
+                        wallGroup.add(hingeGroup);
+                        this.trackOpeningMesh(op.id || opId, hingeGroup);
+
+                        // 5. قوس فتحة الباب المعماري المتوهج على الأرضية (Luminous Amber Door Swing Arc)
+                        const swingRadius = leafW;
+                        const swingCurve = new THREE.EllipseCurve(0, 0, swingRadius, swingRadius, 0, Math.PI * 0.35, false);
+                        const points = swingCurve.getPoints(16);
+                        const swingGeo = new THREE.BufferGeometry().setFromPoints(points.map(p => new THREE.Vector3(p.x, 0.03, p.y)));
+                        const swingLine = new THREE.Line(swingGeo, new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.9 }));
+                        swingLine.position.set(opStart + postW, 0, 0);
+                        swingLine.userData = opData;
+                        wallGroup.add(swingLine);
+                        this.trackOpeningMesh(op.id || opId, swingLine);
+
+                    } else if (op.type === "window") {
+                        // فتحة شباك: جلسة سفلية وزجاج وإطار ألمنيوم وعتبة علوية
+                        const sillH = op.sill_height || 0.9;
+                        const winH = op.height || 1.4;
+                        const topH = Math.min(wallH, sillH + winH);
+                        const winData = { type: 'opening', openingId: op.id || opId, wallId: wId, openingType: 'window' };
+
+                        // جلسة الجدار أسفل الشباك
+                        if (sillH > 0.1) {
+                            const sillGeo = new THREE.BoxGeometry(opEnd - opStart, sillH, wallT);
+                            const sillMesh = new THREE.Mesh(sillGeo, wallMaterial);
+                            sillMesh.position.set((opStart + opEnd) / 2, sillH / 2, 0);
+                            sillMesh.userData = winData;
+                            wallGroup.add(sillMesh);
+                            this.trackOpeningMesh(op.id || opId, sillMesh);
+
+                            // جلسة رخامية/حجرية معمارية بارزة للشباك
+                            const sillTrimGeo = new THREE.BoxGeometry(opEnd - opStart + 0.12, 0.06, wallT * 1.35);
+                            const sillTrimMesh = new THREE.Mesh(sillTrimGeo, windowSillMaterial);
+                            sillTrimMesh.position.set((opStart + opEnd) / 2, sillH - 0.03, 0);
+                            sillTrimMesh.userData = winData;
+                            wallGroup.add(sillTrimMesh);
+                            this.trackOpeningMesh(op.id || opId, sillTrimMesh);
+                        }
+
+                        // إطار الألمنيوم المحيط بالنافذة
+                        const postW = 0.05;
+                        const frameGeo = new THREE.BoxGeometry(postW, winH, wallT * 1.15);
+                        const leftFrame = new THREE.Mesh(frameGeo, windowFrameMaterial);
+                        leftFrame.position.set(opStart + postW / 2, sillH + winH / 2, 0);
+                        leftFrame.userData = winData;
+                        const rightFrame = new THREE.Mesh(frameGeo, windowFrameMaterial);
+                        rightFrame.position.set(opEnd - postW / 2, sillH + winH / 2, 0);
+                        rightFrame.userData = winData;
+                        wallGroup.add(leftFrame);
+                        wallGroup.add(rightFrame);
+                        this.trackOpeningMesh(op.id || opId, leftFrame);
+                        this.trackOpeningMesh(op.id || opId, rightFrame);
+
+                        // اللوح الزجاجي الشفاف العاكس
+                        const glassGeo = new THREE.BoxGeometry(opEnd - opStart - 0.08, winH - 0.04, wallT * 0.25);
+                        const glassMesh = new THREE.Mesh(glassGeo, glassMaterial);
+                        glassMesh.position.set((opStart + opEnd) / 2, sillH + winH / 2, 0);
+                        glassMesh.userData = winData;
+                        wallGroup.add(glassMesh);
+                        this.trackOpeningMesh(op.id || opId, glassMesh);
+
+                        // عتبة الجدار أعلى الشباك
+                        if (wallH > topH) {
+                            const lintelH = wallH - topH;
+                            const lintelGeo = new THREE.BoxGeometry(opEnd - opStart, lintelH, wallT);
+                            const lintelMesh = new THREE.Mesh(lintelGeo, wallMaterial);
+                            lintelMesh.position.set((opStart + opEnd) / 2, topH + lintelH / 2, 0);
+                            lintelMesh.userData = winData;
+                            wallGroup.add(lintelMesh);
+                            this.trackOpeningMesh(op.id || opId, lintelMesh);
+
+                            // حلية علوية لإطار النافذة
+                            const winTopGeo = new THREE.BoxGeometry(opEnd - opStart + 0.12, 0.05, wallT * 1.15);
+                            const winTopMesh = new THREE.Mesh(winTopGeo, windowFrameMaterial);
+                            winTopMesh.position.set((opStart + opEnd) / 2, topH - 0.025, 0);
+                            winTopMesh.userData = winData;
+                            wallGroup.add(winTopMesh);
+                            this.trackOpeningMesh(op.id || opId, winTopMesh);
+                        }
+                    } else if (op.type === "passage" || op.type === "opening") {
+                        // فتحة عبور / ممر مفتوح بدون مصراع بكتلة زمردية نيون فائقة الوضوح
+                        const passH = op.height || 2.4;
+                        const passData = { type: 'opening', openingId: op.id || opId, wallId: wId, openingType: 'passage' };
+                        if (wallH > passH) {
+                            const lintelH = wallH - passH;
+                            const lintelGeo = new THREE.BoxGeometry(opEnd - opStart, lintelH, wallT);
+                            const lintelMesh = new THREE.Mesh(lintelGeo, wallMaterial);
+                            lintelMesh.position.set((opStart + opEnd) / 2, passH + lintelH / 2, 0);
+                            lintelMesh.userData = passData;
+                            wallGroup.add(lintelMesh);
+                            this.trackOpeningMesh(op.id || opId, lintelMesh);
+
+                            // حلية العضادة العلوية لبوابة الممر (Portal Top Architrave)
+                            const passTopGeo = new THREE.BoxGeometry(opEnd - opStart + 0.16, 0.09, wallT * 1.28);
+                            const passTopMesh = new THREE.Mesh(passTopGeo, passageArchitraveMaterial);
+                            passTopMesh.position.set((opStart + opEnd) / 2, passH - 0.045, 0);
+                            passTopMesh.userData = passData;
+                            wallGroup.add(passTopMesh);
+                            this.trackOpeningMesh(op.id || opId, passTopMesh);
+                        }
+
+                        // قوائم بوابة الممر الزمردية العريضة (Emerald Portal Posts)
+                        const postW = 0.09;
+                        const postGeo = new THREE.BoxGeometry(postW, passH, wallT * 1.28);
+                        const leftPost = new THREE.Mesh(postGeo, passageArchitraveMaterial);
+                        leftPost.position.set(opStart + postW / 2, passH / 2, 0);
+                        leftPost.userData = passData;
+                        const rightPost = new THREE.Mesh(postGeo, passageArchitraveMaterial);
+                        rightPost.position.set(opEnd - postW / 2, passH / 2, 0);
+                        rightPost.userData = passData;
+                        wallGroup.add(leftPost);
+                        wallGroup.add(rightPost);
+                        this.trackOpeningMesh(op.id || opId, leftPost);
+                        this.trackOpeningMesh(op.id || opId, rightPost);
+
+                        // شريط الانتقال الأرضي المضيء لبوابة العبور (Luminous Emerald Passage Threshold)
+                        const passThreshGeo = new THREE.BoxGeometry(opEnd - opStart, 0.035, wallT * 1.4);
+                        const passThreshMesh = new THREE.Mesh(passThreshGeo, passageThresholdMaterial);
+                        passThreshMesh.position.set((opStart + opEnd) / 2, 0.018, 0);
+                        passThreshMesh.userData = passData;
+                        wallGroup.add(passThreshMesh);
+                        this.trackOpeningMesh(op.id || opId, passThreshMesh);
+                    }
+
+                    currentX = opEnd;
+                }
+
+                // الجزء المتبقي من الجدار بعد آخر فتحة
+                if (length > currentX + 0.1) {
+                    const segLen = length - currentX;
+                    const segGeo = new THREE.BoxGeometry(segLen, wallH, wallT);
+                    const segMesh = new THREE.Mesh(segGeo, wallMaterial);
+                    segMesh.position.set(currentX + segLen / 2, wallH / 2, 0);
+                    segMesh.castShadow = true;
+                    wallGroup.add(segMesh);
+                }
+            }
+
+            wallGroup.userData = { type: 'wall', wallId: wId, storeyId: wall.storey_id, baseY: baseY };
+            wallGroup.traverse((child) => {
+                if (child.isMesh && (!child.userData || !child.userData.openingId)) {
+                    child.userData = { type: 'wall', wallId: wId, storeyId: wall.storey_id, baseY: baseY };
+                }
+            });
+
+            wallGroup.visible = this.wallsVisible;
+            const wallParent = (wall.storey_id && this.storeyGroups[wall.storey_id]) || this.buildingGroup;
+            wallParent.add(wallGroup);
+            this.wallMeshes[wId] = wallGroup;
+        }
+
+        // 4. توليد وصلات وأعمدة ربط التقاطعات والزوايا النظيفة (Clean Corner Miter & Intersection Joint Caps)
+        const cornerMap = new Map();
+        for (const [wId, wall] of Object.entries(walls)) {
+            const s = wall.start, e = wall.end;
+            const keyS = `${Math.round(s[0] * 5) / 5},${Math.round(s[1] * 5) / 5}`;
+            const keyE = `${Math.round(e[0] * 5) / 5},${Math.round(e[1] * 5) / 5}`;
+            cornerMap.set(keyS, (cornerMap.get(keyS) || 0) + 1);
+            cornerMap.set(keyE, (cornerMap.get(keyE) || 0) + 1);
+        }
+
+        const renderedJoints = new Set();
+        for (const [wId, wall] of Object.entries(walls)) {
+            const wallH = wall.height || 2.8;
+            const wallT = wall.thickness || 0.25;
+            const baseY = wall.base_elevation || wall.elevation || 0;
+            const s = wall.start, e = wall.end;
+
+            // أ. وصلات الزوايا بين نهايات الجدران (Corner Miters)
+            for (const pt of [s, e]) {
+                const key = `${Math.round(pt[0] * 5) / 5},${Math.round(pt[1] * 5) / 5}`;
+                if ((cornerMap.get(key) || 0) >= 2 && !renderedJoints.has(key)) {
+                    renderedJoints.add(key);
+                    const jointRadius = Math.max(0.13, wallT * 0.52);
+                    const cornerGeo = new THREE.CylinderGeometry(jointRadius, jointRadius, wallH, 18);
+                    const cornerMesh = new THREE.Mesh(cornerGeo, wallMaterial);
+                    cornerMesh.position.set(pt[0], baseY + wallH / 2, pt[1]);
+                    cornerMesh.castShadow = true;
+                    cornerMesh.receiveShadow = true;
+                    cornerMesh.userData = { type: 'wall_joint', wallId: wId, storeyId: wall.storey_id, baseY: baseY + wallH / 2 };
+
+                    const cEdges = new THREE.EdgesGeometry(cornerGeo);
+                    const cLine = new THREE.LineSegments(cEdges, new THREE.LineBasicMaterial({
+                        color: 0x2e4a70,
+                        transparent: true,
+                        opacity: 0.6
+                    }));
+                    cornerMesh.add(cLine);
+                    const jointParent = (wall.storey_id && this.storeyGroups[wall.storey_id]) || this.jointCapsGroup;
+                    jointParent.add(cornerMesh);
+                }
+            }
+
+            // ب. وصلات التقاطعات المتعامدة والمتقاطعة (T-Junctions & Intersections)
+            const ptsA = [wall.start, wall.end];
+            for (const [idB, wB] of Object.entries(walls)) {
+                if (wId === idB) continue;
+                const x1 = wB.start[0], z1 = wB.start[1];
+                const x2 = wB.end[0], z2 = wB.end[1];
+                const dx = x2 - x1, dz = z2 - z1;
+                const lenSq = dx * dx + dz * dz;
+                if (lenSq < 0.2) continue;
+
+                for (const pt of ptsA) {
+                    const u = ((pt[0] - x1) * dx + (pt[1] - z1) * dz) / lenSq;
+                    if (u > 0.05 && u < 0.95) {
+                        const projX = x1 + u * dx;
+                        const projZ = z1 + u * dz;
+                        const dist = Math.hypot(pt[0] - projX, pt[1] - projZ);
+                        const key = `t_${Math.round(projX * 5) / 5},${Math.round(projZ * 5) / 5}`;
+
+                        if (dist <= wallT * 0.85 && !renderedJoints.has(key)) {
+                            renderedJoints.add(key);
+                            const tRadius = Math.max(0.14, Math.max(wallT, wB.thickness || 0.25) * 0.52);
+                            const tGeo = new THREE.CylinderGeometry(tRadius, tRadius, wallH, 18);
+                            const tMesh = new THREE.Mesh(tGeo, wallMaterial);
+                            tMesh.position.set(projX, baseY + wallH / 2, projZ);
+                            tMesh.castShadow = true;
+                            tMesh.receiveShadow = true;
+                            tMesh.userData = { type: 'wall_joint', wallId: wId, storeyId: wall.storey_id, baseY: baseY + wallH / 2 };
+
+                            const tEdges = new THREE.EdgesGeometry(tGeo);
+                            const tLine = new THREE.LineSegments(tEdges, new THREE.LineBasicMaterial({
+                                color: 0x2e4a70,
+                                transparent: true,
+                                opacity: 0.6
+                            }));
+                            tMesh.add(tLine);
+                            const jointParent = (wall.storey_id && this.storeyGroups[wall.storey_id]) || this.jointCapsGroup;
+                            jointParent.add(tMesh);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. مزامنة وتحديث شبكة وجسيمات التدفق الحركي المعماري فورياً لتعكس أي تغييرات في الجدران والفتحات
+        if (typeof this.setupCirculationParticles === 'function') {
+            this.setupCirculationParticles(this.buildingData);
+        }
+    }
+
+    setStoreyFilter(storeyId) {
+        this.activeStoreyFilter = storeyId;
+        const hasStoreyGroups = Object.keys(this.storeyGroups).length > 0;
+        
+        if (storeyId === 'all') {
+            if (hasStoreyGroups) {
+                for (const grp of Object.values(this.storeyGroups)) {
+                    grp.visible = true;
+                }
+            }
+            this.buildingGroup.traverse(child => {
+                if (child.userData && child.userData.storeyId) {
+                    child.visible = true;
+                }
+            });
+            for (const sp of Object.values(this.labelSprites)) {
+                if (sp.sprite) sp.sprite.visible = this.labelsVisible !== false;
+            }
+            for (const sp of Object.values(this.stairBadges || {})) {
+                sp.visible = this.labelsVisible !== false;
+            }
+        } else {
+            if (hasStoreyGroups) {
+                for (const [sId, grp] of Object.entries(this.storeyGroups)) {
+                    grp.visible = (sId === storeyId);
+                }
+            }
+            this.buildingGroup.traverse(child => {
+                if (child.userData && child.userData.storeyId) {
+                    child.visible = (child.userData.storeyId === storeyId);
+                }
+            });
+            for (const [id, sp] of Object.entries(this.labelSprites)) {
+                const space = sp.space;
+                if (space && sp.sprite) {
+                    const match = !space.storey_id || space.storey_id === storeyId;
+                    sp.sprite.visible = (this.labelsVisible !== false) && match;
+                }
+            }
+        }
+    }
+
+    setExplodedView(enabled) {
+        this.isExplodedView = Boolean(enabled);
+        const storeys = this.buildingData?.storeys || {};
+        const sortedStoreys = Object.entries(storeys).sort((a, b) => (a[1].elevation || 0) - (b[1].elevation || 0));
+        const explodeOffsetStep = 6.5;
+
+        sortedStoreys.forEach(([sId, st], index) => {
+            const extraY = this.isExplodedView ? index * explodeOffsetStep : 0.0;
+            const grp = this.storeyGroups[sId];
+            if (grp) {
+                grp.position.y = extraY;
+            }
+        });
+
+        // تحريك العناصر التابعة للطوابق إن وجدت خارج المجموعات
+        this.buildingGroup.traverse(child => {
+            if (child.userData && child.userData.storeyId && !child.parent?.userData?.isStoreyGroup) {
+                const storeyIndex = sortedStoreys.findIndex(([id]) => id === child.userData.storeyId);
+                if (storeyIndex !== -1) {
+                    const extraY = this.isExplodedView ? storeyIndex * explodeOffsetStep : 0.0;
+                    if (child.userData.baseY !== undefined) {
+                        child.position.y = child.userData.baseY + extraY;
+                    }
+                }
+            }
+        });
+    }
+
+    highlightWall(wId, color = 0xff3838) {
+        const wallGroup = this.wallMeshes[wId];
+        if (!wallGroup) return;
+        const isAmber = (color === 0xf59e0b || color === 0xf39c12 || color === 0xffd166);
+        const emissiveColor = isAmber ? 0x553300 : 0x550000;
+        wallGroup.traverse((child) => {
+            if (child.isMesh && child.material) {
+                if (!child._origMaterial) {
+                    child._origMaterial = child.material;
+                    child.material = child.material.clone();
+                }
+                if (child.material.color) {
+                    child.material.color.setHex(color);
+                }
+                if (child.material.emissive) {
+                    child.material.emissive.setHex(emissiveColor);
+                }
+            }
+        });
+    }
+
+    clearWallHighlight(wId) {
+        const wallGroup = this.wallMeshes[wId];
+        if (!wallGroup) return;
+        wallGroup.traverse((child) => {
+            if (child.isMesh && child._origMaterial) {
+                if (child.material) child.material.dispose();
+                child.material = child._origMaterial;
+                delete child._origMaterial;
+            }
+        });
+    }
+
+    trackOpeningMesh(opId, mesh) {
+        if (!this.openingMeshes) this.openingMeshes = {};
+        if (!this.openingMeshes[opId]) this.openingMeshes[opId] = [];
+        this.openingMeshes[opId].push(mesh);
+    }
+
+    highlightOpening(opId, color = 0xff3838) {
+        const meshes = this.openingMeshes?.[opId];
+        if (!meshes) return;
+        for (const m of meshes) {
+            if (!m) continue;
+            m.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    if (!child._origMaterial) {
+                        child._origMaterial = child.material;
+                        child.material = child.material.clone();
+                    }
+                    if (child.material.color) child.material.color.setHex(color);
+                    if (child.material.emissive) child.material.emissive.setHex(0x660000);
+                }
+            });
+        }
+    }
+
+    clearOpeningHighlight(opId) {
+        const meshes = this.openingMeshes?.[opId];
+        if (!meshes) return;
+        for (const m of meshes) {
+            if (!m) continue;
+            m.traverse((child) => {
+                if (child.isMesh && child._origMaterial) {
+                    if (child.material) child.material.dispose();
+                    child.material = child._origMaterial;
+                    delete child._origMaterial;
+                }
+            });
+        }
+    }
+
+    deleteSpaceMesh(spaceId) {
+        // 1. حذف وتفريغ بلاطة الأرضية الملونة للفضاء
+        const floorMesh = this.roomMeshes[spaceId];
+        if (floorMesh && this.buildingGroup) {
+            this.buildingGroup.remove(floorMesh);
+            floorMesh.traverse((child) => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                    else child.material.dispose();
+                }
+            });
+            delete this.roomMeshes[spaceId];
+        }
+
+        // 2. حذف الإطار السلكي المحيط بالفضاء
+        const wireLine = this.spaceWireframes?.[spaceId];
+        if (wireLine && this.buildingGroup) {
+            this.buildingGroup.remove(wireLine);
+            if (wireLine.geometry) wireLine.geometry.dispose();
+            if (wireLine.material) wireLine.material.dispose();
+            delete this.spaceWireframes[spaceId];
+        }
+
+        // 3. حذف الشارة واللوحة النصية العائمة
+        const badge = this.labelSprites[spaceId];
+        if (badge && badge.sprite && this.buildingGroup) {
+            this.buildingGroup.remove(badge.sprite);
+            if (badge.sprite.material) {
+                if (badge.sprite.material.map) badge.sprite.material.map.dispose();
+                badge.sprite.material.dispose();
+            }
+            delete this.labelSprites[spaceId];
+        }
+
+        if (this.buildingData?.spaces?.[spaceId]) {
+            delete this.buildingData.spaces[spaceId];
+            this.setupCirculationParticles(this.buildingData);
+        }
+    }
+
+    highlightSpace(spaceId, color = 0xff3838) {
+        const floorMesh = this.roomMeshes[spaceId];
+        if (!floorMesh || !floorMesh.material) return;
+        if (floorMesh._origColor === undefined) {
+            floorMesh._origColor = floorMesh.material.color.getHex();
+            floorMesh.material.color.setHex(color);
+        }
+    }
+
+    clearSpaceHighlight(spaceId) {
+        const floorMesh = this.roomMeshes[spaceId];
+        if (!floorMesh || !floorMesh.material) return;
+        if (floorMesh._origColor !== undefined) {
+            floorMesh.material.color.setHex(floorMesh._origColor);
+            delete floorMesh._origColor;
+        }
+    }
+
+    deleteStairMesh(stairId) {
+        this.clearStairHighlight(stairId);
+        const grp = this.stairMeshes?.[stairId];
+        if (grp) {
+            if (grp.parent) grp.parent.remove(grp);
+            grp.traverse((child) => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                    else child.material.dispose();
+                }
+            });
+            delete this.stairMeshes[stairId];
+        }
+
+        const badge = this.stairBadges?.[stairId];
+        if (badge) {
+            if (badge.parent) badge.parent.remove(badge);
+            if (badge.material) {
+                if (badge.material.map) badge.material.map.dispose();
+                badge.material.dispose();
+            }
+            delete this.stairBadges[stairId];
+        }
+
+        if (this.buildingData?.stairs?.[stairId]) {
+            delete this.buildingData.stairs[stairId];
+            this.setupCirculationParticles(this.buildingData);
+        }
+    }
+
+    highlightStair(stairId, color = 0xf59e0b) {
+        const grp = this.stairMeshes?.[stairId];
+        if (!grp) return;
+        this.clearStairHighlight(stairId);
+
+        // 1. صندوق تحديد مضيء وواضح ثلاثي الأبعاد
+        const bBox = new THREE.Box3().setFromObject(grp);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        bBox.getSize(size);
+        bBox.getCenter(center);
+
+        const boxGeo = new THREE.BoxGeometry(Math.max(size.x + 0.3, 2.7), Math.max(size.y + 0.3, 3.2), Math.max(size.z + 0.3, 4.8));
+        const boxMat = new THREE.MeshBasicMaterial({
+            color: color,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.95,
+            depthTest: false
+        });
+        const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+        boxMesh.position.copy(center);
+        boxMesh.name = `stair_selection_box_${stairId}`;
+        boxMesh.userData = { type: 'stair', stairId: stairId };
+        const parent = grp.parent || this.buildingGroup;
+        parent.add(boxMesh);
+        grp.userData.selectionBox = boxMesh;
+
+        // 2. إضاءة خامات أجزاء السلم باللون المحدد مع حفظ الخامات الأصلية
+        grp.traverse((child) => {
+            if (child.isMesh && child.material) {
+                if (!child._origMaterial) {
+                    child._origMaterial = child.material;
+                    child.material = child.material.clone();
+                }
+                if (child.material.color) {
+                    child.material.color.setHex(color);
+                }
+                if (child.material.emissive) {
+                    child.material.emissive.setHex(0x553300);
+                }
+            }
+        });
+    }
+
+    clearStairHighlight(stairId) {
+        const grp = this.stairMeshes?.[stairId];
+        if (grp?.userData?.selectionBox) {
+            const sb = grp.userData.selectionBox;
+            if (sb.parent) sb.parent.remove(sb);
+            if (sb.geometry) sb.geometry.dispose();
+            if (sb.material) sb.material.dispose();
+            delete grp.userData.selectionBox;
+        }
+        // البحث عن أي صندوق تحديد في المشهد ومجموعات الطوابق
+        const oldBox = this.buildingGroup?.getObjectByName(`stair_selection_box_${stairId}`);
+        if (oldBox) {
+            if (oldBox.parent) oldBox.parent.remove(oldBox);
+            if (oldBox.geometry) oldBox.geometry.dispose();
+            if (oldBox.material) oldBox.material.dispose();
+        }
+        if (this.storeyGroups) {
+            for (const sg of Object.values(this.storeyGroups)) {
+                const b = sg.getObjectByName(`stair_selection_box_${stairId}`);
+                if (b) {
+                    if (b.parent) b.parent.remove(b);
+                    if (b.geometry) b.geometry.dispose();
+                    if (b.material) b.material.dispose();
+                }
+            }
+        }
+        if (grp) {
+            grp.traverse((child) => {
+                if (child.isMesh && child._origMaterial) {
+                    if (child.material) child.material.dispose();
+                    child.material = child._origMaterial;
+                    delete child._origMaterial;
+                }
+            });
+        }
+    }
+
+    setWallsVisible(visible) {
+        this.wallsVisible = visible;
+        for (const wallGroup of Object.values(this.wallMeshes)) {
+            if (wallGroup) wallGroup.visible = visible;
+        }
+        if (this.jointCapsGroup) {
+            this.jointCapsGroup.visible = visible;
+        }
+    }
+
+    toggleWallsVisibility() {
+        this.setWallsVisible(!this.wallsVisible);
+    }
+
+    setBlueprintOpacity(val) {
+        this.blueprintOpacity = val;
+        if (this.blueprintMesh && this.blueprintMesh.material) {
+            this.blueprintMesh.material.opacity = val;
+            this.blueprintMesh.material.needsUpdate = true;
+        }
+    }
+
+    setSpacesOpacity(val) {
+        this.spacesOpacity = val;
+        for (const mesh of Object.values(this.roomMeshes)) {
+            if (mesh && mesh.material) {
+                mesh.material.opacity = val;
+                mesh.material.needsUpdate = true;
+            }
+        }
+    }
+
+    setBlueprintVisible(visible) {
+        this.blueprintVisible = visible;
+        if (this.blueprintMesh) {
+            this.blueprintMesh.visible = visible;
+        }
+    }
+
+    updateBlueprintCanvas(newCanvas) {
+        if (this.blueprintMesh && this.blueprintMesh.material) {
+            if (this.blueprintMesh.material.map) this.blueprintMesh.material.map.dispose();
+            const newTexture = new THREE.CanvasTexture(newCanvas);
+            newTexture.minFilter = THREE.LinearFilter;
+            newTexture.magFilter = THREE.LinearFilter;
+            newTexture.anisotropy = 16;
+            this.blueprintMesh.material.map = newTexture;
+            this.blueprintMesh.material.needsUpdate = true;
+        }
+    }
+
+    onWindowResize() {
+        const width = this.container.clientWidth;
+        const height = this.container.clientHeight;
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(width, height);
+    }
+}

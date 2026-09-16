@@ -1,0 +1,1064 @@
+{
+  "id": "healthcare_clinic",
+  "name_ar": "مجمع الرعاية الصحية والعيادات الاستشارية (Case Study 2)",
+  "name_en": "Healthcare & Outpatient Consulting Center",
+  "building_type": "healthcare",
+  "spaces": {
+    "triage_reception": {
+      "id": "triage_reception",
+      "name_ar": "الاستقبال والفرز الطبي",
+      "name_en": "Medical Triage & Reception",
+      "type": "public",
+      "capacity": 14,
+      "area_m2": 42.0,
+      "bounds": {
+        "x": -20,
+        "z": -14,
+        "width": 10,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#00b894"
+    },
+    "waiting_patients": {
+      "id": "waiting_patients",
+      "name_ar": "صالة انتظار المرضى والمراجعين",
+      "name_en": "Patient Waiting Hall",
+      "type": "public",
+      "capacity": 24,
+      "area_m2": 72.0,
+      "bounds": {
+        "x": -10,
+        "z": -14,
+        "width": 14,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#e17055"
+    },
+    "overflow_clinic": {
+      "id": "overflow_clinic",
+      "name_ar": "ردهة الفحص السريع والملاحظة المرنة",
+      "name_en": "Flexible Triage & Rapid Care",
+      "type": "flexible",
+      "capacity": 18,
+      "area_m2": 54.0,
+      "bounds": {
+        "x": 4,
+        "z": -14,
+        "width": 12,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#0984e3"
+    },
+    "clinic_suites": {
+      "id": "clinic_suites",
+      "name_ar": "أجنحة العيادات الاستشارية التخصصية",
+      "name_en": "Specialized Consultation Suites",
+      "type": "workspace",
+      "capacity": 20,
+      "area_m2": 80.0,
+      "bounds": {
+        "x": 16,
+        "z": -14,
+        "width": 14,
+        "depth": 8,
+        "height": 3.5
+      },
+      "color": "#6c5ce7"
+    },
+    "corridor_clinical": {
+      "id": "corridor_clinical",
+      "name_ar": "الممر العلاجي المركزي",
+      "name_en": "Central Clinical Spine",
+      "type": "circulation",
+      "capacity": 35,
+      "area_m2": 75.0,
+      "bounds": {
+        "x": -20,
+        "z": -6,
+        "width": 50,
+        "depth": 4,
+        "height": 3.5
+      },
+      "color": "#636e72"
+    },
+    "corridor_service": {
+      "id": "corridor_service",
+      "name_ar": "ممر الخدمات والكادر الطبي (البديل)",
+      "name_en": "Staff & Service Bypass",
+      "type": "circulation",
+      "capacity": 20,
+      "area_m2": 40.0,
+      "bounds": {
+        "x": -20,
+        "z": 12,
+        "width": 50,
+        "depth": 3,
+        "height": 3.5
+      },
+      "color": "#2d3436"
+    },
+    "diagnostic_lab": {
+      "id": "diagnostic_lab",
+      "name_ar": "مختبر الفحوصات والصيدلية",
+      "name_en": "Diagnostic Lab & Pharmacy",
+      "type": "workspace",
+      "capacity": 15,
+      "area_m2": 65.0,
+      "bounds": {
+        "x": -20,
+        "z": -2,
+        "width": 20,
+        "depth": 14,
+        "height": 3.5
+      },
+      "color": "#00cec9"
+    },
+    "staff_station": {
+      "id": "staff_station",
+      "name_ar": "محطة التمريض واستراحة الكادر",
+      "name_en": "Nursing Station & Doctors Lounge",
+      "type": "amenity",
+      "capacity": 16,
+      "area_m2": 60.0,
+      "bounds": {
+        "x": 0,
+        "z": -2,
+        "width": 18,
+        "depth": 14,
+        "height": 3.5
+      },
+      "color": "#a29bfe"
+    },
+    "admin_archive": {
+      "id": "admin_archive",
+      "name_ar": "السجلات الطبية وإدارة المركز",
+      "name_en": "Medical Records & Administration",
+      "type": "workspace",
+      "capacity": 12,
+      "area_m2": 50.0,
+      "bounds": {
+        "x": 18,
+        "z": -2,
+        "width": 12,
+        "depth": 14,
+        "height": 3.5
+      },
+      "color": "#74b9ff"
+    }
+  },
+  "partitions": {
+    "p_waiting_overflow": {
+      "id": "p_waiting_overflow",
+      "name_ar": "القاطع الصحي التكيفي (صالة المرضى - ردهة الفحص المرنة)",
+      "between": [
+        "waiting_patients",
+        "overflow_clinic"
+      ],
+      "status": "closed",
+      "position": {
+        "x": 4,
+        "z": -14,
+        "width": 0.25,
+        "depth": 8,
+        "height": 3.5
+      },
+      "expansion_capacity": 18
+    }
+  },
+  "edges": [
+    {
+      "u": "triage_reception",
+      "v": "corridor_clinical",
+      "distance": 5.0,
+      "width": 2.2,
+      "status": "active"
+    },
+    {
+      "u": "waiting_patients",
+      "v": "corridor_clinical",
+      "distance": 4.5,
+      "width": 2.4,
+      "status": "active"
+    },
+    {
+      "u": "waiting_patients",
+      "v": "overflow_clinic",
+      "distance": 2.0,
+      "width": 3.0,
+      "status": "closed_by_partition"
+    },
+    {
+      "u": "overflow_clinic",
+      "v": "corridor_clinical",
+      "distance": 4.5,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "clinic_suites",
+      "v": "corridor_clinical",
+      "distance": 5.0,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "diagnostic_lab",
+      "v": "corridor_clinical",
+      "distance": 4.0,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "staff_station",
+      "v": "corridor_clinical",
+      "distance": 4.0,
+      "width": 2.0,
+      "status": "active"
+    },
+    {
+      "u": "admin_archive",
+      "v": "corridor_clinical",
+      "distance": 5.0,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "diagnostic_lab",
+      "v": "corridor_service",
+      "distance": 7.0,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "staff_station",
+      "v": "corridor_service",
+      "distance": 7.0,
+      "width": 1.8,
+      "status": "active"
+    },
+    {
+      "u": "corridor_clinical",
+      "v": "corridor_service",
+      "distance": 16.0,
+      "width": 2.0,
+      "status": "active"
+    }
+  ],
+  "walls": {
+    "w_triage_reception_n": {
+      "id": "w_triage_reception_n",
+      "name_ar": "جدار شمالي (الاستقبال والفرز الطبي)",
+      "start": [
+        -20.0,
+        -14.0
+      ],
+      "end": [
+        -10.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_triage_reception_s": {
+      "id": "w_triage_reception_s",
+      "name_ar": "جدار جنوبي (الاستقبال والفرز الطبي)",
+      "start": [
+        -20.0,
+        -6.0
+      ],
+      "end": [
+        -10.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_triage_reception_w": {
+      "id": "w_triage_reception_w",
+      "name_ar": "جدار غربي (الاستقبال والفرز الطبي)",
+      "start": [
+        -20.0,
+        -14.0
+      ],
+      "end": [
+        -20.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_triage_reception_e": {
+      "id": "w_triage_reception_e",
+      "name_ar": "جدار شرقي (الاستقبال والفرز الطبي)",
+      "start": [
+        -10.0,
+        -14.0
+      ],
+      "end": [
+        -10.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_waiting_patients_n": {
+      "id": "w_waiting_patients_n",
+      "name_ar": "جدار شمالي (صالة انتظار المرضى والمراجعين)",
+      "start": [
+        -10.0,
+        -14.0
+      ],
+      "end": [
+        4.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_waiting_patients_s": {
+      "id": "w_waiting_patients_s",
+      "name_ar": "جدار جنوبي (صالة انتظار المرضى والمراجعين)",
+      "start": [
+        -10.0,
+        -6.0
+      ],
+      "end": [
+        4.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_waiting_patients_w": {
+      "id": "w_waiting_patients_w",
+      "name_ar": "جدار غربي (صالة انتظار المرضى والمراجعين)",
+      "start": [
+        -10.0,
+        -14.0
+      ],
+      "end": [
+        -10.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_waiting_patients_e": {
+      "id": "w_waiting_patients_e",
+      "name_ar": "جدار شرقي (صالة انتظار المرضى والمراجعين)",
+      "start": [
+        4.0,
+        -14.0
+      ],
+      "end": [
+        4.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_overflow_clinic_n": {
+      "id": "w_overflow_clinic_n",
+      "name_ar": "جدار شمالي (ردهة الفحص السريع والملاحظة المرنة)",
+      "start": [
+        4.0,
+        -14.0
+      ],
+      "end": [
+        16.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_overflow_clinic_s": {
+      "id": "w_overflow_clinic_s",
+      "name_ar": "جدار جنوبي (ردهة الفحص السريع والملاحظة المرنة)",
+      "start": [
+        4.0,
+        -6.0
+      ],
+      "end": [
+        16.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_overflow_clinic_w": {
+      "id": "w_overflow_clinic_w",
+      "name_ar": "جدار غربي (ردهة الفحص السريع والملاحظة المرنة)",
+      "start": [
+        4.0,
+        -14.0
+      ],
+      "end": [
+        4.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_overflow_clinic_e": {
+      "id": "w_overflow_clinic_e",
+      "name_ar": "جدار شرقي (ردهة الفحص السريع والملاحظة المرنة)",
+      "start": [
+        16.0,
+        -14.0
+      ],
+      "end": [
+        16.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_clinic_suites_n": {
+      "id": "w_clinic_suites_n",
+      "name_ar": "جدار شمالي (أجنحة العيادات الاستشارية التخصصية)",
+      "start": [
+        16.0,
+        -14.0
+      ],
+      "end": [
+        30.0,
+        -14.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_clinic_suites_s": {
+      "id": "w_clinic_suites_s",
+      "name_ar": "جدار جنوبي (أجنحة العيادات الاستشارية التخصصية)",
+      "start": [
+        16.0,
+        -6.0
+      ],
+      "end": [
+        30.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_clinic_suites_w": {
+      "id": "w_clinic_suites_w",
+      "name_ar": "جدار غربي (أجنحة العيادات الاستشارية التخصصية)",
+      "start": [
+        16.0,
+        -14.0
+      ],
+      "end": [
+        16.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_clinic_suites_e": {
+      "id": "w_clinic_suites_e",
+      "name_ar": "جدار شرقي (أجنحة العيادات الاستشارية التخصصية)",
+      "start": [
+        30.0,
+        -14.0
+      ],
+      "end": [
+        30.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_clinical_n": {
+      "id": "w_corridor_clinical_n",
+      "name_ar": "جدار شمالي (الممر العلاجي المركزي)",
+      "start": [
+        -20.0,
+        -6.0
+      ],
+      "end": [
+        30.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_corridor_clinical_s": {
+      "id": "w_corridor_clinical_s",
+      "name_ar": "جدار جنوبي (الممر العلاجي المركزي)",
+      "start": [
+        -20.0,
+        -2.0
+      ],
+      "end": [
+        30.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_clinical_w": {
+      "id": "w_corridor_clinical_w",
+      "name_ar": "جدار غربي (الممر العلاجي المركزي)",
+      "start": [
+        -20.0,
+        -6.0
+      ],
+      "end": [
+        -20.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_clinical_e": {
+      "id": "w_corridor_clinical_e",
+      "name_ar": "جدار شرقي (الممر العلاجي المركزي)",
+      "start": [
+        30.0,
+        -6.0
+      ],
+      "end": [
+        30.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_service_n": {
+      "id": "w_corridor_service_n",
+      "name_ar": "جدار شمالي (ممر الخدمات والكادر الطبي (البديل))",
+      "start": [
+        -20.0,
+        12.0
+      ],
+      "end": [
+        30.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_corridor_service_s": {
+      "id": "w_corridor_service_s",
+      "name_ar": "جدار جنوبي (ممر الخدمات والكادر الطبي (البديل))",
+      "start": [
+        -20.0,
+        15.0
+      ],
+      "end": [
+        30.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_service_w": {
+      "id": "w_corridor_service_w",
+      "name_ar": "جدار غربي (ممر الخدمات والكادر الطبي (البديل))",
+      "start": [
+        -20.0,
+        12.0
+      ],
+      "end": [
+        -20.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_corridor_service_e": {
+      "id": "w_corridor_service_e",
+      "name_ar": "جدار شرقي (ممر الخدمات والكادر الطبي (البديل))",
+      "start": [
+        30.0,
+        12.0
+      ],
+      "end": [
+        30.0,
+        15.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_diagnostic_lab_n": {
+      "id": "w_diagnostic_lab_n",
+      "name_ar": "جدار شمالي (مختبر الفحوصات والصيدلية)",
+      "start": [
+        -20.0,
+        -2.0
+      ],
+      "end": [
+        0.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_diagnostic_lab_s": {
+      "id": "w_diagnostic_lab_s",
+      "name_ar": "جدار جنوبي (مختبر الفحوصات والصيدلية)",
+      "start": [
+        -20.0,
+        12.0
+      ],
+      "end": [
+        0.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_diagnostic_lab_w": {
+      "id": "w_diagnostic_lab_w",
+      "name_ar": "جدار غربي (مختبر الفحوصات والصيدلية)",
+      "start": [
+        -20.0,
+        -2.0
+      ],
+      "end": [
+        -20.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_diagnostic_lab_e": {
+      "id": "w_diagnostic_lab_e",
+      "name_ar": "جدار شرقي (مختبر الفحوصات والصيدلية)",
+      "start": [
+        0.0,
+        -2.0
+      ],
+      "end": [
+        0.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_staff_station_n": {
+      "id": "w_staff_station_n",
+      "name_ar": "جدار شمالي (محطة التمريض واستراحة الكادر)",
+      "start": [
+        0.0,
+        -2.0
+      ],
+      "end": [
+        18.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_staff_station_s": {
+      "id": "w_staff_station_s",
+      "name_ar": "جدار جنوبي (محطة التمريض واستراحة الكادر)",
+      "start": [
+        0.0,
+        12.0
+      ],
+      "end": [
+        18.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_staff_station_w": {
+      "id": "w_staff_station_w",
+      "name_ar": "جدار غربي (محطة التمريض واستراحة الكادر)",
+      "start": [
+        0.0,
+        -2.0
+      ],
+      "end": [
+        0.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_staff_station_e": {
+      "id": "w_staff_station_e",
+      "name_ar": "جدار شرقي (محطة التمريض واستراحة الكادر)",
+      "start": [
+        18.0,
+        -2.0
+      ],
+      "end": [
+        18.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_admin_archive_n": {
+      "id": "w_admin_archive_n",
+      "name_ar": "جدار شمالي (السجلات الطبية وإدارة المركز)",
+      "start": [
+        18.0,
+        -2.0
+      ],
+      "end": [
+        30.0,
+        -2.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "exterior"
+    },
+    "w_admin_archive_s": {
+      "id": "w_admin_archive_s",
+      "name_ar": "جدار جنوبي (السجلات الطبية وإدارة المركز)",
+      "start": [
+        18.0,
+        12.0
+      ],
+      "end": [
+        30.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_admin_archive_w": {
+      "id": "w_admin_archive_w",
+      "name_ar": "جدار غربي (السجلات الطبية وإدارة المركز)",
+      "start": [
+        18.0,
+        -2.0
+      ],
+      "end": [
+        18.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_admin_archive_e": {
+      "id": "w_admin_archive_e",
+      "name_ar": "جدار شرقي (السجلات الطبية وإدارة المركز)",
+      "start": [
+        30.0,
+        -2.0
+      ],
+      "end": [
+        30.0,
+        12.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    }
+  },
+  "openings": {
+    "door_triage_reception": {
+      "id": "door_triage_reception",
+      "name_ar": "باب (الاستقبال والفرز الطبي)",
+      "type": "door",
+      "wall_id": "w_triage_reception_s",
+      "position": [
+        -15.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "triage_reception",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_triage_reception": {
+      "id": "win_triage_reception",
+      "name_ar": "نافذة (الاستقبال والفرز الطبي)",
+      "type": "window",
+      "wall_id": "w_triage_reception_n",
+      "position": [
+        -15.0,
+        -14.0
+      ],
+      "width": 4.0,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_waiting_patients": {
+      "id": "door_waiting_patients",
+      "name_ar": "باب (صالة انتظار المرضى والمراجعين)",
+      "type": "door",
+      "wall_id": "w_waiting_patients_s",
+      "position": [
+        -3.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "waiting_patients",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_waiting_patients": {
+      "id": "win_waiting_patients",
+      "name_ar": "نافذة (صالة انتظار المرضى والمراجعين)",
+      "type": "window",
+      "wall_id": "w_waiting_patients_n",
+      "position": [
+        -3.0,
+        -14.0
+      ],
+      "width": 5.6,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_overflow_clinic": {
+      "id": "door_overflow_clinic",
+      "name_ar": "باب (ردهة الفحص السريع والملاحظة المرنة)",
+      "type": "door",
+      "wall_id": "w_overflow_clinic_s",
+      "position": [
+        10.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "overflow_clinic",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_overflow_clinic": {
+      "id": "win_overflow_clinic",
+      "name_ar": "نافذة (ردهة الفحص السريع والملاحظة المرنة)",
+      "type": "window",
+      "wall_id": "w_overflow_clinic_n",
+      "position": [
+        10.0,
+        -14.0
+      ],
+      "width": 4.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_clinic_suites": {
+      "id": "door_clinic_suites",
+      "name_ar": "باب (أجنحة العيادات الاستشارية التخصصية)",
+      "type": "door",
+      "wall_id": "w_clinic_suites_s",
+      "position": [
+        23.0,
+        -6.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "clinic_suites",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_clinic_suites": {
+      "id": "win_clinic_suites",
+      "name_ar": "نافذة (أجنحة العيادات الاستشارية التخصصية)",
+      "type": "window",
+      "wall_id": "w_clinic_suites_n",
+      "position": [
+        23.0,
+        -14.0
+      ],
+      "width": 5.6,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_corridor_clinical": {
+      "id": "door_corridor_clinical",
+      "name_ar": "باب (الممر العلاجي المركزي)",
+      "type": "door",
+      "wall_id": "w_corridor_clinical_s",
+      "position": [
+        5.0,
+        -2.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "corridor_clinical",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_corridor_clinical": {
+      "id": "win_corridor_clinical",
+      "name_ar": "نافذة (الممر العلاجي المركزي)",
+      "type": "window",
+      "wall_id": "w_corridor_clinical_n",
+      "position": [
+        5.0,
+        -6.0
+      ],
+      "width": 20.0,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_corridor_service": {
+      "id": "door_corridor_service",
+      "name_ar": "باب (ممر الخدمات والكادر الطبي (البديل))",
+      "type": "door",
+      "wall_id": "w_corridor_service_s",
+      "position": [
+        5.0,
+        15.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "corridor_service",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_corridor_service": {
+      "id": "win_corridor_service",
+      "name_ar": "نافذة (ممر الخدمات والكادر الطبي (البديل))",
+      "type": "window",
+      "wall_id": "w_corridor_service_n",
+      "position": [
+        5.0,
+        12.0
+      ],
+      "width": 20.0,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_diagnostic_lab": {
+      "id": "door_diagnostic_lab",
+      "name_ar": "باب (مختبر الفحوصات والصيدلية)",
+      "type": "door",
+      "wall_id": "w_diagnostic_lab_s",
+      "position": [
+        -10.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "diagnostic_lab",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_diagnostic_lab": {
+      "id": "win_diagnostic_lab",
+      "name_ar": "نافذة (مختبر الفحوصات والصيدلية)",
+      "type": "window",
+      "wall_id": "w_diagnostic_lab_n",
+      "position": [
+        -10.0,
+        -2.0
+      ],
+      "width": 8.0,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_staff_station": {
+      "id": "door_staff_station",
+      "name_ar": "باب (محطة التمريض واستراحة الكادر)",
+      "type": "door",
+      "wall_id": "w_staff_station_s",
+      "position": [
+        9.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "staff_station",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_staff_station": {
+      "id": "win_staff_station",
+      "name_ar": "نافذة (محطة التمريض واستراحة الكادر)",
+      "type": "window",
+      "wall_id": "w_staff_station_n",
+      "position": [
+        9.0,
+        -2.0
+      ],
+      "width": 7.2,
+      "height": 1.5,
+      "sill_height": 0.9
+    },
+    "door_admin_archive": {
+      "id": "door_admin_archive",
+      "name_ar": "باب (السجلات الطبية وإدارة المركز)",
+      "type": "door",
+      "wall_id": "w_admin_archive_s",
+      "position": [
+        24.0,
+        12.0
+      ],
+      "width": 1.2,
+      "height": 2.2,
+      "connects": [
+        "admin_archive",
+        "circulation"
+      ],
+      "flow_capacity_per_min": 40
+    },
+    "win_admin_archive": {
+      "id": "win_admin_archive",
+      "name_ar": "نافذة (السجلات الطبية وإدارة المركز)",
+      "type": "window",
+      "wall_id": "w_admin_archive_n",
+      "position": [
+        24.0,
+        -2.0
+      ],
+      "width": 4.8,
+      "height": 1.5,
+      "sill_height": 0.9
+    }
+  }
+}
