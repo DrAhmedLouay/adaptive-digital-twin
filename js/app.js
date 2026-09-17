@@ -463,6 +463,13 @@ class TwinApp {
             });
         }
 
+        const btnVpConvertToSpace = document.getElementById('btn-vp-convert-to-space');
+        if (btnVpConvertToSpace) {
+            btnVpConvertToSpace.addEventListener('click', () => {
+                this.convertSelectedElementToSpace();
+            });
+        }
+
         // أزرار الإجراءات السريعة (Quick Actions)
         const btnPureBim = document.getElementById('btn-ifc-pure-bim');
         if (btnPureBim) {
@@ -700,6 +707,7 @@ class TwinApp {
             const iconEl = document.getElementById('vp-pill-icon');
             const titleEl = document.getElementById('vp-pill-title');
             const subEl = document.getElementById('vp-pill-sub');
+            const convertBtn = document.getElementById('btn-vp-convert-to-space');
 
             const icons = {
                 wall: '🧱', slab: '⬜', column: '🏛️', beam: '🏗️',
@@ -709,7 +717,107 @@ class TwinApp {
             if (iconEl) iconEl.textContent = icons[details.info.type] || '🏢';
             if (titleEl) titleEl.textContent = name;
             if (subEl) subEl.textContent = cls;
+
+            if (convertBtn) {
+                const canConvert = details.info.type === 'slab' || details.info.ifcType === 'IfcSlab' || details.info.type === 'wall' || details.info.ifcType === 'IfcWall' || details.info.ifcType === 'IfcWallStandardCase';
+                convertBtn.style.display = canConvert ? 'inline-block' : 'none';
+            }
+
             vpPill.style.display = 'flex';
+        }
+    }
+
+    async convertSelectedElementToSpace() {
+        const details = this.selectedElementDetails;
+        if (!details || !details.info) {
+            alert("⚠️ يرجى تحديد عنصر (بلاطة أو جدار) في المشهد ثلاثي الأبعاد أولاً.");
+            return;
+        }
+
+        const bData = this.viewer?.buildingData;
+        if (!bData) return;
+        if (!bData.spaces) bData.spaces = {};
+
+        let minX = -5, maxX = 5, minZ = -5, maxZ = 5, elev = 0;
+        let width = 10, depth = 10;
+
+        if (details.mesh && window.THREE) {
+            const box = new THREE.Box3().setFromObject(details.mesh);
+            if (isFinite(box.min.x) && isFinite(box.max.x)) {
+                minX = box.min.x;
+                maxX = box.max.x;
+                minZ = box.min.z;
+                maxZ = box.max.z;
+                width = Math.max(1.5, maxX - minX);
+                depth = Math.max(1.5, maxZ - minZ);
+                elev = Math.round(box.min.y * 10) / 10;
+            }
+        } else if (details.info.dimensions) {
+            const d = details.info.dimensions;
+            width = parseFloat(d.Width || d['العرض'] || 6.0) || 6.0;
+            depth = parseFloat(d.Length || d['الطول'] || 6.0) || 6.0;
+        }
+
+        const area = Math.round(width * depth * 10) / 10;
+        const cx = Math.round(((minX + maxX) / 2) * 10) / 10;
+        const cz = Math.round(((minZ + maxZ) / 2) * 10) / 10;
+
+        const elemLabel = details.info.name_ar || details.info.ifcType || 'عنصر إنشائي IFC';
+        const roomName = prompt(`تحويل العنصر (${elemLabel}) إلى فضاء معماري نشط:\nالمساحة المقدرة: ${area}م²\nأدخل اسم الفضاء:`, `فضاء مشتق من ${elemLabel}`);
+        if (!roomName) return;
+
+        const spaceId = `space_ifc_${Date.now()}`;
+        const spaceObj = {
+            id: spaceId,
+            name_ar: roomName,
+            name_en: `Derived Space (${details.info.ifcType || 'IFC'})`,
+            type: "flexible",
+            capacity: Math.max(2, Math.round(area / 3.5)),
+            area_m2: area,
+            centroid: [cx, cz],
+            polygon: [
+                [Math.round(minX * 100) / 100, Math.round(minZ * 100) / 100],
+                [Math.round(maxX * 100) / 100, Math.round(minZ * 100) / 100],
+                [Math.round(maxX * 100) / 100, Math.round(maxZ * 100) / 100],
+                [Math.round(minX * 100) / 100, Math.round(maxZ * 100) / 100]
+            ],
+            bounds: {
+                x: Math.round(minX * 10) / 10,
+                z: Math.round(minZ * 10) / 10,
+                width: Math.round(width * 10) / 10,
+                depth: Math.round(depth * 10) / 10,
+                height: 3.5
+            },
+            base_elevation: elev,
+            storey_id: details.info.storey_id || this.viewer?.activeStoreyFilter || 'st_g',
+            color: "#9b59b6"
+        };
+
+        bData.spaces[spaceId] = spaceObj;
+
+        this.viewer.loadBuildingModel(bData);
+        if (this.planManager) {
+            this.planManager.populateSpacesEditor();
+        }
+
+        const tracerHint = document.getElementById('tracer-hint');
+        if (tracerHint) {
+            tracerHint.textContent = `✓ تم تحويل ${elemLabel} إلى فضاء معماري نشط (${roomName}) بمساحة ${area}م²!`;
+        }
+        alert(`✨ تم التحويل بنجاح!\nتم إنشاء فضاء معماري نشط (${roomName}) بمساحة ${area}م²، وتوليد أرضيته ثلاثية الأبعاد وربطه بشبكة حساسات IoT والتوأم الرقمي.`);
+
+        try {
+            await fetch('/api/model/add_element', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'space', element: spaceObj })
+            });
+            if (this.analytics) {
+                await this.analytics.fetchAndUpdateSensorsInventory();
+                await this.analytics.fetchAndUpdateIoTTelemetry();
+            }
+        } catch(err) {
+            console.error("Failed to sync converted space:", err);
         }
     }
 

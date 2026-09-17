@@ -10,13 +10,13 @@
         // كسر التخزين المؤقت تلقائياً وإعادة التحميل لأحدث كود بأمان مع تفادي التكرار وأخطاء التخزين
         (function() {
             try {
-                var CURRENT_VER = '2.3.7';
+                var CURRENT_VER = '2.3.8';
                 var stored = null;
                 try { stored = localStorage.getItem('adaptive_twin_ver'); } catch(e) {}
                 var urlParams = new URLSearchParams(window.location.search);
-                if (stored !== CURRENT_VER && !urlParams.has('v237')) {
+                if (stored !== CURRENT_VER && !urlParams.has('v238')) {
                     try { localStorage.setItem('adaptive_twin_ver', CURRENT_VER); } catch(e) {}
-                    urlParams.set('v237', Date.now());
+                    urlParams.set('v238', Date.now());
                     window.location.replace(window.location.pathname + '?' + urlParams.toString());
                 }
             } catch(e) {
@@ -61,7 +61,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.3.7">
+    <link rel="stylesheet" href="css/styles.css?v=2.3.8">
 </head>
 <body>
 
@@ -221,6 +221,11 @@
                 <button id="btn-vp-open-ifc" class="ifc-btn-sm" style="background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; color: #38bdf8; margin-right: 6px;">
                     🏢 عارض IFC
                 </button>
+                <button id="btn-vp-convert-to-space" class="ifc-btn-sm" style="display:none; background: rgba(46, 204, 113, 0.25); border-color: #2ecc71; color: #6ee7b7; margin-right: 4px;"
+                        data-tooltip-title="تحويل العنصر إلى فضاء معماري نشط"
+                        data-tooltip="تحويل هذه البلاطة أو العنصر الإنشائي تلقائياً إلى فضاء تشغيلي في التوأم الرقمي وحساب مساحته وتزويده بحساسات IoT.">
+                    ✨ تحويل لفضاء
+                </button>
                 <button id="btn-vp-close-pill" style="background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; padding: 0 4px; line-height: 1;">&times;</button>
             </div>
 
@@ -301,11 +306,23 @@
                             data-tooltip-title="فتحة عبور / ممر مفتوح"
                             data-tooltip="انقر فوق أي جدار لإنشاء فتحة عبور وممر مفتوح بدون مصراع لتسهيل تدفق الحركة.">🔲 فتحة عبور</button>
                     <button class="tracer-tool-btn" data-tool="room" id="tool-tag-room"
-                            data-tooltip-title="تحديد فضاء وغرفة"
-                            data-tooltip="انقر على زاويتين متقابلتين للغرفة في الـ PDF لتوليد فضاء إشغالي محاط بجدرانه وحساساته.">🏷️ تحديد فضاء</button>
+                            data-tooltip-title="تحديد فضاء وغرفة (مستطيل بزاويتين)"
+                            data-tooltip="انقر على زاويتين متقابلتين للغرفة في الـ PDF لتوليد فضاء إشغالي محاط بجدرانه وحساساته.">🏷️ فضاء مستطيل</button>
                     <button class="tracer-tool-btn" data-tool="enclosed-space" id="tool-enclosed-space" style="border-color:rgba(46,204,113,0.4); color:#2ecc71;"
                             data-tooltip-title="إنشاء فضاء من 3+ جدران مغلقة"
                             data-tooltip="انقر داخل مساحة محاطة بـ 3 جدران أو أكثر لكشفها وتوليد الفضاء وأرضيته فورياً، أو انقر فوق الجدران المحيطة تباعاً لإغلاق الفضاء.">📐 فضاء من 3+ جدران</button>
+                    <button class="tracer-tool-btn" data-tool="polygon-space" id="tool-polygon-space" style="border-color:rgba(16,185,129,0.5); color:#34d399;"
+                            data-tooltip-title="رسم فضاء مضلع حر متعدد النقاط (شكل L أو غير منتظم)"
+                            data-tooltip="انقر على زوايا الفضاء نقطة بنقطة لتحديد أي شكل مضلع غير منتظم؛ انقر نقراً مزدوجاً أو بالقرب من البداية لإغلاق وتجسيم الفضاء والأرضية فورياً.">⬡ فضاء مضلع حر</button>
+                    <button class="tracer-tool-btn" data-tool="space-separator" id="tool-space-separator" style="border-color:rgba(168,85,247,0.5); color:#c084fc;"
+                            data-tooltip-title="قاطع فضائي افتراضي (تقسيم فضاء مفتوح)"
+                            data-tooltip="انقر نقطتين لتقسيم فضاء مفتوح كبير إلى فضاءين وظيفيين فرعيين دون بناء جدار إنشائي (Room Separator).">➗ قاطع فضائي</button>
+                    <button class="tracer-tool-btn" data-tool="circle-space" id="tool-circle-space" style="border-color:rgba(56,189,248,0.5); color:#38bdf8;"
+                            data-tooltip-title="رسم فضاء دائري / شعاعي"
+                            data-tooltip="انقر في المركز واسحب لتحديد نصف القطر ثم انقر مجدداً لتجسيم الفضاء الدائري والبهو المركزي (Atrium / Amphitheater).">🔘 فضاء دائري</button>
+                    <button class="tracer-tool-btn" id="btn-auto-detect-all-spaces" style="background:rgba(16,185,129,0.2); border-color:#10b981; color:#34d399; font-weight:bold;"
+                            data-tooltip-title="كشف وتوليد كافة الفضاءات آلياً بنقرة واحدة"
+                            data-tooltip="تحليل فراغي ذكي يكشف جميع الغرف والقاعات المغلقة بالمبنى ويولد أرضياتها وحساساتها التكيفية دفعة واحدة في ثانية واحدة.">⚡ كشف كافة الفضاءات</button>
                     <button class="tracer-tool-btn" data-tool="staircase" id="tool-draw-stair" style="border-color:rgba(52,152,219,0.5); color:#3498db;"
                             data-tooltip-title="إضافة سلم معماري (حركة عمودية)"
                             data-tooltip="انقر لتثبيت بيت درج / سلم معماري يربط الطابق بالحركة العمودية مع مؤشر الصعود ونقطة الربط بالممرات. اضغط R للتدوير 90 درجة.">🪜 إضافة سلم</button>
@@ -998,13 +1015,13 @@
     <!-- PDF.js CDN for High-Resolution Vector/Raster Architectural Floor Plan Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
-    <!-- Application Scripts (v2.3.7) -->
-    <script src="js/default_model.js?v=2.3.7"></script>
-    <script src="js/viewer3d.js?v=2.3.7"></script>
-    <script src="js/analytics.js?v=2.3.7"></script>
-    <script src="js/ifc_step_parser.js?v=2.3.7"></script>
-    <script src="js/plan_manager.js?v=2.3.7"></script>
-    <script src="js/tooltip.js?v=2.3.7"></script>
-    <script src="js/app.js?v=2.3.7"></script>
+    <!-- Application Scripts (v2.3.8) -->
+    <script src="js/default_model.js?v=2.3.8"></script>
+    <script src="js/viewer3d.js?v=2.3.8"></script>
+    <script src="js/analytics.js?v=2.3.8"></script>
+    <script src="js/ifc_step_parser.js?v=2.3.8"></script>
+    <script src="js/plan_manager.js?v=2.3.8"></script>
+    <script src="js/tooltip.js?v=2.3.8"></script>
+    <script src="js/app.js?v=2.3.8"></script>
 </body>
 </html>

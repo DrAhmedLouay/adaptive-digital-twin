@@ -1162,6 +1162,12 @@ class PlanManager {
         let currentHoveredStairId = null;
         let currentHoveredSpaceId = null;
         let trimBoundingWallHighlights = [];
+        let polygonPoints = [];
+        let polygonPreviewGroup = null;
+        let spaceSeparatorStart = null;
+        let spaceSeparatorPreviewLine = null;
+        let circleSpaceCenter = null;
+        let circleSpacePreviewMesh = null;
         const historyStack = [];
 
         const setHint = (text) => {
@@ -1239,6 +1245,21 @@ class PlanManager {
                 this.app.viewer.scene.remove(snapMarker);
                 snapMarker = null;
             }
+            if (polygonPreviewGroup && this.app.viewer?.scene) {
+                this.app.viewer.scene.remove(polygonPreviewGroup);
+                polygonPreviewGroup = null;
+            }
+            polygonPoints = [];
+            if (spaceSeparatorPreviewLine && this.app.viewer?.scene) {
+                this.app.viewer.scene.remove(spaceSeparatorPreviewLine);
+                spaceSeparatorPreviewLine = null;
+            }
+            spaceSeparatorStart = null;
+            if (circleSpacePreviewMesh && this.app.viewer?.scene) {
+                this.app.viewer.scene.remove(circleSpacePreviewMesh);
+                circleSpacePreviewMesh = null;
+            }
+            circleSpaceCenter = null;
             wallStartPoint = null;
             roomCorner1 = null;
             isDraggingWall = false;
@@ -1778,6 +1799,12 @@ class PlanManager {
                 setHint("🗑️ انقر فوق أي باب، شباك، فتحة عبور، سلم، مستشعر IoT، أو جدار لحذفه فورياً من النموذج...");
             } else if (tool === 'trim-wall') {
                 setHint("✂️ أداة Trim: انقر مباشرة فوق أي جدار فاصل بين جدارين لتقليمه وحذفه فورياً، ودمج الفضاءين وتوسيع وتكبير المساحة الناتجة وتحديث المؤشرات...");
+            } else if (tool === 'polygon-space') {
+                setHint("⬡ أداة المضلع الحر: انقر لتحديد زوايا الفضاء نقطة بنقطة (شكل L أو غير منتظم)؛ انقر نقراً مزدوجاً أو بالقرب من نقطة البداية لإغلاق وتجسيم الفضاء والأرضية...");
+            } else if (tool === 'space-separator') {
+                setHint("➗ قاطع فضائي افتراضي: انقر النقطة الأولى ثم الثانية عبر أي فضاء مفتوح لتقسيمه إلى منطقتين وظيفيتين بحساسات ومساحات مستقلة (Room Separator)...");
+            } else if (tool === 'circle-space') {
+                setHint("🔘 فضاء دائري/شعاعي: انقر في المركز واسحب لتحديد نصف القطر ثم انقر مجدداً لتجسيم الفضاء الدائري والبهو المركزي (Atrium)...");
             }
         };
 
@@ -1927,6 +1954,15 @@ class PlanManager {
                 } else {
                     setHint("ℹ️ كافة تقاطعات وزوايا الجدران ملتقية ومضبوطة بشكل نظيف بالفعل دون فجوات.");
                 }
+            });
+        }
+
+        // زر الكشف التلقائي لكافة الفضاءات المغلقة بالمبنى
+        const autoDetectAllBtn = document.getElementById('btn-auto-detect-all-spaces');
+        if (autoDetectAllBtn) {
+            autoDetectAllBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await autoDetectAllSpaces();
             });
         }
 
@@ -2257,6 +2293,66 @@ class PlanManager {
                             console.error("Failed to sync enclosed space deletion:", err);
                         }
                     }
+                } else if (last.type === 'create-polygon-space' || last.type === 'create-circle-space') {
+                    if (last.spaceId && bData.spaces[last.spaceId]) {
+                        const spName = bData.spaces[last.spaceId].name_ar || last.spaceId;
+                        delete bData.spaces[last.spaceId];
+                        this.app.viewer.deleteSpaceMesh(last.spaceId);
+                        this.app.viewer.loadBuildingModel(bData);
+                        this.populateSpacesEditor();
+                        setHint(`↩️ تم التراجع عن إنشاء الفضاء (${spName}) وحذفه.`);
+                        try {
+                            await fetch('/api/model/delete_element', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: 'space', id: last.spaceId })
+                            });
+                        } catch(err) {}
+                    }
+                } else if (last.type === 'split-space') {
+                    if (last.originalSpace) {
+                        bData.spaces[last.originalSpace.id] = last.originalSpace;
+                    }
+                    if (last.newSpaceIds) {
+                        for (const nid of last.newSpaceIds) {
+                            delete bData.spaces[nid];
+                            try {
+                                await fetch('/api/model/delete_element', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ type: 'space', id: nid })
+                                });
+                            } catch(err) {}
+                        }
+                    }
+                    this.app.viewer.loadBuildingModel(bData);
+                    this.populateSpacesEditor();
+                    setHint(`↩️ تم التراجع عن تقسيم الفضاء واسترجاع الفضاء الأصلي (${last.originalSpace?.name_ar || ''}).`);
+                    try {
+                        if (last.originalSpace) {
+                            await fetch('/api/model/add_element', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: 'space', element: last.originalSpace })
+                            });
+                        }
+                    } catch(err) {}
+                } else if (last.type === 'batch-auto-spaces') {
+                    if (last.spaces) {
+                        for (const s of last.spaces) {
+                            delete bData.spaces[s.id];
+                            try {
+                                await fetch('/api/model/delete_element', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ type: 'space', id: s.id })
+                                });
+                            } catch(e) {}
+                        }
+                    }
+                    this.app.viewer.loadBuildingModel(bData);
+                    this.populateSpacesEditor();
+                    setHint(`↩️ تم التراجع عن الكشف التلقائي وحذف (${last.spaces?.length || 0}) فضاءات.`);
                 }
             });
         }
@@ -2417,6 +2513,9 @@ class PlanManager {
             const bData = this.app.viewer?.buildingData;
             if (pt && bData && bData.spaces) {
                 for (const [sId, sp] of Object.entries(bData.spaces)) {
+                    if (sp.polygon && isPointInPolygon(pt.x, pt.z, sp.polygon)) {
+                        return sId;
+                    }
                     const b = sp.bounds;
                     if (b && pt.x >= b.x && pt.x <= b.x + b.width && pt.z >= b.z && pt.z <= b.z + b.depth) {
                         return sId;
@@ -2918,6 +3017,312 @@ class PlanManager {
                 if (intersect) inside = !inside;
             }
             return inside;
+        };
+
+        const polygonArea = (pts) => {
+            if (!pts || pts.length < 3) return 0;
+            let sum = 0;
+            for (let i = 0; i < pts.length; i++) {
+                const j = (i + 1) % pts.length;
+                const xi = pts[i][0] !== undefined ? pts[i][0] : pts[i].x;
+                const zi = pts[i][1] !== undefined ? pts[i][1] : pts[i].z;
+                const xj = pts[j][0] !== undefined ? pts[j][0] : pts[j].x;
+                const zj = pts[j][1] !== undefined ? pts[j][1] : pts[j].z;
+                sum += (xi * zj - xj * zi);
+            }
+            return Math.abs(sum) / 2.0;
+        };
+
+        const lineIntersection = (p1, p2, p3, p4) => {
+            const x1 = p1[0] !== undefined ? p1[0] : p1.x;
+            const z1 = p1[1] !== undefined ? p1[1] : p1.z;
+            const x2 = p2[0] !== undefined ? p2[0] : p2.x;
+            const z2 = p2[1] !== undefined ? p2[1] : p2.z;
+            const x3 = p3[0] !== undefined ? p3[0] : p3.x;
+            const z3 = p3[1] !== undefined ? p3[1] : p3.z;
+            const x4 = p4[0] !== undefined ? p4[0] : p4.x;
+            const z4 = p4[1] !== undefined ? p4[1] : p4.z;
+
+            const denom = (x1 - x2) * (z3 - z4) - (z1 - z2) * (x3 - x4);
+            if (Math.abs(denom) < 1e-6) return null;
+
+            const t = ((x1 - x3) * (z3 - z4) - (z1 - z3) * (x3 - x4)) / denom;
+            const u = -((x1 - x2) * (z1 - z3) - (z1 - z2) * (x1 - x3)) / denom;
+
+            if (t >= -1e-4 && t <= 1 + 1e-4 && u >= -1e-4 && u <= 1 + 1e-4) {
+                return [Math.round((x1 + t * (x2 - x1)) * 100) / 100, Math.round((z1 + t * (z2 - z1)) * 100) / 100];
+            }
+            return null;
+        };
+
+        const splitPolygonByLine = (poly, pA, pB) => {
+            if (!poly || poly.length < 3) return null;
+            const ax = pA[0] !== undefined ? pA[0] : pA.x;
+            const az = pA[1] !== undefined ? pA[1] : pA.z;
+            const bx = pB[0] !== undefined ? pB[0] : pB.x;
+            const bz = pB[1] !== undefined ? pB[1] : pB.z;
+
+            const dx = bx - ax;
+            const dz = bz - az;
+            const len = Math.hypot(dx, dz);
+            if (len < 1e-4) return null;
+
+            const ux = dx / len;
+            const uz = dz / len;
+
+            const extA = [ax - ux * 500, az - uz * 500];
+            const extB = [ax + ux * 500, az + uz * 500];
+
+            const n = poly.length;
+            const intersections = [];
+
+            for (let i = 0; i < n; i++) {
+                const e1 = poly[i];
+                const e2 = poly[(i + 1) % n];
+                const pt = lineIntersection(extA, extB, e1, e2);
+                if (pt) {
+                    const isNearLast = intersections.length > 0 && Math.hypot(pt[0] - intersections[intersections.length - 1].pt[0], pt[1] - intersections[intersections.length - 1].pt[1]) < 0.01;
+                    if (!isNearLast) {
+                        intersections.push({ edgeIdx: i, pt });
+                    }
+                }
+            }
+
+            if (intersections.length !== 2) return null;
+
+            const { edgeIdx: i1, pt: pt1 } = intersections[0];
+            const { edgeIdx: i2, pt: pt2 } = intersections[1];
+
+            const poly1 = [pt1];
+            let idx = (i1 + 1) % n;
+            while (idx !== (i2 + 1) % n) {
+                const v = poly[idx];
+                poly1.push([v[0] !== undefined ? v[0] : v.x, v[1] !== undefined ? v[1] : v.z]);
+                idx = (idx + 1) % n;
+            }
+            poly1.push(pt2);
+
+            const poly2 = [pt2];
+            idx = (i2 + 1) % n;
+            while (idx !== (i1 + 1) % n) {
+                const v = poly[idx];
+                poly2.push([v[0] !== undefined ? v[0] : v.x, v[1] !== undefined ? v[1] : v.z]);
+                idx = (idx + 1) % n;
+            }
+            poly2.push(pt1);
+
+            return { polyA: poly1, polyB: poly2, int1: pt1, int2: pt2 };
+        };
+
+        const createSpaceFromPolygon = async (points, elev = 0, storeyId = null, defaultName = "فضاء مخصص", baseColor = "#2ecc71") => {
+            const bData = this.app.viewer?.buildingData;
+            if (!bData) return null;
+            if (!bData.spaces) bData.spaces = {};
+
+            const poly = points.map(p => [
+                Math.round((p[0] !== undefined ? p[0] : p.x) * 100) / 100,
+                Math.round((p[1] !== undefined ? p[1] : p.z) * 100) / 100
+            ]);
+
+            const props = computePolygonAreaAndCentroid(poly);
+            const spaceId = `space_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+            const actStorey = storeyId || this.app.viewer?.activeStoreyFilter || 'st_g';
+
+            const spaceObj = {
+                id: spaceId,
+                name_ar: defaultName,
+                name_en: "Custom Space",
+                type: "flexible",
+                capacity: Math.max(2, Math.round(props.area / 3.5)),
+                area_m2: Math.round(props.area * 10) / 10,
+                centroid: props.centroid,
+                polygon: poly,
+                bounds: props.bounds,
+                base_elevation: elev || 0,
+                storey_id: actStorey,
+                color: baseColor
+            };
+
+            bData.spaces[spaceId] = spaceObj;
+
+            this.app.viewer.loadBuildingModel(bData);
+            this.populateSpacesEditor();
+
+            try {
+                await fetch('/api/model/add_element', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'space', element: spaceObj })
+                });
+                if (window.app?.analytics) {
+                    await window.app.analytics.fetchAndUpdateSensorsInventory();
+                    await window.app.analytics.fetchAndUpdateIoTTelemetry();
+                }
+            } catch (err) {
+                console.warn("Failed to sync space to backend:", err);
+            }
+
+            return spaceObj;
+        };
+
+        const finalizePolygonSpace = async () => {
+            if (polygonPoints.length < 3) {
+                setHint("⚠️ يلزم تحديد 3 نقاط على الأقل لتشكيل فضاء مضلع.");
+                return;
+            }
+            const bData = this.app.viewer?.buildingData;
+            if (!bData) return;
+            const area = polygonArea(polygonPoints);
+            if (area < 0.5) {
+                setHint("⚠️ مساحة الفضاء المضلع صغيرة جداً.");
+                return;
+            }
+            const defaultName = `قاعة مضلعة ${Object.keys(bData.spaces || {}).length + 1}`;
+            const roomName = prompt(`أدخل اسم الفضاء المضلع الحر (${area.toFixed(1)}م²):`, defaultName);
+            if (!roomName) return;
+
+            const pts = [...polygonPoints];
+            cleanupTempVisuals();
+
+            const targetElev = (pts[0].y !== undefined && pts[0].y > 0.5) ? Math.round(pts[0].y * 10) / 10 : 0;
+            const targetStorey = this.app.viewer?.activeStoreyFilter || 'st_g';
+
+            const spaceObj = await createSpaceFromPolygon(pts, targetElev, targetStorey, roomName, "#10b981");
+            if (spaceObj) {
+                historyStack.push({
+                    type: 'create-polygon-space',
+                    spaceId: spaceObj.id,
+                    space: spaceObj
+                });
+                setHint(`✓ تم تجسيم الفضاء المضلع الحر (${roomName}) بمساحة ${area.toFixed(1)}م² وتوليد أرضيته وحساساته بنجاح!`);
+            }
+        };
+
+        const autoDetectAllSpaces = async () => {
+            const bData = this.app.viewer?.buildingData;
+            if (!bData || !bData.walls || Object.keys(bData.walls).length < 3) {
+                alert("⚠️ لا توجد جدران كافية في النموذج المعماري للكشف التلقائي عن الفضاءات.");
+                return;
+            }
+
+            setHint("⚡ جاري المسح الشامل واكتشاف كافة الفضاءات المغلقة آلياً...");
+
+            const actStorey = this.app.viewer?.activeStoreyFilter;
+            let wallsToScan = bData.walls;
+            if (actStorey && actStorey !== 'all') {
+                wallsToScan = {};
+                for (const [wId, w] of Object.entries(bData.walls)) {
+                    if (w.storey_id === actStorey) wallsToScan[wId] = w;
+                }
+                if (Object.keys(wallsToScan).length < 3) wallsToScan = bData.walls;
+            }
+
+            let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+            for (const w of Object.values(wallsToScan)) {
+                if (!w.start || !w.end) continue;
+                minX = Math.min(minX, w.start[0], w.end[0]);
+                maxX = Math.max(maxX, w.start[0], w.end[0]);
+                minZ = Math.min(minZ, w.start[1], w.end[1]);
+                maxZ = Math.max(maxZ, w.start[1], w.end[1]);
+            }
+
+            if (!isFinite(minX) || !isFinite(maxX)) return;
+
+            const discovered = [];
+            const step = 2.0;
+
+            for (let x = minX + 1.0; x <= maxX - 1.0; x += step) {
+                for (let z = minZ + 1.0; z <= maxZ - 1.0; z += step) {
+                    const detected = detectEnclosingWallsFromPoint(x + 0.1, z + 0.1, wallsToScan, 0);
+                    if (detected && detected.area >= 2.0) {
+                        let isDup = false;
+                        const sortedWalls = [...detected.wallIds].sort().join(',');
+                        for (const d of discovered) {
+                            const dSorted = [...d.wallIds].sort().join(',');
+                            if (dSorted === sortedWalls || Math.hypot(d.centroid[0] - detected.centroid[0], d.centroid[1] - detected.centroid[1]) < 1.4) {
+                                isDup = true;
+                                break;
+                            }
+                        }
+                        if (!isDup) {
+                            discovered.push(detected);
+                        }
+                    }
+                }
+            }
+
+            if (discovered.length === 0) {
+                setHint("ℹ️ لم يتم العثور على فضاءات مغلقة جديدة غير مسجلة.");
+                alert("لم يتم العثور على حلقات جدران مغلقة جديدة.");
+                return;
+            }
+
+            if (!bData.spaces) bData.spaces = {};
+            let createdCount = 0;
+            const colors = ["#2ecc71", "#3498db", "#9b59b6", "#f39c12", "#e67e22", "#1abc9c", "#e74c3c", "#00d2ff"];
+            const newlyCreatedSpaces = [];
+
+            for (let i = 0; i < discovered.length; i++) {
+                const disc = discovered[i];
+                let alreadyExists = false;
+                for (const s of Object.values(bData.spaces)) {
+                    if (s.centroid && Math.hypot(s.centroid[0] - disc.centroid[0], s.centroid[1] - disc.centroid[1]) < 1.5) {
+                        alreadyExists = true;
+                        break;
+                    }
+                }
+                if (alreadyExists) continue;
+
+                const sIdx = Object.keys(bData.spaces).length + 1;
+                const color = colors[createdCount % colors.length];
+                const spaceObj = {
+                    id: `space_auto_${Date.now()}_${createdCount}`,
+                    name_ar: `فضاء آلي ${sIdx}`,
+                    name_en: `Auto Space ${sIdx}`,
+                    type: "flexible",
+                    capacity: Math.max(2, Math.round(disc.area / 3.5)),
+                    area_m2: Math.round(disc.area * 10) / 10,
+                    centroid: disc.centroid,
+                    polygon: disc.vertices,
+                    bounds: disc.bounds,
+                    base_elevation: 0,
+                    storey_id: actStorey || 'st_g',
+                    enclosing_wall_ids: disc.wallIds,
+                    color: color
+                };
+
+                bData.spaces[spaceObj.id] = spaceObj;
+                newlyCreatedSpaces.push(spaceObj);
+                createdCount++;
+
+                try {
+                    fetch('/api/model/add_element', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'space', element: spaceObj })
+                    }).catch(() => {});
+                } catch (e) {}
+            }
+
+            if (createdCount > 0) {
+                historyStack.push({
+                    type: 'batch-auto-spaces',
+                    spaces: newlyCreatedSpaces
+                });
+                this.app.viewer.loadBuildingModel(bData);
+                this.populateSpacesEditor();
+                if (window.app?.analytics) {
+                    try {
+                        await window.app.analytics.fetchAndUpdateSensorsInventory();
+                        await window.app.analytics.fetchAndUpdateIoTTelemetry();
+                    } catch (e) {}
+                }
+                setHint(`✓ تم الكشف التلقائي عن (${createdCount}) فضاءات وتوليد أرضياتها وحساساتها بنجاح!`);
+                alert(`⚡ اكتمل الكشف التلقائي بنجاح!\nتم اكتشاف وتوليد ${createdCount} فضاءً معمارياً وحساب مساحاتها وتوليد مجسمات الأرضية وشارات التعريف وحساسات IoT.`);
+            } else {
+                setHint("ℹ️ كافة الفضاءات المكتشفة مسجلة مسبقاً في النموذج.");
+                alert("كافة الفضاءات المغلقة المكتشفة مسجلة بالفعل في النموذج.");
+            }
         };
 
         const analyzeWallTrim = (wId, clickPt = null) => {
@@ -4040,6 +4445,87 @@ class PlanManager {
                     const rd = Math.abs(pt.z - roomCorner1[1]);
                     const area = (rw * rd).toFixed(0);
                     setHint(`📐 أبعاد الفضاء فوق الـ PDF: ${rw.toFixed(1)}م × ${rd.toFixed(1)}م (المساحة: ${area}م²) — انقر لتأكيد الغرفة.`);
+                } else if (activeTool === 'polygon-space' && polygonPoints.length > 0) {
+                    const snapRes = snapPointToWalls(pt.x, pt.z, this.app.viewer.buildingData?.walls);
+                    const curX = snapRes.snapped ? snapRes.point[0] : pt.x;
+                    const curZ = snapRes.snapped ? snapRes.point[1] : pt.z;
+
+                    if (!polygonPreviewGroup) {
+                        polygonPreviewGroup = new THREE.Group();
+                        this.app.viewer.scene.add(polygonPreviewGroup);
+                    }
+
+                    let prevLine = polygonPreviewGroup.getObjectByName('poly_rubberband');
+                    const allPts = [...polygonPoints, [curX, curZ]];
+                    const pts3d = allPts.map(p => new THREE.Vector3(p[0], 0.25, p[1]));
+
+                    const distToStart = Math.hypot(curX - polygonPoints[0][0], curZ - polygonPoints[0][1]);
+                    const closing = polygonPoints.length >= 3 && distToStart < 1.2;
+                    if (closing) {
+                        pts3d.push(new THREE.Vector3(polygonPoints[0][0], 0.25, polygonPoints[0][1]));
+                    }
+
+                    if (!prevLine) {
+                        const geo = new THREE.BufferGeometry().setFromPoints(pts3d);
+                        const mat = new THREE.LineBasicMaterial({ color: closing ? 0x10b981 : 0x38bdf8, linewidth: 3 });
+                        prevLine = new THREE.Line(geo, mat);
+                        prevLine.name = 'poly_rubberband';
+                        polygonPreviewGroup.add(prevLine);
+                    } else {
+                        prevLine.geometry.dispose();
+                        prevLine.geometry = new THREE.BufferGeometry().setFromPoints(pts3d);
+                        prevLine.material.color.setHex(closing ? 0x10b981 : 0x38bdf8);
+                    }
+
+                    const tempArea = polygonArea(allPts);
+                    const closeMsg = closing ? " 🎯 [انقر هنا لإغلاق وتجسيم الفضاء!]" : "";
+                    setHint(`⬡ مضلع فضاء: ${allPts.length} رؤوس (المساحة: ${tempArea.toFixed(1)}م²)${closeMsg} — انقر لإضافة رأس، أو انقر مزدوجاً/Enter لإنهاء التجسيم.`);
+                } else if (activeTool === 'space-separator' && spaceSeparatorStart) {
+                    const x1 = spaceSeparatorStart[0], z1 = spaceSeparatorStart[1];
+                    const x2 = pt.x, z2 = pt.z;
+                    const sepLen = Math.hypot(x2 - x1, z2 - z1);
+
+                    if (!spaceSeparatorPreviewLine) {
+                        const geom = new THREE.BufferGeometry().setFromPoints([
+                            new THREE.Vector3(x1, 0.3, z1),
+                            new THREE.Vector3(x2, 0.3, z2)
+                        ]);
+                        const mat = new THREE.LineDashedMaterial({
+                            color: 0xc084fc,
+                            dashSize: 0.5,
+                            gapSize: 0.25,
+                            linewidth: 3
+                        });
+                        spaceSeparatorPreviewLine = new THREE.Line(geom, mat);
+                        spaceSeparatorPreviewLine.computeLineDistances();
+                        this.app.viewer.scene.add(spaceSeparatorPreviewLine);
+                    } else {
+                        const posAttr = spaceSeparatorPreviewLine.geometry.attributes.position;
+                        posAttr.setXYZ(0, x1, 0.3, z1);
+                        posAttr.setXYZ(1, x2, 0.3, z2);
+                        posAttr.needsUpdate = true;
+                        spaceSeparatorPreviewLine.computeLineDistances();
+                    }
+                    setHint(`➗ قاطع فضائي افتراضي: طول الخط ${sepLen.toFixed(1)}م — انقر النقطة الثانية عبر الفضاء لتقسيمه إلى منطقتين.`);
+                } else if (activeTool === 'circle-space' && circleSpaceCenter) {
+                    const cx = circleSpaceCenter[0], cz = circleSpaceCenter[1];
+                    const R = Math.hypot(pt.x - cx, pt.z - cz);
+                    const area = Math.PI * R * R;
+
+                    if (!circleSpacePreviewMesh) {
+                        const ringGeo = new THREE.RingGeometry(Math.max(0.1, R - 0.08), R + 0.08, 32);
+                        ringGeo.rotateX(-Math.PI / 2);
+                        const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+                        circleSpacePreviewMesh = new THREE.Mesh(ringGeo, ringMat);
+                        circleSpacePreviewMesh.position.set(cx, 0.25, cz);
+                        this.app.viewer.scene.add(circleSpacePreviewMesh);
+                    } else {
+                        circleSpacePreviewMesh.geometry.dispose();
+                        const ringGeo = new THREE.RingGeometry(Math.max(0.1, R - 0.08), R + 0.08, 32);
+                        ringGeo.rotateX(-Math.PI / 2);
+                        circleSpacePreviewMesh.geometry = ringGeo;
+                    }
+                    setHint(`🔘 فضاء دائري/شعاعي: نصف القطر ${R.toFixed(1)}م (المساحة: ${area.toFixed(1)}م²) — انقر لتثبيت وتجسيم الفضاء.`);
                 }
             });
 
@@ -4845,6 +5331,190 @@ class PlanManager {
                         console.error("Failed to sync stair creation:", err);
                     }
                     return;
+                } else if (activeTool === 'polygon-space') {
+                    const snapRes = snapPointToWalls(clickX, clickZ, bData.walls);
+                    const usePt = snapRes.snapped ? snapRes.point : [Math.round(clickX * 10) / 10, Math.round(clickZ * 10) / 10];
+
+                    if (polygonPoints.length >= 3) {
+                        const startPt = polygonPoints[0];
+                        const distToStart = Math.hypot(usePt[0] - startPt[0], usePt[1] - startPt[1]);
+                        if (distToStart < 1.0) {
+                            await finalizePolygonSpace();
+                            return;
+                        }
+                    }
+
+                    polygonPoints.push(usePt);
+
+                    if (!polygonPreviewGroup) {
+                        polygonPreviewGroup = new THREE.Group();
+                        this.app.viewer.scene.add(polygonPreviewGroup);
+                    }
+
+                    const dotGeo = new THREE.SphereGeometry(0.35, 16, 16);
+                    const dotMat = new THREE.MeshBasicMaterial({ color: polygonPoints.length === 1 ? 0x2ecc71 : 0x00d2ff });
+                    const dotMesh = new THREE.Mesh(dotGeo, dotMat);
+                    const targetElev = (pt.y !== undefined && pt.y > 0.5) ? Math.round(pt.y * 10) / 10 : 0;
+                    dotMesh.position.set(usePt[0], targetElev + 0.25, usePt[1]);
+                    polygonPreviewGroup.add(dotMesh);
+
+                    if (polygonPoints.length === 1) {
+                        setHint("⬡ تم تسجيل الرأس الأول؛ انقر لتحديد الرأس التالي لمضلع الفضاء...");
+                    } else {
+                        const curArea = polygonArea(polygonPoints);
+                        setHint(`⬡ تم تسجيل الرأس ${polygonPoints.length} (المساحة: ${curArea.toFixed(1)}م²). انقر الرأس التالي، أو انقر قرب البداية/انقر نقراً مزدوجاً لإنهاء وتجسيم الفضاء.`);
+                    }
+                    return;
+                } else if (activeTool === 'space-separator') {
+                    if (!spaceSeparatorStart) {
+                        spaceSeparatorStart = [Math.round(clickX * 10) / 10, Math.round(clickZ * 10) / 10];
+
+                        const dotGeo = new THREE.SphereGeometry(0.35, 16, 16);
+                        const dotMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+                        tempMarker = new THREE.Mesh(dotGeo, dotMat);
+                        tempMarker.position.set(spaceSeparatorStart[0], 0.25, spaceSeparatorStart[1]);
+                        this.app.viewer.scene.add(tempMarker);
+
+                        setHint("➗ تم تحديد بداية القاطع الفضائي. حرك المؤشر عبر الفضاء المراد تقسيمه وانقر النقطة الثانية...");
+                        return;
+                    } else {
+                        const pA = spaceSeparatorStart;
+                        const pB = [Math.round(clickX * 10) / 10, Math.round(clickZ * 10) / 10];
+                        cleanupTempVisuals();
+
+                        const sepLen = Math.hypot(pB[0] - pA[0], pB[1] - pA[1]);
+                        if (sepLen < 0.8) {
+                            setHint("⚠️ طول خط التقسيم قصير جداً.");
+                            return;
+                        }
+
+                        const midX = (pA[0] + pB[0]) / 2;
+                        const midZ = (pA[1] + pB[1]) / 2;
+
+                        let targetSpaceId = null;
+                        let targetSpace = null;
+
+                        for (const [sId, s] of Object.entries(bData.spaces || {})) {
+                            let poly = s.polygon;
+                            if (!poly && s.bounds) {
+                                poly = [
+                                    [s.bounds.x, s.bounds.z],
+                                    [s.bounds.x + s.bounds.width, s.bounds.z],
+                                    [s.bounds.x + s.bounds.width, s.bounds.z + s.bounds.depth],
+                                    [s.bounds.x, s.bounds.z + s.bounds.depth]
+                                ];
+                            }
+                            if (poly && (isPointInPolygon(midX, midZ, poly) || isPointInPolygon(pA[0], pA[1], poly) || isPointInPolygon(pB[0], pB[1], poly))) {
+                                targetSpaceId = sId;
+                                targetSpace = s;
+                                break;
+                            }
+                        }
+
+                        if (!targetSpace) {
+                            setHint("⚠️ لم يتم العثور على فضاء مسجل يمر به خط القاطع. يرجى رسم خط القاطع عبر فضاء موجود.");
+                            return;
+                        }
+
+                        let poly = targetSpace.polygon;
+                        if (!poly && targetSpace.bounds) {
+                            poly = [
+                                [targetSpace.bounds.x, targetSpace.bounds.z],
+                                [targetSpace.bounds.x + targetSpace.bounds.width, targetSpace.bounds.z],
+                                [targetSpace.bounds.x + targetSpace.bounds.width, targetSpace.bounds.z + targetSpace.bounds.depth],
+                                [targetSpace.bounds.x, targetSpace.bounds.z + targetSpace.bounds.depth]
+                            ];
+                        }
+
+                        const splitResult = splitPolygonByLine(poly, pA, pB);
+                        if (!splitResult) {
+                            setHint("⚠️ يتعذر تقسيم الفضاء: يجب أن يقطع خط التقسيم حافتين من حواف الفضاء بالكامل.");
+                            return;
+                        }
+
+                        const { polyA, polyB } = splitResult;
+                        const areaA = polygonArea(polyA);
+                        const areaB = polygonArea(polyB);
+
+                        const origName = targetSpace.name_ar || "فضاء رئيسي";
+                        const oldSpace = JSON.parse(JSON.stringify(targetSpace));
+
+                        delete bData.spaces[targetSpaceId];
+
+                        const spaceA = await createSpaceFromPolygon(polyA, targetSpace.base_elevation || 0, targetSpace.storey_id || 'st_g', `${origName} (القسم أ)`, "#3498db");
+                        const spaceB = await createSpaceFromPolygon(polyB, targetSpace.base_elevation || 0, targetSpace.storey_id || 'st_g', `${origName} (القسم ب)`, "#e67e22");
+
+                        historyStack.push({
+                            type: 'split-space',
+                            originalSpaceId: targetSpaceId,
+                            originalSpace: oldSpace,
+                            newSpaceIds: [spaceA.id, spaceB.id]
+                        });
+
+                        this.app.viewer.loadBuildingModel(bData);
+                        this.populateSpacesEditor();
+                        setHint(`✓ تم تقسيم (${origName}) بنجاح بقاطع افتراضي إلى: (${spaceA.name_ar} ${areaA.toFixed(1)}م²) و (${spaceB.name_ar} ${areaB.toFixed(1)}م²)!`);
+
+                        try {
+                            await fetch('/api/model/delete_element', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: 'space', id: targetSpaceId })
+                            });
+                        } catch(err) {}
+                        return;
+                    }
+                } else if (activeTool === 'circle-space') {
+                    if (!circleSpaceCenter) {
+                        circleSpaceCenter = [Math.round(clickX * 10) / 10, Math.round(clickZ * 10) / 10];
+
+                        const dotGeo = new THREE.SphereGeometry(0.4, 16, 16);
+                        const dotMat = new THREE.MeshBasicMaterial({ color: 0xf39c12 });
+                        tempMarker = new THREE.Mesh(dotGeo, dotMat);
+                        tempMarker.position.set(circleSpaceCenter[0], 0.25, circleSpaceCenter[1]);
+                        this.app.viewer.scene.add(tempMarker);
+
+                        setHint("🔘 تم تحديد مركز الفضاء الدائري. حرك المؤشر لتحديد نصف القطر ثم انقر للتثبيت والتجسيم...");
+                        return;
+                    } else {
+                        const cx = circleSpaceCenter[0];
+                        const cz = circleSpaceCenter[1];
+                        cleanupTempVisuals();
+
+                        const radius = Math.hypot(clickX - cx, clickZ - cz);
+                        if (radius < 1.0) {
+                            setHint("⚠️ نصف قطر الفضاء الدائري صغير جداً (يجب ألا يقل عن 1م).");
+                            return;
+                        }
+
+                        const area = Math.PI * radius * radius;
+                        const roomName = prompt(`أدخل اسم الفضاء الدائري الشعاعي (نصف القطر: ${radius.toFixed(1)}م، المساحة: ${area.toFixed(1)}م²):`, "بهو دائري مركزي (Atrium)");
+                        if (!roomName) return;
+
+                        const numSegments = 24;
+                        const circlePts = [];
+                        for (let i = 0; i < numSegments; i++) {
+                            const angle = (2 * Math.PI * i) / numSegments;
+                            circlePts.push([
+                                Math.round((cx + radius * Math.cos(angle)) * 100) / 100,
+                                Math.round((cz + radius * Math.sin(angle)) * 100) / 100
+                            ]);
+                        }
+
+                        const targetElev = (pt.y !== undefined && pt.y > 0.5) ? Math.round(pt.y * 10) / 10 : 0;
+                        const targetStorey = this.app.viewer?.activeStoreyFilter || 'st_g';
+
+                        const spaceObj = await createSpaceFromPolygon(circlePts, targetElev, targetStorey, roomName, "#f39c12");
+                        if (spaceObj) {
+                            historyStack.push({
+                                type: 'create-circle-space',
+                                spaceId: spaceObj.id,
+                                space: spaceObj
+                            });
+                            setHint(`✓ تم تجسيم الفضاء الدائري الشعاعي (${roomName}) بنصف قطر ${radius.toFixed(1)}م ومساحة ${area.toFixed(1)}م² بنجاح!`);
+                        }
+                        return;
+                    }
                 }
             };
 
@@ -5014,6 +5684,25 @@ class PlanManager {
                 if (Date.now() - lastProcessedClickTime < 250) return;
                 lastProcessedClickTime = Date.now();
                 await executeClickAction(e.clientX, e.clientY);
+            });
+
+            canvas.addEventListener('dblclick', async (e) => {
+                if (!isTracing || !this.app.viewer) return;
+                if (activeTool === 'polygon-space' && polygonPoints.length >= 3) {
+                    e.preventDefault();
+                    await finalizePolygonSpace();
+                }
+            });
+
+            window.addEventListener('keydown', async (e) => {
+                if (!isTracing) return;
+                if (e.key === 'Enter' && activeTool === 'polygon-space' && polygonPoints.length >= 3) {
+                    e.preventDefault();
+                    await finalizePolygonSpace();
+                } else if (e.key === 'Escape') {
+                    cleanupTempVisuals();
+                    setHint("تم إلغاء الأمر الحالي.");
+                }
             });
         };
 
