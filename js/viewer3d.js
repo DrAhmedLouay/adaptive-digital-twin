@@ -84,10 +84,12 @@ class Twin3DViewer {
         this.camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 5000);
         this.camera.position.set(0, 45, 38);
 
-        // 3. Renderer
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        // 3. Renderer — تعيين خلفية صلبة غير شفافة بيضاء ناصعة تمنع أي تداخل مع خلفية الصفحة
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setClearColor(0xffffff, 1.0);
+        this.renderer.domElement.style.background = '#ffffff';
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.container.appendChild(this.renderer.domElement);
@@ -1522,8 +1524,10 @@ class Twin3DViewer {
     toggleBackgroundTheme() {
         this.isWhiteBackground = !this.isWhiteBackground;
         const containerEl = document.getElementById('viewport-container');
+        const canvasEl = this.renderer ? this.renderer.domElement : null;
         if (this.isWhiteBackground) {
             this.scene.background = new THREE.Color(0xffffff);
+            if (this.renderer) this.renderer.setClearColor(0xffffff, 1.0);
             if (this.gridHelper) {
                 this.scene.remove(this.gridHelper);
                 this.gridHelper = new THREE.GridHelper(300, 100, 0x94a3b8, 0xe2e8f0);
@@ -1536,8 +1540,10 @@ class Twin3DViewer {
                 this.scene.add(this.gridHelper);
             }
             if (containerEl) containerEl.style.background = '#ffffff';
+            if (canvasEl) canvasEl.style.background = '#ffffff';
         } else {
             this.scene.background = new THREE.Color(0x0c111a);
+            if (this.renderer) this.renderer.setClearColor(0x0c111a, 1.0);
             if (this.gridHelper) {
                 this.scene.remove(this.gridHelper);
                 this.gridHelper = new THREE.GridHelper(300, 100, 0xffffff, 0x475569);
@@ -1550,6 +1556,7 @@ class Twin3DViewer {
                 this.scene.add(this.gridHelper);
             }
             if (containerEl) containerEl.style.background = '#0a0d14';
+            if (canvasEl) canvasEl.style.background = '#0a0d14';
         }
         return this.isWhiteBackground;
     }

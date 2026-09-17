@@ -6,12 +6,25 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <script>
+        // كسر التخزين المؤقت تلقائياً وإعادة التحميل القسري لأحدث كود مباشرة
+        (function() {
+            var CURRENT_VER = '2.3.0';
+            var stored = localStorage.getItem('adaptive_twin_ver');
+            var urlParams = new URLSearchParams(window.location.search);
+            if (stored !== CURRENT_VER && !urlParams.has('v230')) {
+                localStorage.setItem('adaptive_twin_ver', CURRENT_VER);
+                urlParams.set('v230', Date.now());
+                window.location.replace(window.location.pathname + '?' + urlParams.toString());
+            }
+        })();
+    </script>
     <title>AdaptiveTwin - التوأم الرقمي التكيفي للمباني الإدارية</title>
     <!-- Google Fonts for Architecture Dashboard -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.2.0">
+    <link rel="stylesheet" href="css/styles.css?v=2.3.0">
 </head>
 <body>
 
@@ -954,12 +967,12 @@
     </script>
 
     <!-- Application Scripts -->
-    <script src="js/default_model.js?v=2.2.0"></script>
-    <script src="js/viewer3d.js?v=2.2.0"></script>
-    <script src="js/analytics.js?v=2.2.0"></script>
-    <script src="js/ifc_step_parser.js?v=2.2.0"></script>
-    <script src="js/plan_manager.js?v=2.2.0"></script>
-    <script src="js/tooltip.js?v=2.2.0"></script>
-    <script src="js/app.js?v=2.2.0"></script>
+    <script src="js/default_model.js?v=2.3.0"></script>
+    <script src="js/viewer3d.js?v=2.3.0"></script>
+    <script src="js/analytics.js?v=2.3.0"></script>
+    <script src="js/ifc_step_parser.js?v=2.3.0"></script>
+    <script src="js/plan_manager.js?v=2.3.0"></script>
+    <script src="js/tooltip.js?v=2.3.0"></script>
+    <script src="js/app.js?v=2.3.0"></script>
 </body>
 </html>
