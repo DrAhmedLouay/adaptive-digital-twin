@@ -4970,4 +4970,43 @@ streamlit run streamlit_app.py
 ### 🔗 رابط التشغيل المباشر للإصدار المحدث (v2.3.5):
 👉 **[https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.5](https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.5)**
 
+---
+
+## 💬 الجولة 84 | Turn #84
+**⏰ التوقيت:** `2026-09-17 18:05:00 UTC`  
+
+### 👤 طلب / سؤال المعمار (User):
+
+```text
+المنصة توقفت بعد التحديث
+```
+
+### 🤖 إجابة وحلول المساعد (Antigravity Assistant):
+
+أهلاً بك دكتور أحمد. تم تشخيص سبب توقف المنصة بدقة هندسية وجذرية ومعالجته بالكامل في الإصدار المحدث **(v2.3.6)**:
+
+---
+
+### 🔍 التشخيص الدقيق لسبب التوقف:
+1. **خطأ مرجعي `ReferenceError: Viewer3D is not defined`:**
+   - في دالة بناء وتحديث جسيمات ومسارات التدفق الحركي (`setupCirculationParticles` و `updateRealtimeState`)، كان الكود يستدعي مصفوفة الألوان عبر اسم الفئة القديم `Viewer3D.FLOW_THEMES` بدلاً من اسم الفئة المعتمد `Twin3DViewer.FLOW_THEMES`.
+   - هذا الخطأ تسبب في إيقاف حلقة التحميل وبناء المشهد (`loadBuildingModel`) عند إطلاق المنصة، مما منع اكتمال تسجيل أحداث الواجهة وتسبب في توقف المحاكاة وعرض شريط الخطأ.
+2. **سباق تحميل الأحداث (DOM Ready State Race Condition):**
+   - كان بدء تشغيل التطبيق في `app.js` و `tooltip.js` يعتمد حصرياً على حدث `DOMContentLoaded`. في حال تحميل الصفحة من الذاكرة المخبأة (Cache) واكتمال جاهزية الـ DOM قبل تحميل الملف، لم يكن الحدث ينطلق مجدداً مما يبقي المنصة خاملة.
+3. **ترتيب تعريف المتغير `currentHoveredSpaceId`:**
+   - تم نقل تعريف المتغير إلى النطاق الجذري لأداة المعايرة (Tracer Scope) لمنع أي تعارض مرجعي (TDZ).
+
+---
+
+### 🛠️ الإصلاحات الجذرية المطبقة في الإصدار v2.3.6:
+1. **تصحيح كافة مراجع ثيمات التدفق الحركي:** تم استبدال جميع مراجع `Viewer3D.FLOW_THEMES` الـ 7 بـ `Twin3DViewer.FLOW_THEMES`، مع تصدير اسم الفئة عالمياً على كائن `window` كإجراء وقائي إضافي (`window.Viewer3D = Twin3DViewer`).
+2. **تهيئة مرنة تامة ضد حالات التخزين المؤقت:** التحقق المباشر من `document.readyState` قبل انتظار `DOMContentLoaded` في كل من `app.js` و `tooltip.js`.
+3. **تحديث كواسر التخزين المؤقت (Cache-Busting):** ترقية الإصدار إلى **`v=2.3.6`** وكواسر الرابط إلى `v236` لفرض تنزيل أحدث ملفات JavaScript النظيفة في متصفحك فورياً دون أي بقايا قديمة.
+
+---
+
+### 🌐 رابط التشغيل المباشر بعد الإصلاح الشامل:
+👉 **[https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.6](https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.6)**
+
+
 

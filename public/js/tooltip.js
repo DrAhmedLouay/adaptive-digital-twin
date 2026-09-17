@@ -17,7 +17,7 @@
         return tooltipEl;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initTooltipListeners() {
         const el = createTooltipElement();
 
         document.addEventListener('mouseover', (e) => {
@@ -50,7 +50,13 @@
                 el.classList.remove('visible');
             }
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTooltipListeners);
+    } else {
+        initTooltipListeners();
+    }
 
     function positionTooltip(e, el) {
         const padding = 12;

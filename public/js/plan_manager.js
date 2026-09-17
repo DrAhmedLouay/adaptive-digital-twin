@@ -1160,6 +1160,7 @@ class PlanManager {
         let stairRotationAngle = 0;
         let stairLastTargetPos = null;
         let currentHoveredStairId = null;
+        let currentHoveredSpaceId = null;
         let trimBoundingWallHighlights = [];
         const historyStack = [];
 
@@ -2386,7 +2387,7 @@ class PlanManager {
             return null;
         };
 
-        let currentHoveredSpaceId = null;
+        // currentHoveredSpaceId تم تعريفه في النطاق الرئيسي للـ Tracer
 
         const findSpaceUnderCursor = (clientX, clientY) => {
             const canvas = this.app.viewer?.renderer?.domElement;

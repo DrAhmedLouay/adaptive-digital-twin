@@ -863,8 +863,16 @@ class TwinApp {
     }
 }
 
-// بدء التشغيل عند تحميل الصفحة
-window.addEventListener('DOMContentLoaded', () => {
-    window.twinApp = new TwinApp();
-    window.app = window.twinApp;
-});
+// بدء التشغيل المرن عند تحميل الصفحة (سواء اكتمل التحميل مسبقاً أو قيد التحميل)
+function startTwinApp() {
+    if (!window.twinApp) {
+        window.twinApp = new TwinApp();
+        window.app = window.twinApp;
+    }
+}
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', startTwinApp);
+} else {
+    startTwinApp();
+}

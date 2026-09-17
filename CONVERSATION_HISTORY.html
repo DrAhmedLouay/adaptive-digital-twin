@@ -5128,6 +5128,57 @@ streamlit run streamlit_app.py
 👉 <b><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.5" target="_blank">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.5</a></b></div>
             </div>
         </div>
+
+        <div class="turn-card">
+            <div class="turn-header">
+                <span class="turn-num">💬 الجولة 84</span>
+                <span>⏰ 2026-09-17 18:05:00 UTC</span>
+            </div>
+            <div class="user-box">
+                <div class="user-label">👤 طلب / سؤال المعمار:</div>
+                <div class="user-text">المنصة توقفت بعد التحديث</div>
+            </div>
+            <div class="model-box">
+                <div class="model-label">🤖 إجابة وحلول Antigravity:</div>
+                <div class="model-text">أهلاً بك دكتور أحمد. تم تشخيص سبب توقف المنصة بدقة هندسية وجذرية ومعالجته بالكامل في الإصدار المحدث <b>(v2.3.6)</b>:
+
+<hr>
+
+<h3>🔍 التشخيص الدقيق لسبب التوقف:</h3>
+<ol>
+  <li><b>خطأ مرجعي <code>ReferenceError: Viewer3D is not defined</code>:</b>
+    <ul>
+      <li>في دالة بناء وتحديث جسيمات ومسارات التدفق الحركي (<code>setupCirculationParticles</code> و <code>updateRealtimeState</code>)، كان الكود يستدعي مصفوفة الألوان عبر اسم الفئة القديم <code>Viewer3D.FLOW_THEMES</code> بدلاً من اسم الفئة المعتمد <code>Twin3DViewer.FLOW_THEMES</code>.</li>
+      <li>هذا الخطأ تسبب في إيقاف حلقة التحميل وبناء المشهد (<code>loadBuildingModel</code>) عند إطلاق المنصة، مما منع اكتمال تسجيل أحداث الواجهة وتسبب في توقف المحاكاة وعرض شريط الخطأ.</li>
+    </ul>
+  </li>
+  <li><b>سباق تحميل الأحداث (DOM Ready State Race Condition):</b>
+    <ul>
+      <li>كان بدء تشغيل التطبيق في <code>app.js</code> و <code>tooltip.js</code> يعتمد حصرياً على حدث <code>DOMContentLoaded</code>. في حال تحميل الصفحة من الذاكرة المخبأة (Cache) واكتمال جاهزية الـ DOM قبل تحميل الملف، لم يكن الحدث ينطلق مجدداً مما يبقي المنصة خاملة.</li>
+    </ul>
+  </li>
+  <li><b>ترتيب تعريف المتغير <code>currentHoveredSpaceId</code>:</b>
+    <ul>
+      <li>تم نقل تعريف المتغير إلى النطاق الجذري لأداة المعايرة (Tracer Scope) لمنع أي تعارض مرجعي (TDZ).</li>
+    </ul>
+  </li>
+</ol>
+
+<hr>
+
+<h3>🛠️ الإصلاحات الجذرية المطبقة في الإصدار v2.3.6:</h3>
+<ol>
+  <li><b>تصحيح كافة مراجع ثيمات التدفق الحركي:</b> تم استبدال جميع مراجع <code>Viewer3D.FLOW_THEMES</code> الـ 7 بـ <code>Twin3DViewer.FLOW_THEMES</code>، مع تصدير اسم الفئة عالمياً على كائن <code>window</code> كإجراء وقائي إضافي (<code>window.Viewer3D = Twin3DViewer</code>).</li>
+  <li><b>تهيئة مرنة تامة ضد حالات التخزين المؤقت:</b> التحقق المباشر من <code>document.readyState</code> قبل انتظار <code>DOMContentLoaded</code> في كل من <code>app.js</code> و <code>tooltip.js</code>.</li>
+  <li><b>تحديث كواسر التخزين المؤقت (Cache-Busting):</b> ترقية الإصدار إلى <b><code>v=2.3.6</code></b> وكواسر الرابط إلى <code>v236</code> لفرض تنزيل أحدث ملفات JavaScript النظيفة في متصفحك فورياً دون أي بقايا قديمة.</li>
+</ol>
+
+<hr>
+
+<h3>🌐 رابط التشغيل المباشر بعد الإصلاح الشامل:</h3>
+👉 <b><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.6" target="_blank">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.6</a></b></div>
+            </div>
+        </div>
     
     </div>
 </body>

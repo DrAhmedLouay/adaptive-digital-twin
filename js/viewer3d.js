@@ -1376,7 +1376,7 @@ class Twin3DViewer {
         this.circulationRoutes = this.buildCirculationNetwork(data);
         if (!this.circulationRoutes || this.circulationRoutes.length === 0) return;
 
-        const themeConfig = Viewer3D.FLOW_THEMES[this.flowColorTheme] || Viewer3D.FLOW_THEMES['royal_blue'];
+        const themeConfig = Twin3DViewer.FLOW_THEMES[this.flowColorTheme] || Twin3DViewer.FLOW_THEMES['royal_blue'];
 
         // 1. بناء أشرطة ومسارات التدفق المعمارية على الأرضية (Flow Streamlines)
         if (!this.circulationRoutesGroup) {
@@ -1468,7 +1468,7 @@ class Twin3DViewer {
 
         if (!this.circulationRoutes || this.circulationRoutes.length === 0) return;
 
-        const themeConfig = theme || Viewer3D.FLOW_THEMES[this.flowColorTheme] || Viewer3D.FLOW_THEMES['royal_blue'];
+        const themeConfig = theme || Twin3DViewer.FLOW_THEMES[this.flowColorTheme] || Twin3DViewer.FLOW_THEMES['royal_blue'];
 
         for (const route of this.circulationRoutes) {
             if (!route.points || route.points.length < 2) continue;
@@ -1500,10 +1500,10 @@ class Twin3DViewer {
 
     // تغيير ثيم لون التدفق الحركي وتحديث كافة الجسيمات والمسارات لحظياً
     setFlowTheme(themeId) {
-        if (!Viewer3D.FLOW_THEMES[themeId]) return;
+        if (!Twin3DViewer.FLOW_THEMES[themeId]) return;
         this.flowColorTheme = themeId;
         localStorage.setItem('adaptive_twin_flow_theme', themeId);
-        const themeConfig = Viewer3D.FLOW_THEMES[themeId];
+        const themeConfig = Twin3DViewer.FLOW_THEMES[themeId];
 
         // 1. إعادة تلوين الجسيمات فورياً
         if (this.particleAgents && this.circulationRoutes) {
@@ -1531,7 +1531,7 @@ class Twin3DViewer {
 
     // التنقل التتابعي بين ألوان التدفق عند النقر على الزر
     cycleFlowTheme() {
-        const themeKeys = Object.keys(Viewer3D.FLOW_THEMES);
+        const themeKeys = Object.keys(Twin3DViewer.FLOW_THEMES);
         let currentIndex = themeKeys.indexOf(this.flowColorTheme);
         if (currentIndex === -1) currentIndex = 0;
         const nextIndex = (currentIndex + 1) % themeKeys.length;
@@ -1541,7 +1541,7 @@ class Twin3DViewer {
 
     // تحديث الشارة والنقطة اللونية لزر التدفق في واجهة المستخدم
     updateFlowThemeUI(theme) {
-        const themeConfig = theme || Viewer3D.FLOW_THEMES[this.flowColorTheme] || Viewer3D.FLOW_THEMES['royal_blue'];
+        const themeConfig = theme || Twin3DViewer.FLOW_THEMES[this.flowColorTheme] || Twin3DViewer.FLOW_THEMES['royal_blue'];
         const dot = document.getElementById('flow-color-dot');
         const label = document.getElementById('flow-color-label');
         if (dot) {
@@ -1603,7 +1603,7 @@ class Twin3DViewer {
 
             const centralFlow = flows['corridor_central'] || 30;
             const isCongested = (centralFlow > 52);
-            const themeConfig = Viewer3D.FLOW_THEMES[this.flowColorTheme] || Viewer3D.FLOW_THEMES['royal_blue'];
+            const themeConfig = Twin3DViewer.FLOW_THEMES[this.flowColorTheme] || Twin3DViewer.FLOW_THEMES['royal_blue'];
 
             for (let i = 0; i < this.particleAgents.length; i++) {
                 const agent = this.particleAgents[i];
@@ -4408,3 +4408,7 @@ class Twin3DViewer {
         this.renderer.setSize(width, height);
     }
 }
+
+// تصدير الكائن عالمياً لضمان التوافقية الكاملة ومنع أي أخطاء مراجع
+window.Twin3DViewer = Twin3DViewer;
+window.Viewer3D = Twin3DViewer;
