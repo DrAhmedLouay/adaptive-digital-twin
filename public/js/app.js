@@ -25,11 +25,14 @@ class TwinApp {
         this.analytics = new TwinAnalytics();
         this.planManager = new PlanManager(this);
 
-        // تغليف loadBuildingModel لتحديث شريط الطوابق تلقائيًا عند كل استدعاء
+        // تغليف loadBuildingModel لتحديث شريط الطوابق وعارض IFC تلقائيًا عند كل استدعاء
         const _origLoad = this.viewer.loadBuildingModel.bind(this.viewer);
         this.viewer.loadBuildingModel = (modelData) => {
             _origLoad(modelData);
             this.updateStoreyBar(modelData);
+            if (this.refreshIfcViewerUI) {
+                this.refreshIfcViewerUI();
+            }
         };
 
         // 2. جلب وتوليد النموذج المعماري ثلاثي الأبعاد
@@ -37,6 +40,7 @@ class TwinApp {
 
         // 3. ربط أحداث واجهة المستخدم
         this.setupEventListeners();
+        this.setupIfcViewer();
 
         // 4. بدء دفق التزامن اللحظي
         this.startTelemetryLoop();
@@ -270,6 +274,303 @@ class TwinApp {
                 await this.applyReconfiguration('functional_swap');
                 if (reconfigModal) reconfigModal.classList.remove('active');
             });
+        }
+    }
+
+    setupIfcViewer() {
+        const modal = document.getElementById('ifc-viewer-modal');
+        const btnOpen = document.getElementById('btn-open-ifc-viewer');
+        const btnClose = document.getElementById('btn-close-ifc-viewer-modal');
+
+        const openModal = () => {
+            if (!modal) return;
+            modal.classList.add('active');
+            this.refreshIfcViewerUI();
+        };
+
+        const closeModal = () => {
+            if (!modal) return;
+            modal.classList.remove('active');
+        };
+
+        this.openIfcViewer = openModal;
+        this.closeIfcViewer = closeModal;
+
+        if (btnOpen) btnOpen.addEventListener('click', openModal);
+        if (btnClose) btnClose.addEventListener('click', closeModal);
+
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
+                closeModal();
+            }
+        });
+
+        // الأزرار التفاعلية على الشريط العائم في شاشة 3D
+        const btnVpOpen = document.getElementById('btn-vp-open-ifc');
+        if (btnVpOpen) btnVpOpen.addEventListener('click', openModal);
+
+        const btnVpClose = document.getElementById('btn-vp-close-pill');
+        if (btnVpClose) {
+            btnVpClose.addEventListener('click', () => {
+                const vpPill = document.getElementById('viewport-element-pill');
+                if (vpPill) vpPill.style.display = 'none';
+                if (this.viewer) this.viewer.clearSelection();
+            });
+        }
+
+        // أزرار الإجراءات السريعة (Quick Actions)
+        const btnPureBim = document.getElementById('btn-ifc-pure-bim');
+        if (btnPureBim) {
+            btnPureBim.addEventListener('click', () => {
+                if (this.viewer) {
+                    this.viewer.setIfcCategoryVisible('slabs_site', false);
+                    this.viewer.setIfcCategoryVisible('spaces', false);
+                    this.viewer.cleanGhostElements();
+                    this.refreshIfcViewerUI();
+                }
+            });
+        }
+
+        const btnCleanGhost = document.getElementById('btn-ifc-clean-ghost');
+        if (btnCleanGhost) {
+            btnCleanGhost.addEventListener('click', () => {
+                if (this.viewer) {
+                    this.viewer.cleanGhostElements();
+                    this.refreshIfcViewerUI();
+                }
+            });
+        }
+
+        const btnShowAll = document.getElementById('btn-ifc-show-all');
+        if (btnShowAll) {
+            btnShowAll.addEventListener('click', () => {
+                if (this.viewer) {
+                    const cats = ['walls', 'slabs_floor', 'slabs_roof', 'slabs_site', 'columns', 'beams', 'doors', 'windows', 'stairs', 'spaces'];
+                    cats.forEach(c => this.viewer.setIfcCategoryVisible(c, true));
+                    this.refreshIfcViewerUI();
+                }
+            });
+        }
+
+        const btnResetView = document.getElementById('btn-ifc-reset-view');
+        if (btnResetView) {
+            btnResetView.addEventListener('click', () => {
+                if (this.viewer) {
+                    this.viewer.resetAllElementVisibility();
+                    this.viewer.resetCamera();
+                    this.viewer.setStoreyFilter('all');
+                    this.refreshIfcViewerUI();
+                }
+            });
+        }
+
+        // أزرار فاحص خصائص العنصر (Inspector Actions)
+        const btnIsolate = document.getElementById('btn-inspector-isolate');
+        if (btnIsolate) {
+            btnIsolate.addEventListener('click', () => {
+                if (this.selectedElementDetails && this.viewer) {
+                    this.viewer.isolateElement(this.selectedElementDetails.info.type, this.selectedElementDetails.info.id);
+                }
+            });
+        }
+
+        const btnHide = document.getElementById('btn-inspector-hide');
+        if (btnHide) {
+            btnHide.addEventListener('click', () => {
+                if (this.selectedElementDetails && this.viewer) {
+                    this.viewer.setElementVisible(this.selectedElementDetails.info.type, this.selectedElementDetails.info.id, false);
+                    this.viewer.clearSelection();
+                }
+            });
+        }
+
+        const btnFocus = document.getElementById('btn-inspector-focus');
+        if (btnFocus) {
+            btnFocus.addEventListener('click', () => {
+                if (this.selectedElementDetails && this.selectedElementDetails.mesh && this.viewer) {
+                    this.viewer.focusOnElement(this.selectedElementDetails.mesh);
+                }
+            });
+        }
+
+        const btnResetElem = document.getElementById('btn-inspector-reset');
+        if (btnResetElem) {
+            btnResetElem.addEventListener('click', () => {
+                if (this.viewer) {
+                    this.viewer.resetAllElementVisibility();
+                    this.refreshIfcViewerUI();
+                }
+            });
+        }
+
+        // ربط مستمع النقر في المنظور 3D
+        if (this.viewer) {
+            this.viewer.onElementSelected = (details) => {
+                this.renderInspectorDetails(details);
+            };
+        }
+    }
+
+    refreshIfcViewerUI() {
+        if (!this.viewer) return;
+        const stats = this.viewer.getIfcStats ? this.viewer.getIfcStats() : {};
+        const bData = this.viewer.buildingData || {};
+
+        // تحديث شارة إجمالي العناصر النشطة
+        const total = Object.values(stats).reduce((acc, v) => acc + (v || 0), 0);
+        const badge = document.getElementById('ifc-total-elements-badge');
+        if (badge) {
+            badge.textContent = `${total} عنصر معماري نشط`;
+        }
+
+        // مصفوفة طبقات وفئات BIM
+        const categories = [
+            { key: 'walls', icon: '🧱', name_ar: 'الجدران المعمارية (Walls)', ifc_type: 'IfcWall / StandardCase' },
+            { key: 'slabs_floor', icon: '⬜', name_ar: 'بلاطات الطوابق (Floor Slabs)', ifc_type: 'IfcSlab (Floor)' },
+            { key: 'slabs_roof', icon: '🏠', name_ar: 'أسطح المبنى (Roof Slabs)', ifc_type: 'IfcRoof / IfcSlab (Roof)' },
+            { key: 'slabs_site', icon: '🌐', name_ar: 'سطح الموقع العام (Site Footprint)', ifc_type: 'IfcSite / Terrain' },
+            { key: 'columns', icon: '🏛️', name_ar: 'الأعمدة الإنشائية (Columns)', ifc_type: 'IfcColumn' },
+            { key: 'beams', icon: '🏗️', name_ar: 'الجسور والكمرات (Beams)', ifc_type: 'IfcBeam' },
+            { key: 'doors', icon: '🚪', name_ar: 'الأبواب المعمارية (Doors)', ifc_type: 'IfcDoor' },
+            { key: 'windows', icon: '🪟', name_ar: 'النوافذ والواجهات الزجاجية (Windows)', ifc_type: 'IfcWindow' },
+            { key: 'stairs', icon: '🪜', name_ar: 'الأدراج والسلالم (Stairs)', ifc_type: 'IfcStair' },
+            { key: 'spaces', icon: '📦', name_ar: 'الفضاءات والمناطق الوظيفية (Spaces)', ifc_type: 'IfcSpace' }
+        ];
+
+        const container = document.getElementById('ifc-layers-container');
+        if (container) {
+            container.innerHTML = '';
+            categories.forEach(cat => {
+                const count = stats[cat.key] || 0;
+                const isVis = this.viewer.ifcCategoryVisibility ? this.viewer.ifcCategoryVisibility[cat.key] !== false : true;
+
+                const row = document.createElement('div');
+                row.className = 'ifc-layer-row';
+                row.innerHTML = `
+                    <div class="ifc-layer-info">
+                        <span class="ifc-layer-icon">${cat.icon}</span>
+                        <div>
+                            <div class="ifc-layer-title">${cat.name_ar}</div>
+                            <div class="ifc-layer-sub">${cat.ifc_type}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="ifc-layer-count">${count} عنصر</span>
+                        <label class="ifc-toggle">
+                            <input type="checkbox" data-ifc-cat="${cat.key}" ${isVis ? 'checked' : ''}>
+                            <span class="ifc-toggle-slider"></span>
+                        </label>
+                    </div>
+                `;
+
+                const checkbox = row.querySelector('input');
+                checkbox.addEventListener('change', (e) => {
+                    this.viewer.setIfcCategoryVisible(cat.key, e.target.checked);
+                });
+
+                container.appendChild(row);
+            });
+        }
+
+        // أزرار عزل الطوابق (Storey Isolator Pills)
+        const pillsContainer = document.getElementById('ifc-storey-isolator-pills');
+        if (pillsContainer) {
+            pillsContainer.innerHTML = '';
+            const btnAll = document.createElement('button');
+            btnAll.className = `storey-pill ${(!this.viewer.activeStoreyFilter || this.viewer.activeStoreyFilter === 'all') ? 'active' : ''}`;
+            btnAll.textContent = '🏙️ جميع الطوابق';
+            btnAll.addEventListener('click', () => {
+                this.viewer.setStoreyFilter('all');
+                pillsContainer.querySelectorAll('.storey-pill').forEach(p => p.classList.remove('active'));
+                btnAll.classList.add('active');
+            });
+            pillsContainer.appendChild(btnAll);
+
+            const storeys = bData.storeys || {};
+            Object.entries(storeys)
+                .sort((a, b) => (a[1].elevation ?? 0) - (b[1].elevation ?? 0))
+                .forEach(([storeyId, s]) => {
+                    const pill = document.createElement('button');
+                    const isActive = this.viewer.activeStoreyFilter === storeyId;
+                    pill.className = `storey-pill ${isActive ? 'active' : ''}`;
+                    const elev = (s.elevation ?? 0).toFixed(1);
+                    pill.textContent = `${s.name_ar || s.name || storeyId} (+${elev}m)`;
+                    pill.addEventListener('click', () => {
+                        this.viewer.setStoreyFilter(storeyId);
+                        pillsContainer.querySelectorAll('.storey-pill').forEach(p => p.classList.remove('active'));
+                        pill.classList.add('active');
+                    });
+                    pillsContainer.appendChild(pill);
+                });
+        }
+    }
+
+    renderInspectorDetails(details) {
+        this.selectedElementDetails = details;
+        const emptyState = document.getElementById('ifc-inspector-empty');
+        const cardState = document.getElementById('ifc-inspector-card');
+        const statusText = document.getElementById('ifc-inspector-status');
+        const vpPill = document.getElementById('viewport-element-pill');
+
+        if (!details || !details.info) {
+            if (emptyState) emptyState.style.display = 'flex';
+            if (cardState) cardState.style.display = 'none';
+            if (statusText) statusText.textContent = 'انقر على أي عنصر في 3D';
+            if (vpPill) vpPill.style.display = 'none';
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+        if (cardState) cardState.style.display = 'flex';
+        if (statusText) statusText.textContent = 'عنصر نشط في المنظور';
+
+        const elemName = document.getElementById('inspector-elem-name');
+        const elemClass = document.getElementById('inspector-elem-class');
+        const elemStorey = document.getElementById('inspector-elem-storey');
+        const paramsTable = document.getElementById('inspector-params-table');
+
+        const name = details.info.name_ar || details.info.name_en || details.info.id;
+        const cls = `${details.info.ifcType} • [ID: ${details.info.id}]`;
+        const storey = `📍 ${details.info.storeyName || details.info.storey_id}`;
+
+        if (elemName) elemName.textContent = name;
+        if (elemClass) elemClass.textContent = cls;
+        if (elemStorey) elemStorey.textContent = storey;
+
+        if (paramsTable) {
+            let html = '';
+            for (const [k, v] of Object.entries(details.info.dimensions || {})) {
+                html += `
+                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                        <td style="padding: 6px 4px; color: #94a3b8; width: 45%;">${k}</td>
+                        <td style="padding: 6px 4px; font-weight: 500; color: #f8fafc; text-align: left; font-family: monospace;">${v}</td>
+                    </tr>
+                `;
+            }
+            paramsTable.innerHTML = html;
+        }
+
+        // تحديث الشريط العائم في شاشة الـ 3D
+        if (vpPill) {
+            const iconEl = document.getElementById('vp-pill-icon');
+            const titleEl = document.getElementById('vp-pill-title');
+            const subEl = document.getElementById('vp-pill-sub');
+
+            const icons = {
+                wall: '🧱', slab: '⬜', column: '🏛️', beam: '🏗️',
+                opening: details.info.ifcType === 'IfcDoor' ? '🚪' : '🪟',
+                stair: '🪜', space: '📦'
+            };
+            if (iconEl) iconEl.textContent = icons[details.info.type] || '🏢';
+            if (titleEl) titleEl.textContent = name;
+            if (subEl) subEl.textContent = cls;
+            vpPill.style.display = 'flex';
         }
     }
 

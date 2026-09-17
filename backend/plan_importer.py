@@ -49,6 +49,8 @@ class IFCStepParser:
         self.rel_voids: Dict[int, int] = {}
         self.rel_fills: Dict[int, int] = {}
         self.element_to_wall: Dict[int, int] = {}
+        self.decomposed_parents: Set[int] = set()
+        self.aggregated_children: Dict[int, int] = {}
 
     def parse(self) -> Dict[str, Any]:
         self._tokenize_and_build_graph()
@@ -379,6 +381,22 @@ class IFCStepParser:
                 if o_ent and o_ent['type'] in ('IFCDOOR', 'IFCDOORSTANDARDCASE', 'IFCWINDOW', 'IFCWINDOWSTANDARDCASE'):
                     self.element_to_wall[opening_ref] = wall_ref
 
+        # 3. IFCRELAGGREGATES & IFCRELDECOMPOSES: تفكيك الحاويات والتجميع الهيكلي
+        self.decomposed_parents = set()
+        self.aggregated_children = {}
+        for rel_type in ('IFCRELAGGREGATES', 'IFCRELDECOMPOSES'):
+            for eid in self.entities_by_type.get(rel_type, []):
+                ent = self.entities[eid]
+                args = ent.get('args', [])
+                if len(args) >= 6:
+                    parent_ref = args[4]
+                    children_refs = args[5] if isinstance(args[5], list) else [args[5]]
+                    if isinstance(parent_ref, int):
+                        self.decomposed_parents.add(parent_ref)
+                        for c_ref in children_refs:
+                            if isinstance(c_ref, int):
+                                self.aggregated_children[c_ref] = parent_ref
+
     def _extract_walls(self):
         wall_eids = (
             self.entities_by_type.get('IFCWALLSTANDARDCASE', []) +
@@ -388,6 +406,13 @@ class IFCStepParser:
         )
         for eid in wall_eids:
             ent = self.entities[eid]
+            if not ent:
+                continue
+
+            # استبعاد الجدران الحاضنة المفككة لعناصر فرعية IFCWALLELEMENTEDCASE لمنع التكرار والتداخل
+            if eid in self.decomposed_parents and ent['type'] in ('IFCWALLELEMENTEDCASE', 'IFCCURTAINWALL'):
+                continue
+
             args = ent['args']
             w_id = f"wall_{eid}"
             w_name = str(args[2]) if len(args) > 2 and args[2] else f"Wall_{eid}"
@@ -412,11 +437,10 @@ class IFCStepParser:
                 ez = (py + (p2[0] * sin_r + p2[1] * cos_r)) * self.scale
             elif length > 0:
                 cos_r, sin_r = math.cos(rot), math.sin(rot)
-                half_l = length / 2.0
-                sx = (px - (half_l * cos_r)) * self.scale
-                sz = (py - (half_l * sin_r)) * self.scale
-                ex = (px + (half_l * cos_r)) * self.scale
-                ez = (py + (half_l * sin_r)) * self.scale
+                sx = px * self.scale
+                sz = py * self.scale
+                ex = (px + (length * cos_r)) * self.scale
+                ez = (py + (length * sin_r)) * self.scale
             else:
                 continue
                 
@@ -424,7 +448,7 @@ class IFCStepParser:
             wall_h = max(2.0, height * self.scale) if height > 0 else self.storeys[storey_id]['height']
             base_y = (pz * self.scale) if abs(pz * self.scale - storey_elev) < 0.2 else storey_elev
 
-            # فحص التكرار (Deduplication) لمنع ازدواجية الجدران الناتجة عن IFCWALLELEMENTEDCASE أو الخطوط المتطابقة
+            # فحص التكرار الشامل (Deduplication) مع معالجة تطابق IFCWALL و IFCWALLSTANDARDCASE
             is_dup = False
             curr_ifc_type = ent['type']
             for existing_w in self.walls.values():
@@ -433,9 +457,14 @@ class IFCStepParser:
                     e_ex = existing_w['end']
                     d_direct = math.hypot(sx - s_ex[0], sz - s_ex[1]) + math.hypot(ex - e_ex[0], ez - e_ex[1])
                     d_reverse = math.hypot(sx - e_ex[0], sz - e_ex[1]) + math.hypot(ex - s_ex[0], ez - s_ex[1])
-                    if d_direct < 0.3 or d_reverse < 0.3:
+                    if d_direct < 0.35 or d_reverse < 0.35:
                         prev_ifc_type = existing_w.get('ifc_type', '')
-                        if prev_ifc_type == curr_ifc_type or 'ELEMENTED' in curr_ifc_type or 'ELEMENTED' in prev_ifc_type:
+                        is_wall_dup = (
+                            ('WALL' in curr_ifc_type and 'WALL' in prev_ifc_type and 'CURTAIN' not in curr_ifc_type and 'CURTAIN' not in prev_ifc_type)
+                            or (curr_ifc_type == prev_ifc_type)
+                            or ('ELEMENTED' in curr_ifc_type or 'ELEMENTED' in prev_ifc_type)
+                        )
+                        if is_wall_dup:
                             is_dup = True
                             break
             if is_dup:
@@ -454,7 +483,7 @@ class IFCStepParser:
                 'base_elevation': round(base_y, 2),
                 'storey_id': storey_id,
                 'type': 'exterior' if is_ext else 'interior',
-                'ifc_type': curr_ifc_type
+                'ifc_type': ent['type']
             }
 
     def _resolve_curve_endpoints(self, curve_ref) -> Optional[Tuple[List[float], List[float]]]:
@@ -729,8 +758,33 @@ class IFCStepParser:
             self.entities_by_type.get('IFCSLAB', []) +
             self.entities_by_type.get('IFCROOF', [])
         )
+
+        has_explicit_roof_slab = False
+        for eid in self.entities_by_type.get('IFCSLAB', []):
+            ent = self.entities.get(eid)
+            if not ent:
+                continue
+            args = ent.get('args', [])
+            p_type = str(args[8]) if len(args) > 8 and args[8] else ""
+            s_name = str(args[2]).lower() if len(args) > 2 and args[2] else ""
+            if 'ROOF' in p_type.upper() or 'roof' in s_name or 'سطح' in s_name:
+                has_explicit_roof_slab = True
+                break
+
         for eid in slab_eids:
             ent = self.entities[eid]
+            if not ent:
+                continue
+
+            # استبعاد حاوية السقف المفككة IFCROOF إذا كانت تحوي عناصر فرعية أو توجد بلاطات سقف صريحة
+            if ent['type'] == 'IFCROOF':
+                if eid in self.decomposed_parents:
+                    continue
+                if has_explicit_roof_slab:
+                    continue
+            if eid in self.decomposed_parents and ent['type'] == 'IFCSLAB':
+                continue
+
             args = ent['args']
             s_id = f"slab_{eid}"
             s_name = str(args[2]) if len(args) > 2 and args[2] else f"Slab_{eid}"
@@ -759,6 +813,9 @@ class IFCStepParser:
             sd = round(depth * self.scale, 2)
             st = round(thickness * self.scale, 2) if thickness > 0 else 0.25
             
+            # فحص ما إذا كانت البلاطة تمثل موقعاً عاماً أو أرضية شاسعة (Site / Terrain footprint)
+            is_site = any(k in s_name.lower() for k in ['site', 'terrain', 'lot', 'plot', 'earth', 'land', 'property', 'موقع', 'ارض', 'أرض', 'محيط']) or (sw > 100 and sd > 100)
+
             poly_world = None
             if polygon:
                 cos_r, sin_r = math.cos(rot), math.sin(rot)
@@ -770,9 +827,10 @@ class IFCStepParser:
 
             slab_dict = {
                 'id': s_id,
-                'name_ar': f"بلاطة ({'السطح' if is_roof else ('الأساسات' if is_base else 'الطابق')})",
+                'name_ar': f"موقع عام / أرضية ({s_name})" if is_site else f"بلاطة ({'السطح' if is_roof else ('الأساسات' if is_base else 'الطابق')})",
                 'name_en': s_name,
-                'type': 'roof' if is_roof else ('foundation' if is_base else 'floor'),
+                'type': 'site' if is_site else ('roof' if is_roof else ('foundation' if is_base else 'floor')),
+                'is_site': is_site,
                 'base_elevation': round(base_y, 2),
                 'thickness': max(0.15, min(0.6, st)),
                 'storey_id': storey_id,
@@ -1066,15 +1124,21 @@ class IFCStepParser:
                 placement_ref = ent['args'][5] if len(ent['args']) > 5 else None
                 sp_x, sp_y, _, _ = self._resolve_placement(placement_ref)
                 
-                if abs(sp_x) > 0.01 or abs(sp_y) > 0.01:
+                has_placement = (abs(sp_x) > 0.01 or abs(sp_y) > 0.01)
+                if has_placement:
                     px = round((sp_x * self.scale) - (w / 2.0), 2)
                     pz = round((sp_y * self.scale) - (d / 2.0), 2)
                 else:
-                    cols = 2
-                    row = idx // cols
-                    col = idx % cols
-                    px = -15.0 + col * 16.0
-                    pz = -12.0 + row * 14.0
+                    has_real_arch = bool(self.walls or self.slabs)
+                    if has_real_arch:
+                        px = 0.0
+                        pz = 0.0
+                    else:
+                        cols = 2
+                        row = idx // cols
+                        col = idx % cols
+                        px = -15.0 + col * 16.0
+                        pz = -12.0 + row * 14.0
                 
                 self.spaces[s_id] = {
                     'id': s_id,
@@ -1086,6 +1150,7 @@ class IFCStepParser:
                     'bounds': {'x': px, 'z': pz, 'width': w, 'depth': d, 'height': self.storeys[storey_id]['height']},
                     'base_elevation': elev,
                     'storey_id': storey_id,
+                    'is_fallback': not has_placement,
                     'color': "#00b894" if stype == "public" else ("#0984e3" if stype == "workspace" else "#7ed321")
                 }
         else:
@@ -1258,7 +1323,11 @@ class PlanImporter:
                 zs.append(float(lpos[1]))
 
         spaces = model.get("spaces", {})
+        has_real_arch = bool(walls or slabs or columns)
         for sp in spaces.values():
+            if has_real_arch and sp.get("is_fallback"):
+                continue
+
             if "bounds" in sp and isinstance(sp["bounds"], dict):
                 b = sp["bounds"]
                 bx = float(b.get("x", 0))

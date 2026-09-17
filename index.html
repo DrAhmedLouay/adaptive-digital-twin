@@ -38,6 +38,11 @@
                     data-tooltip="فتح نافذة لاختيار دراسات الحالة الجاهزة (إدارية، صحية، خدمية) أو رفع مخططات BIM بصيغة IFC (Revit / ArchiCAD)، أو مخططات PDF معمارية، أو AutoCAD DXF.">
                 📐 المخططات المعمارية
             </button>
+            <button class="btn-plan-manager" id="btn-open-ifc-viewer" style="background: rgba(59, 130, 246, 0.18); border-color: #3b82f6; color: #93c5fd;"
+                    data-tooltip-title="أداة عارض وتفكيك عناصر IFC (BIM Inspector)"
+                    data-tooltip="أداة متقدمة لفحص نموذج BIM: إظهار وإخفاء الطبقات (جدران، أسقف، بلاطات، أعمدة، جسور، أبواب، شبابيك)، تنظيف السطوح الدخيلة تلقائياً، عزل الطوابق، وفحص خصائص وأبعاد أي عنصر عند النقر عليه في المشهد ثلاثي الأبعاد.">
+                🏢 عارض عناصر IFC
+            </button>
             <button class="btn-plan-manager" id="btn-open-iot-modal" style="background: rgba(0, 210, 255, 0.15); border-color: var(--accent-cyan); color: #7dd3fc;"
                     data-tooltip-title="شبكة مستشعرات الـ IoT والتحليل المكاني"
                     data-tooltip="عرض لوحة مراقبة شبكة الحساسات اللحظية (PIR، عدادات الأبواب، جودة الهواء CO2) ومصفوفة التدفق التبادلي بين الفضاءات.">
@@ -126,6 +131,19 @@
                 <button class="control-btn" id="btn-reset-view"
                         data-tooltip-title="إعادة ضبط الكاميرا (Reset View)"
                         data-tooltip="إعادة زاوية الرؤية ومستوى التقريب إلى الوضع الافتراضي الشامل للمبنى.">🔄 إعادة ضبط الكاميرا</button>
+            </div>
+
+            <!-- Floating 3D Element Selection Pill -->
+            <div id="viewport-element-pill" style="display:none; position:absolute; bottom:85px; left:20px; z-index:100; background:rgba(15, 23, 42, 0.92); border:1px solid #38bdf8; border-radius:10px; padding:10px 16px; backdrop-filter:blur(10px); box-shadow:0 8px 32px rgba(0,0,0,0.6); align-items:center; gap:12px;">
+                <div style="font-size: 1.3rem;" id="vp-pill-icon">🧱</div>
+                <div>
+                    <div id="vp-pill-title" style="font-size: 0.85rem; font-weight: 600; color: #fff;">--</div>
+                    <div id="vp-pill-sub" style="font-size: 0.72rem; color: #94a3b8; font-family: monospace;">--</div>
+                </div>
+                <button id="btn-vp-open-ifc" class="ifc-btn-sm" style="background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; color: #38bdf8; margin-right: 8px;">
+                    🏢 عارض IFC
+                </button>
+                <button id="btn-vp-close-pill" style="background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; padding: 0 4px; line-height: 1;">&times;</button>
             </div>
 
             <!-- Blueprint Floor Plan HUD Overlay Controls (always visible for full control) -->
@@ -500,6 +518,128 @@
 
         </aside>
 
+    </div>
+
+    <!-- IFC BIM Viewer & Inspector Modal -->
+    <div id="ifc-viewer-modal" class="modal-overlay">
+        <div class="modal-window" style="max-width: 980px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.4rem;">🏢</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">أداة عارض وتفكيك عناصر IFC (BIM Model Inspector)</h3>
+                        <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">
+                            فحص وتفكيك الطبقات • عزل الطوابق • تنظيف السطوح الدخيلة • فحص خصائص العناصر ثلاثية الأبعاد
+                        </div>
+                    </div>
+                </div>
+                <button class="modal-close-btn" id="btn-close-ifc-viewer-modal">&times;</button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px;">
+                <!-- Quick Actions Toolbar -->
+                <div class="ifc-quick-actions" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 14px;">
+                    <button class="ifc-action-btn primary" id="btn-ifc-pure-bim"
+                            data-tooltip-title="وضع العرض المعماري النقي"
+                            data-tooltip="إخفاء كتل الفضاءات التحليلية والأسطح الشاسعة وعرض البنية المعمارية الحقيقية فقط للمبنى كما صُممت تماماً في Revit / ArchiCAD.">
+                        ✨ وضع العرض المعماري النقي (Pure BIM)
+                    </button>
+                    <button class="ifc-action-btn warning" id="btn-ifc-clean-ghost"
+                            data-tooltip-title="تنظيف السطوح والجدران الدخيلة"
+                            data-tooltip="حذف وإخفاء أي سطوح موقع عام شاسعة، أو حاويات أسقف مكررة طافية، أو فضاءات عشوائية غير مُموضعة فورياً.">
+                        🧹 تنظيف السطوح الدخيلة (Clean Ghost)
+                    </button>
+                    <button class="ifc-action-btn secondary" id="btn-ifc-show-all">
+                        👁️ إظهار كافة العناصر
+                    </button>
+                    <button class="ifc-action-btn secondary" id="btn-ifc-reset-view">
+                        🔄 استعادة الوضع الافتراضي
+                    </button>
+                </div>
+
+                <!-- Storey Isolator Bar -->
+                <div style="margin-bottom: 20px; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 1.1rem;">🏢</span>
+                        <span style="font-weight: 600; color: #e2e8f0; font-size: 0.9rem;">عزل الطابق المعماري:</span>
+                        <span style="font-size: 0.78rem; color: #94a3b8;">(عزل طابق محدد في المنظور وإخفاء باقي الطوابق)</span>
+                    </div>
+                    <div id="ifc-storey-isolator-pills" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="storey-pill active" data-storey="all">جميع الطوابق</button>
+                    </div>
+                </div>
+
+                <!-- Main 2-Column Grid -->
+                <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px;">
+                    
+                    <!-- Left: BIM Category Layers Matrix -->
+                    <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                            <h4 style="margin: 0; color: var(--accent-cyan); font-size: 0.95rem;">مصفوفة طبقات وفئات عناصر BIM</h4>
+                            <span id="ifc-total-elements-badge" style="font-size: 0.75rem; background: rgba(0, 210, 255, 0.15); color: #38bdf8; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">-- عنصر نشط</span>
+                        </div>
+
+                        <div class="ifc-layers-list" id="ifc-layers-container" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Layers will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Interactive 3D Element Inspector -->
+                    <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 12px; padding: 16px; display: flex; flex-direction: column;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                            <h4 style="margin: 0; color: #a855f7; font-size: 0.95rem;">فاحص خصائص العنصر (3D BIM Inspector)</h4>
+                            <span id="ifc-inspector-status" style="font-size: 0.75rem; color: #94a3b8;">انقر على أي عنصر في 3D</span>
+                        </div>
+
+                        <div id="ifc-inspector-empty" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #64748b; padding: 25px; min-height: 240px;">
+                            <div style="font-size: 2.5rem; margin-bottom: 10px; opacity: 0.6;">🎯</div>
+                            <div style="font-size: 0.9rem; font-weight: 500; color: #94a3b8; margin-bottom: 6px;">انقر على أي عنصر داخل المنظور ثلاثي الأبعاد</div>
+                            <div style="font-size: 0.78rem; line-height: 1.5; color: #64748b;">
+                                انقر على أي جدار أو بلاطة أو سقف أو عمود أو جسر أو باب أو نافذة لعرض فئته الدقيقة وأبعاده الهندسية ومنسوبه وإمكانية عزله أو إخفائه.
+                            </div>
+                        </div>
+
+                        <div id="ifc-inspector-card" style="display: none; flex-direction: column; gap: 12px;">
+                            <!-- Header with badge -->
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid rgba(148, 163, 184, 0.15);">
+                                <div>
+                                    <div id="inspector-elem-name" style="font-weight: 600; color: #fff; font-size: 0.95rem;">--</div>
+                                    <div id="inspector-elem-class" style="font-size: 0.78rem; color: #38bdf8; font-family: monospace;">--</div>
+                                </div>
+                                <span id="inspector-elem-storey" style="font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #d8b4fe; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.3);">--</span>
+                            </div>
+
+                            <!-- Parameters Table -->
+                            <div style="background: rgba(30, 41, 59, 0.4); border-radius: 8px; padding: 10px;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; color: #cbd5e1;">
+                                    <tbody id="inspector-params-table">
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Element Actions Buttons -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;">
+                                <button class="ifc-btn-sm" id="btn-inspector-isolate" style="background: rgba(168, 85, 247, 0.2); border-color: #a855f7; color: #d8b4fe;">
+                                    🎯 عزل العنصر
+                                </button>
+                                <button class="ifc-btn-sm" id="btn-inspector-hide" style="background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #fca5a5;">
+                                    👁️ إخفاء العنصر
+                                </button>
+                                <button class="ifc-btn-sm" id="btn-inspector-focus" style="background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; color: #93c5fd;">
+                                    🔍 تركيز الكاميرا
+                                </button>
+                                <button class="ifc-btn-sm" id="btn-inspector-reset" style="background: rgba(100, 116, 139, 0.2); border-color: #64748b; color: #cbd5e1;">
+                                    🔄 استعادة العرض
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
     </div>
 
     <!-- Plan Manager & Importer Modal -->

@@ -40,6 +40,8 @@
             this.relVoids = {};
             this.relFills = {};
             this.elementToWall = {};
+            this.decomposedParents = new Set();
+            this.aggregatedChildren = new Map();
         }
 
         static parse(ifcContent) {
@@ -373,6 +375,28 @@
                     }
                 }
             }
+
+            // 3. IFCRELAGGREGATES & IFCRELDECOMPOSES: تفكيك الحاويات والتجميع الهيكلي
+            this.decomposedParents = new Set();
+            this.aggregatedChildren = new Map();
+            const relAggregates = [
+                ...(this.entitiesByType['IFCRELAGGREGATES'] || []),
+                ...(this.entitiesByType['IFCRELDECOMPOSES'] || [])
+            ];
+            for (const eid of relAggregates) {
+                const ent = this.entities[eid];
+                const args = ent ? ent.args || [] : [];
+                if (args.length >= 6) {
+                    const parentRef = args[4];
+                    const childrenRefs = Array.isArray(args[5]) ? args[5] : [args[5]];
+                    if (parentRef) {
+                        this.decomposedParents.add(parentRef);
+                        for (const cRef of childrenRefs) {
+                            if (cRef) this.aggregatedChildren.set(cRef, parentRef);
+                        }
+                    }
+                }
+            }
         }
 
         _resolvePlacement(placementRef) {
@@ -654,6 +678,13 @@
 
             for (const eid of wallEids) {
                 const ent = this.entities[eid];
+                if (!ent) continue;
+
+                // استبعاد الجدران الحاضنة المفككة لعناصر فرعية IFCWALLELEMENTEDCASE لمنع التكرار والتداخل
+                if (this.decomposedParents && this.decomposedParents.has(eid) && (ent.type === 'IFCWALLELEMENTEDCASE' || ent.type === 'IFCCURTAINWALL')) {
+                    continue;
+                }
+
                 const args = ent.args || [];
                 const wId = `wall_${eid}`;
                 const wName = (args.length > 2 && args[2]) ? String(args[2]) : `Wall_${eid}`;
@@ -681,11 +712,10 @@
                     ez = (py + (p2[0] * sinR + p2[1] * cosR)) * this.scale;
                 } else if (length > 0) {
                     const cosR = Math.cos(rot), sinR = Math.sin(rot);
-                    const halfL = length / 2.0;
-                    sx = (px - (halfL * cosR)) * this.scale;
-                    sz = (py - (halfL * sinR)) * this.scale;
-                    ex = (px + (halfL * cosR)) * this.scale;
-                    ez = (py + (halfL * sinR)) * this.scale;
+                    sx = px * this.scale;
+                    sz = py * this.scale;
+                    ex = (px + (length * cosR)) * this.scale;
+                    ez = (py + (length * sinR)) * this.scale;
                 } else {
                     continue;
                 }
@@ -694,7 +724,7 @@
                 const wallH = height > 0 ? Math.max(2.0, height * this.scale) : (this.storeys[storeyId] ? this.storeys[storeyId].height : 3.5);
                 const baseY = Math.abs(pz * this.scale - storeyElev) < 0.2 ? storeyElev : (pz * this.scale);
 
-                // فحص التكرار (Deduplication)
+                // فحص التكرار الشامل (Deduplication) مع معالجة تطابق IFCWALL و IFCWALLSTANDARDCASE
                 let isDup = false;
                 const currIfcType = ent.type;
                 for (const existingW of Object.values(this.walls)) {
@@ -703,9 +733,14 @@
                         const eEx = existingW.end;
                         const dDirect = Math.hypot(sx - sEx[0], sz - sEx[1]) + Math.hypot(ex - eEx[0], ez - eEx[1]);
                         const dReverse = Math.hypot(sx - eEx[0], sz - eEx[1]) + Math.hypot(ex - sEx[0], ez - sEx[1]);
-                        if (dDirect < 0.3 || dReverse < 0.3) {
+                        if (dDirect < 0.35 || dReverse < 0.35) {
                             const prevIfcType = existingW.ifc_type || '';
-                            if (prevIfcType === currIfcType || currIfcType.includes('ELEMENTED') || prevIfcType.includes('ELEMENTED')) {
+                            const isWallDup = (
+                                (currIfcType.includes('WALL') && prevIfcType.includes('WALL') && !currIfcType.includes('CURTAIN') && !prevIfcType.includes('CURTAIN'))
+                                || (currIfcType === prevIfcType)
+                                || (currIfcType.includes('ELEMENTED') || prevIfcType.includes('ELEMENTED'))
+                            );
+                            if (isWallDup) {
                                 isDup = true;
                                 break;
                             }
@@ -825,8 +860,32 @@
                 ...(this.entitiesByType['IFCROOF'] || [])
             ];
 
+            // التحقق المسبق مما إذا كانت هناك بلاطات سقف صريحة (IFCSLAB of type ROOF)
+            let hasExplicitRoofSlab = false;
+            for (const eid of (this.entitiesByType['IFCSLAB'] || [])) {
+                const ent = this.entities[eid];
+                const args = ent ? ent.args || [] : [];
+                const pType = (args.length > 8 && args[8]) ? String(args[8]) : "";
+                const sName = (args.length > 2 && args[2]) ? String(args[2]).toLowerCase() : "";
+                if (pType.toUpperCase().includes('ROOF') || sName.includes('roof') || sName.includes('سطح')) {
+                    hasExplicitRoofSlab = true;
+                    break;
+                }
+            }
+
             for (const eid of slabEids) {
                 const ent = this.entities[eid];
+                if (!ent) continue;
+
+                // استبعاد حاوية السقف المفككة IFCROOF إذا كانت تحوي عناصر فرعية أو توجد بلاطات سقف صريحة
+                if (ent.type === 'IFCROOF') {
+                    if (this.decomposedParents && this.decomposedParents.has(eid)) continue;
+                    if (hasExplicitRoofSlab) continue;
+                }
+                if (this.decomposedParents && this.decomposedParents.has(eid) && ent.type === 'IFCSLAB') {
+                    continue;
+                }
+
                 const args = ent.args || [];
                 const sId = `slab_${eid}`;
                 const sName = (args.length > 2 && args[2]) ? String(args[2]) : `Slab_${eid}`;
@@ -854,6 +913,9 @@
                 const sd = +(depth * this.scale).toFixed(2);
                 const st = thickness > 0 ? +(thickness * this.scale).toFixed(2) : 0.25;
 
+                // فحص ما إذا كانت البلاطة تمثل موقعاً عاماً أو قطعة أرض شاسعة (Site / Terrain footprint)
+                const isSite = ['site', 'terrain', 'lot', 'plot', 'earth', 'land', 'property', 'موقع', 'ارض', 'أرض', 'محيط'].some(k => sName.toLowerCase().includes(k)) || (sw > 100 && sd > 100);
+
                 let polyWorld = null;
                 if (polygon) {
                     const cosR = Math.cos(rot), sinR = Math.sin(rot);
@@ -867,9 +929,10 @@
 
                 const slabDict = {
                     id: sId,
-                    name_ar: `بلاطة (${isRoof ? 'السطح' : (isBase ? 'الأساسات' : 'الطابق')})`,
+                    name_ar: isSite ? `موقع عام / أرضية (${sName})` : `بلاطة (${isRoof ? 'السطح' : (isBase ? 'الأساسات' : 'الطابق')})`,
                     name_en: sName,
-                    type: isRoof ? 'roof' : (isBase ? 'foundation' : 'floor'),
+                    type: isSite ? 'site' : (isRoof ? 'roof' : (isBase ? 'foundation' : 'floor')),
+                    is_site: isSite,
                     base_elevation: +baseY.toFixed(2),
                     thickness: Math.max(0.15, Math.min(0.6, st)),
                     storey_id: storeyId,
@@ -1217,15 +1280,22 @@
                     const [spX, spY] = this._resolvePlacement(placementRef);
 
                     let px = 0.0, pz = 0.0;
-                    if (Math.abs(spX) > 0.01 || Math.abs(spY) > 0.01) {
+                    const hasPlacement = (Math.abs(spX) > 0.01 || Math.abs(spY) > 0.01);
+                    if (hasPlacement) {
                         px = +((spX * this.scale) - (w / 2.0)).toFixed(2);
                         pz = +((spY * this.scale) - (d / 2.0)).toFixed(2);
                     } else {
-                        const cols = 2;
-                        const row = Math.floor(idx / cols);
-                        const col = idx % cols;
-                        px = -15.0 + col * 16.0;
-                        pz = -12.0 + row * 14.0;
+                        const hasRealArch = (Object.keys(this.walls).length > 0 || Object.keys(this.slabs).length > 0);
+                        if (hasRealArch) {
+                            px = 0.0;
+                            pz = 0.0;
+                        } else {
+                            const cols = 2;
+                            const row = Math.floor(idx / cols);
+                            const col = idx % cols;
+                            px = -15.0 + col * 16.0;
+                            pz = -12.0 + row * 14.0;
+                        }
                     }
 
                     this.spaces[sId] = {
@@ -1244,6 +1314,7 @@
                         },
                         base_elevation: elev,
                         storey_id: storeyId,
+                        is_fallback: !hasPlacement,
                         color: stype === "public" ? "#00b894" : (stype === "workspace" ? "#0984e3" : "#7ed321")
                     };
                 }
@@ -1359,7 +1430,11 @@
             }
 
             const spaces = model.spaces || {};
+            const hasRealArch = (Object.keys(walls).length > 0 || Object.keys(slabs).length > 0 || Object.keys(columns).length > 0);
             for (const sp of Object.values(spaces)) {
+                // استبعاد الفضاءات الافتراضية غير محددة الموضع عند حساب مركز المبنى الحقيقي
+                if (hasRealArch && sp.is_fallback) continue;
+
                 if (sp.bounds) {
                     const bx = sp.bounds.x || 0;
                     const bz = sp.bounds.z || 0;

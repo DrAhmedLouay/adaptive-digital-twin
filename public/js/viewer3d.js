@@ -31,6 +31,22 @@ class Twin3DViewer {
         this.storeyGroups = {};
         this.slabMeshes = {};
         this.columnMeshes = {};
+        this.beamMeshes = {};
+        this.selectedElement = null;
+        this.selectionHighlight = null;
+        this.onElementSelected = null;
+        this.ifcCategoryVisibility = {
+            walls: true,
+            slabs_floor: true,
+            slabs_roof: true,
+            slabs_site: false,
+            columns: true,
+            beams: true,
+            doors: true,
+            windows: true,
+            stairs: true,
+            spaces: false
+        };
         this.activeStoreyFilter = 'all';
         this.isExplodedView = false;
         this.wallsVisible = true;
@@ -116,6 +132,9 @@ class Twin3DViewer {
         // 9. Blueprint HUD Event Listeners
         this.setupBlueprintHudEvents();
 
+        // 9.b فاحص ومحدد عناصر BIM ثلاثية الأبعاد (3D Raycaster Element Inspector)
+        this.setupRaycasterSelection();
+
         // 10. Animation Loop
         this.animate();
     }
@@ -186,6 +205,13 @@ class Twin3DViewer {
         this.storeyGroups = {};
         this.slabMeshes = {};
         this.columnMeshes = {};
+        if (this.beamMeshes) {
+            for (const mesh of Object.values(this.beamMeshes)) {
+                if (mesh && mesh.parent) mesh.parent.remove(mesh);
+            }
+        }
+        this.beamMeshes = {};
+        this.clearSelection();
         this.activeStoreyFilter = 'all';
         this.isExplodedView = false;
         this.clearCirculationParticles();
@@ -303,6 +329,7 @@ class Twin3DViewer {
 
             const hasRealSlabs = modelData.slabs && Object.keys(modelData.slabs).length > 0;
             const hasRealWalls = modelData.walls && Object.keys(modelData.walls).length > 0;
+            const isImportedBim = (modelData.building_type === 'imported_bim') || hasRealSlabs || hasRealWalls;
 
             // أ. بلاطة الأرضية (Floor Slab) - شبه شفافة مع المخطط المعماري
             const floorMat = new THREE.MeshStandardMaterial({
@@ -315,7 +342,14 @@ class Twin3DViewer {
             const floorMesh = new THREE.Mesh(floorGeo, floorMat);
             floorMesh.position.set(centerX, baseElev + 0.08, centerZ);
             floorMesh.receiveShadow = true;
-            floorMesh.userData = { type: 'space', spaceId: id, storeyId: space.storey_id, baseY: baseElev + 0.08 };
+            floorMesh.userData = { 
+                type: 'space', 
+                spaceId: id, 
+                storeyId: space.storey_id, 
+                baseY: baseElev + 0.08,
+                spaceData: space,
+                ifcType: 'IfcSpace'
+            };
 
             // حواف معمارية محددة مضيئة (Luminous Architectural Edges)
             const floorEdges = new THREE.EdgesGeometry(floorGeo);
@@ -326,13 +360,18 @@ class Twin3DViewer {
             }));
             floorMesh.add(edgeLine);
 
+            // في نماذج الـ BIM، تُحجب كتل الفضاءات المصمتة افتراضياً حتى لا تشوه بلاطات الطوابق والأسقف الأصلية
+            if (isImportedBim || space.is_fallback) {
+                floorMesh.visible = false;
+            }
+
             const spaceParent = (space.storey_id && this.storeyGroups[space.storey_id]) || this.buildingGroup;
             spaceParent.add(floorMesh);
             this.roomMeshes[id] = floorMesh;
 
             // ب. جدران حدودية زجاجية شفافة للمبنى للمكعبات المستطيلة التقليدية
-            // يتم رسمها فقط في حال عدم وجود جدران معمارية حقيقية في النموذج
-            if (!hasRealWalls && (!poly || poly.length < 3)) {
+            // يتم رسمها فقط في حال عدم وجود جدران معمارية حقيقية في النموذج ولا يُعتبر فضاء عشوائي غير مُموضع
+            if (!hasRealWalls && (!poly || poly.length < 3) && !space.is_fallback) {
                 const b = space.bounds || { x: 0, z: 0, width: 6, depth: 6 };
                 const wallGeo = new THREE.BoxGeometry(b.width, 1.8, b.depth);
                 const wallWire = new THREE.WireframeGeometry(wallGeo);
@@ -378,6 +417,9 @@ class Twin3DViewer {
 
         // 3.أ بناء وتجسيم الأعمدة الإنشائية (Structural Columns)
         this.buildColumns(modelData.columns, modelData.storeys);
+
+        // 3.أ-2 بناء وتجسيم الجسور والكمرات الإنشائية (Structural Beams)
+        this.buildBeams(modelData.beams, modelData.storeys);
 
         // 3.ب بناء وتجسيم الجدران المعمارية ثلاثية الأبعاد بفتحات الأبواب والشبابيك
         this.buildWallsAndOpenings(modelData.walls, modelData.openings, spaces);
@@ -2266,7 +2308,19 @@ class Twin3DViewer {
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(cx, baseY - thick / 2, cz);
             mesh.receiveShadow = true;
-            mesh.userData = { type: 'slab', slabId: sId, storeyId: slab.storey_id, baseY: baseY - thick / 2 };
+            mesh.userData = { 
+                type: 'slab', 
+                slabId: sId, 
+                storeyId: slab.storey_id, 
+                baseY: baseY - thick / 2,
+                slabData: slab,
+                ifcType: isRoof ? 'IfcRoof / IfcSlab' : (slab.type === 'site' ? 'IfcSite / Terrain' : 'IfcSlab')
+            };
+
+            // بلاطات الموقع العام / الأرضيات الشاسعة تخفى افتراضياً لتوفير رؤية معمارية نقية
+            if (slab.type === 'site' || slab.is_site) {
+                mesh.visible = false;
+            }
 
             const edgeGeo = new THREE.EdgesGeometry(geo);
             const edgeLine = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({
@@ -2316,7 +2370,14 @@ class Twin3DViewer {
             mesh.position.set(pos[0], baseY + h / 2, pos[1]);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-            mesh.userData = { type: 'column', columnId: cId, storeyId: col.storey_id, baseY: baseY + h / 2 };
+            mesh.userData = { 
+                type: 'column', 
+                columnId: cId, 
+                storeyId: col.storey_id, 
+                baseY: baseY + h / 2,
+                columnData: col,
+                ifcType: 'IfcColumn'
+            };
 
             const edgeGeo = new THREE.EdgesGeometry(geo);
             const edgeLine = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({
@@ -2329,6 +2390,69 @@ class Twin3DViewer {
             const targetParent = (col.storey_id && this.storeyGroups[col.storey_id]) || this.buildingGroup;
             targetParent.add(mesh);
             this.columnMeshes[cId] = mesh;
+        }
+    }
+
+    buildBeams(beams, storeys) {
+        if (this.beamMeshes) {
+            for (const [id, mesh] of Object.entries(this.beamMeshes)) {
+                if (mesh && mesh.parent) {
+                    mesh.parent.remove(mesh);
+                    if (mesh.geometry) mesh.geometry.dispose();
+                    if (mesh.material) {
+                        if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose());
+                        else mesh.material.dispose();
+                    }
+                }
+            }
+        }
+        this.beamMeshes = {};
+        if (!beams || Object.keys(beams).length === 0) return;
+
+        const beamMat = new THREE.MeshStandardMaterial({
+            color: 0x334155,
+            roughness: 0.35,
+            metalness: 0.45
+        });
+
+        for (const [bId, beam] of Object.entries(beams)) {
+            const s = beam.start || [0, 0];
+            const e = beam.end || [0, 0];
+            const dx = e[0] - s[0], dz = e[1] - s[1];
+            const len = Math.hypot(dx, dz);
+            if (len < 0.3) continue;
+
+            const angle = Math.atan2(dz, dx);
+            const bw = beam.width || 0.4;
+            const bh = beam.depth || beam.height || 0.6;
+            const baseY = beam.base_elevation || 3.0;
+
+            const geo = new THREE.BoxGeometry(len, bh, bw);
+            const mesh = new THREE.Mesh(geo, beamMat);
+            mesh.position.set((s[0] + e[0]) / 2, baseY - bh / 2, (s[1] + e[1]) / 2);
+            mesh.rotation.y = -angle;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = {
+                type: 'beam',
+                beamId: bId,
+                storeyId: beam.storey_id,
+                baseY: baseY,
+                beamData: beam,
+                ifcType: 'IfcBeam'
+            };
+
+            const edgeGeo = new THREE.EdgesGeometry(geo);
+            const edgeLine = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({
+                color: 0x64748b,
+                transparent: true,
+                opacity: 0.6
+            }));
+            mesh.add(edgeLine);
+
+            const targetParent = (beam.storey_id && this.storeyGroups[beam.storey_id]) || this.buildingGroup;
+            targetParent.add(mesh);
+            this.beamMeshes[bId] = mesh;
         }
     }
 
@@ -3206,6 +3330,417 @@ class Twin3DViewer {
             newTexture.anisotropy = 16;
             this.blueprintMesh.material.map = newTexture;
             this.blueprintMesh.material.needsUpdate = true;
+        }
+    }
+
+    // ==========================================
+    // أداة عارض وتفكيك عناصر IFC (IFC Viewer Tool Engine)
+    // ==========================================
+
+    setupRaycasterSelection() {
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        let pointerDownPos = { x: 0, y: 0 };
+
+        if (!this.renderer || !this.renderer.domElement) return;
+
+        this.renderer.domElement.addEventListener('pointerdown', (e) => {
+            pointerDownPos = { x: e.clientX, y: e.clientY };
+        });
+
+        this.renderer.domElement.addEventListener('pointerup', (e) => {
+            const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+            if (dist > 6) return; // المستخدم يسحب الكاميرا (Orbit Drag)
+
+            const rect = this.renderer.domElement.getBoundingClientRect();
+            this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            const intersects = this.raycaster.intersectObjects(this.buildingGroup.children, true);
+
+            let selectedHit = null;
+            for (const hit of intersects) {
+                if (hit.object.isLine || hit.object.isSprite || hit.object === this.blueprintMesh) continue;
+                if (hit.object === this.selectionHighlight) continue;
+
+                let curr = hit.object;
+                let uData = null;
+                while (curr && curr !== this.buildingGroup) {
+                    if (curr.userData && (curr.userData.type || curr.userData.wallId || curr.userData.slabId || curr.userData.columnId || curr.userData.beamId || curr.userData.stairId || curr.userData.openingId || curr.userData.spaceId)) {
+                        uData = curr.userData;
+                        break;
+                    }
+                    curr = curr.parent;
+                }
+
+                if (uData) {
+                    selectedHit = { mesh: hit.object, targetObj: curr, userData: uData, point: hit.point };
+                    break;
+                }
+            }
+
+            if (selectedHit) {
+                this.selectElement(selectedHit);
+            } else {
+                this.clearSelection();
+            }
+        });
+    }
+
+    selectElement(hit) {
+        this.clearSelection();
+        const obj = hit.targetObj || hit.mesh;
+        this.selectedElement = hit;
+
+        try {
+            const box = new THREE.Box3().setFromObject(obj);
+            const boxSize = new THREE.Vector3();
+            box.getSize(boxSize);
+            const boxCenter = new THREE.Vector3();
+            box.getCenter(boxCenter);
+
+            const highlightGeo = new THREE.BoxGeometry(
+                Math.max(0.2, boxSize.x + 0.12),
+                Math.max(0.2, boxSize.y + 0.12),
+                Math.max(0.2, boxSize.z + 0.12)
+            );
+            const highlightMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.95
+            });
+            this.selectionHighlight = new THREE.Mesh(highlightGeo, highlightMat);
+            this.selectionHighlight.position.copy(boxCenter);
+            this.scene.add(this.selectionHighlight);
+        } catch (e) {
+            console.warn("Could not generate selection highlight box:", e);
+        }
+
+        const details = this.getElementBimDetails(hit.userData, hit.targetObj || hit.mesh);
+        if (typeof this.onElementSelected === 'function') {
+            this.onElementSelected(details);
+        }
+    }
+
+    clearSelection() {
+        if (this.selectionHighlight) {
+            this.scene.remove(this.selectionHighlight);
+            if (this.selectionHighlight.geometry) this.selectionHighlight.geometry.dispose();
+            if (this.selectionHighlight.material) this.selectionHighlight.material.dispose();
+            this.selectionHighlight = null;
+        }
+        this.selectedElement = null;
+        if (typeof this.onElementSelected === 'function') {
+            this.onElementSelected(null);
+        }
+    }
+
+    getElementBimDetails(uData, mesh) {
+        const type = uData.type || 'unknown';
+        const model = this.buildingData || {};
+        const storeys = model.storeys || {};
+        const storeyId = uData.storeyId || 'st_g';
+        const storeyName = (storeys[storeyId] && (storeys[storeyId].name_ar || storeys[storeyId].name_en)) || storeyId;
+
+        const info = {
+            type: type,
+            ifcType: uData.ifcType || 'IfcProduct',
+            id: '',
+            name_ar: '',
+            name_en: '',
+            storey_id: storeyId,
+            storeyName: storeyName,
+            dimensions: {},
+            raw: uData
+        };
+
+        if (type === 'wall' || uData.wallId) {
+            const wId = uData.wallId;
+            const w = (model.walls && model.walls[wId]) || uData.wallData || {};
+            info.id = wId;
+            info.ifcType = w.ifc_type || 'IfcWallStandardCase';
+            info.name_ar = w.name_ar || `جدار معماري (${wId})`;
+            info.name_en = w.name_en || wId;
+            const len = (w.start && w.end) ? Math.hypot(w.end[0] - w.start[0], w.end[1] - w.start[1]).toFixed(2) : 0;
+            info.dimensions = {
+                "الطول (Length)": `${len} م`,
+                "السماكة (Thickness)": `${w.thickness || 0.25} م`,
+                "الارتفاع (Height)": `${w.height || 2.8} م`,
+                "المنسوب (Elevation)": `${w.base_elevation || 0} م`,
+                "التصنيف (Type)": w.type === 'exterior' ? 'جدار خارجي' : 'جدار داخلي'
+            };
+        } else if (type === 'slab' || uData.slabId) {
+            const sId = uData.slabId;
+            const s = (model.slabs && model.slabs[sId]) || uData.slabData || {};
+            info.id = sId;
+            info.ifcType = s.type === 'roof' ? 'IfcRoof / IfcSlab' : (s.type === 'site' ? 'IfcSite / Terrain' : 'IfcSlab');
+            info.name_ar = s.name_ar || `بلاطة (${sId})`;
+            info.name_en = s.name_en || sId;
+            const b = s.bounds || {};
+            info.dimensions = {
+                "العرض (Width)": `${b.width || 0} م`,
+                "العمق (Depth)": `${b.depth || 0} م`,
+                "المساحة التقديرية (Area)": `${((b.width || 0) * (b.depth || 0)).toFixed(1)} م²`,
+                "السماكة (Thickness)": `${s.thickness || 0.25} م`,
+                "المنسوب (Elevation)": `${s.base_elevation || 0} م`,
+                "التصنيف (Type)": s.type === 'roof' ? 'بلاطة السطح' : (s.type === 'site' ? 'موقع عام / أرضية' : 'بلاطة طابق')
+            };
+        } else if (type === 'column' || uData.columnId) {
+            const cId = uData.columnId;
+            const c = (model.columns && model.columns[cId]) || uData.columnData || {};
+            info.id = cId;
+            info.ifcType = 'IfcColumn';
+            info.name_ar = c.name_ar || `عمود إنشائي (${cId})`;
+            info.name_en = c.name_en || cId;
+            info.dimensions = {
+                "المقطع (Profile)": `${c.width || 0.45} × ${c.depth || 0.45} م`,
+                "الارتفاع (Height)": `${c.height || 3.5} م`,
+                "المنسوب (Elevation)": `${c.base_elevation || 0} م`
+            };
+        } else if (type === 'beam' || uData.beamId) {
+            const bId = uData.beamId;
+            const b = (model.beams && model.beams[bId]) || uData.beamData || {};
+            info.id = bId;
+            info.ifcType = 'IfcBeam';
+            info.name_ar = b.name_ar || `جسر إنشائي (${bId})`;
+            info.name_en = b.name_en || bId;
+            info.dimensions = {
+                "العرض (Width)": `${b.width || 0.4} م`,
+                "العمق / السقوط (Depth)": `${b.depth || b.height || 0.6} م`,
+                "المنسوب (Elevation)": `${b.base_elevation || 3.0} م`
+            };
+        } else if (type === 'opening' || uData.openingId) {
+            const opId = uData.openingId;
+            const op = (model.openings && model.openings[opId]) || uData.openingData || {};
+            const isDoor = op.type === 'door';
+            info.id = opId;
+            info.ifcType = isDoor ? 'IfcDoor' : 'IfcWindow';
+            info.name_ar = isDoor ? `باب معماري (${op.name_ar || opId})` : `نافذة معمارية (${op.name_ar || opId})`;
+            info.name_en = op.name_en || opId;
+            info.dimensions = {
+                "العرض (Width)": `${op.width || 1.2} م`,
+                "الارتفاع (Height)": `${op.height || 2.1} م`,
+                "جلسة الشباك (Sill)": `${op.sill_height || 0.9} م`,
+                "الجدار الحاضن (Host Wall)": op.wall_id || '-'
+            };
+        } else if (type === 'stair' || uData.stairId) {
+            const stId = uData.stairId;
+            const st = (model.stairs && model.stairs[stId]) || uData.stairData || {};
+            info.id = stId;
+            info.ifcType = 'IfcStair';
+            info.name_ar = st.name_ar || `درج إنشائي (${stId})`;
+            info.name_en = st.name_en || stId;
+            info.dimensions = {
+                "عدد الدرجات (Risers)": `${st.steps_count || 18} درجة`,
+                "عرض الدرج (Width)": `${st.width || 1.8} م`,
+                "ارتفاع الطابق (Height)": `${st.height || 3.5} م`
+            };
+        } else if (type === 'space' || uData.spaceId) {
+            const spId = uData.spaceId;
+            const sp = (model.spaces && model.spaces[spId]) || uData.spaceData || {};
+            info.id = spId;
+            info.ifcType = 'IfcSpace';
+            info.name_ar = sp.name_ar || `فضاء (${spId})`;
+            info.name_en = sp.name_en || spId;
+            info.dimensions = {
+                "المساحة (Area)": `${sp.area_m2 || 0} م²`,
+                "السعة الاستيعابية (Capacity)": `${sp.capacity || 0} شخص`,
+                "النوع الوظيفي (Function)": sp.type || 'workspace',
+                "المنسوب (Base Elev)": `${sp.base_elevation || 0} م`
+            };
+        }
+
+        return info;
+    }
+
+    setIfcCategoryVisible(category, isVisible) {
+        if (this.ifcCategoryVisibility) {
+            this.ifcCategoryVisibility[category] = isVisible;
+        }
+
+        if (category === 'walls') {
+            for (const group of Object.values(this.wallMeshes || {})) {
+                if (group) group.visible = isVisible;
+            }
+            if (this.jointCapsGroup) this.jointCapsGroup.visible = isVisible;
+        } else if (category === 'slabs_floor') {
+            for (const [id, mesh] of Object.entries(this.slabMeshes || {})) {
+                const sData = (this.buildingData && this.buildingData.slabs && this.buildingData.slabs[id]) || (mesh.userData && mesh.userData.slabData) || {};
+                if (sData.type !== 'roof' && sData.type !== 'site' && !sData.is_site) {
+                    if (mesh) mesh.visible = isVisible;
+                }
+            }
+        } else if (category === 'slabs_roof') {
+            for (const [id, mesh] of Object.entries(this.slabMeshes || {})) {
+                const sData = (this.buildingData && this.buildingData.slabs && this.buildingData.slabs[id]) || (mesh.userData && mesh.userData.slabData) || {};
+                if (sData.type === 'roof') {
+                    if (mesh) mesh.visible = isVisible;
+                }
+            }
+        } else if (category === 'slabs_site') {
+            for (const [id, mesh] of Object.entries(this.slabMeshes || {})) {
+                const sData = (this.buildingData && this.buildingData.slabs && this.buildingData.slabs[id]) || (mesh.userData && mesh.userData.slabData) || {};
+                if (sData.type === 'site' || sData.is_site) {
+                    if (mesh) mesh.visible = isVisible;
+                }
+            }
+        } else if (category === 'columns') {
+            for (const mesh of Object.values(this.columnMeshes || {})) {
+                if (mesh) mesh.visible = isVisible;
+            }
+        } else if (category === 'beams') {
+            for (const mesh of Object.values(this.beamMeshes || {})) {
+                if (mesh) mesh.visible = isVisible;
+            }
+        } else if (category === 'doors') {
+            for (const [id, grp] of Object.entries(this.openingMeshes || {})) {
+                const op = (this.buildingData && this.buildingData.openings && this.buildingData.openings[id]) || {};
+                if (op.type === 'door' || !op.type) {
+                    if (grp) grp.visible = isVisible;
+                }
+            }
+        } else if (category === 'windows') {
+            for (const [id, grp] of Object.entries(this.openingMeshes || {})) {
+                const op = (this.buildingData && this.buildingData.openings && this.buildingData.openings[id]) || {};
+                if (op.type === 'window') {
+                    if (grp) grp.visible = isVisible;
+                }
+            }
+        } else if (category === 'stairs') {
+            for (const grp of Object.values(this.stairMeshes || {})) {
+                if (grp) grp.visible = isVisible;
+            }
+        } else if (category === 'spaces') {
+            for (const mesh of Object.values(this.roomMeshes || {})) {
+                if (mesh) mesh.visible = isVisible;
+            }
+        }
+    }
+
+    cleanGhostElements() {
+        let ghostSlabsCount = 0;
+        let fallbackSpacesCount = 0;
+
+        for (const [id, mesh] of Object.entries(this.slabMeshes || {})) {
+            const s = (this.buildingData && this.buildingData.slabs && this.buildingData.slabs[id]) || (mesh.userData && mesh.userData.slabData) || {};
+            const b = s.bounds || {};
+            const area = (b.width || 0) * (b.depth || 0);
+            if (s.type === 'site' || s.is_site || area > 2500) {
+                mesh.visible = false;
+                ghostSlabsCount++;
+            }
+        }
+
+        for (const [id, mesh] of Object.entries(this.roomMeshes || {})) {
+            const sp = (this.buildingData && this.buildingData.spaces && this.buildingData.spaces[id]) || (mesh.userData && mesh.userData.spaceData) || {};
+            if (sp.is_fallback || (this.buildingData && this.buildingData.building_type === 'imported_bim')) {
+                mesh.visible = false;
+                fallbackSpacesCount++;
+            }
+        }
+
+        return {
+            ghostSlabs: ghostSlabsCount,
+            fallbackSpaces: fallbackSpacesCount
+        };
+    }
+
+    getIfcStats() {
+        const model = this.buildingData || {};
+        let wallCount = Object.keys(this.wallMeshes || {}).length || Object.keys(model.walls || {}).length;
+        let floorSlabCount = 0;
+        let roofSlabCount = 0;
+        let siteSlabCount = 0;
+        for (const s of Object.values(model.slabs || {})) {
+            if (s.type === 'roof') roofSlabCount++;
+            else if (s.type === 'site' || s.is_site) siteSlabCount++;
+            else floorSlabCount++;
+        }
+        let colCount = Object.keys(this.columnMeshes || {}).length || Object.keys(model.columns || {}).length;
+        let beamCount = Object.keys(this.beamMeshes || {}).length || Object.keys(model.beams || {}).length;
+        let doorCount = 0;
+        let windowCount = 0;
+        for (const op of Object.values(model.openings || {})) {
+            if (op.type === 'window') windowCount++;
+            else doorCount++;
+        }
+        let stairCount = Object.keys(this.stairMeshes || {}).length || Object.keys(model.stairs || {}).length;
+        let spaceCount = Object.keys(model.spaces || {}).length;
+
+        return {
+            walls: wallCount,
+            slabs_floor: floorSlabCount,
+            slabs_roof: roofSlabCount,
+            slabs_site: siteSlabCount,
+            columns: colCount,
+            beams: beamCount,
+            doors: doorCount,
+            windows: windowCount,
+            stairs: stairCount,
+            spaces: spaceCount
+        };
+    }
+
+    isolateElement(type, id) {
+        for (const [wId, mesh] of Object.entries(this.wallMeshes || {})) {
+            mesh.visible = (type === 'wall' && wId === id);
+        }
+        for (const [sId, mesh] of Object.entries(this.slabMeshes || {})) {
+            mesh.visible = (type === 'slab' && sId === id);
+        }
+        for (const [cId, mesh] of Object.entries(this.columnMeshes || {})) {
+            mesh.visible = (type === 'column' && cId === id);
+        }
+        for (const [bId, mesh] of Object.entries(this.beamMeshes || {})) {
+            mesh.visible = (type === 'beam' && bId === id);
+        }
+        for (const [stId, mesh] of Object.entries(this.stairMeshes || {})) {
+            mesh.visible = (type === 'stair' && stId === id);
+        }
+        for (const [opId, mesh] of Object.entries(this.openingMeshes || {})) {
+            mesh.visible = (type === 'opening' && opId === id);
+        }
+    }
+
+    setElementVisible(type, id, isVisible) {
+        if (type === 'wall' && this.wallMeshes[id]) this.wallMeshes[id].visible = isVisible;
+        if (type === 'slab' && this.slabMeshes[id]) this.slabMeshes[id].visible = isVisible;
+        if (type === 'column' && this.columnMeshes[id]) this.columnMeshes[id].visible = isVisible;
+        if (type === 'beam' && this.beamMeshes[id]) this.beamMeshes[id].visible = isVisible;
+        if (type === 'stair' && this.stairMeshes[id]) this.stairMeshes[id].visible = isVisible;
+        if (type === 'opening' && this.openingMeshes[id]) this.openingMeshes[id].visible = isVisible;
+        if (type === 'space' && this.roomMeshes[id]) this.roomMeshes[id].visible = isVisible;
+    }
+
+    resetAllElementVisibility() {
+        this.setIfcCategoryVisible('walls', true);
+        this.setIfcCategoryVisible('slabs_floor', true);
+        this.setIfcCategoryVisible('slabs_roof', true);
+        this.setIfcCategoryVisible('slabs_site', false);
+        this.setIfcCategoryVisible('columns', true);
+        this.setIfcCategoryVisible('beams', true);
+        this.setIfcCategoryVisible('doors', true);
+        this.setIfcCategoryVisible('windows', true);
+        this.setIfcCategoryVisible('stairs', true);
+        const isBim = (this.buildingData && this.buildingData.building_type === 'imported_bim');
+        this.setIfcCategoryVisible('spaces', !isBim);
+        this.clearSelection();
+    }
+
+    focusOnElement(mesh) {
+        if (!mesh) return;
+        try {
+            const box = new THREE.Box3().setFromObject(mesh);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            if (this.controls) {
+                this.controls.target.copy(center);
+                this.controls.update();
+            }
+        } catch (e) {
+            console.warn("Could not focus on element:", e);
         }
     }
 

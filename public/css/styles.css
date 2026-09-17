@@ -1079,4 +1079,182 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
 }
 
+/* ==========================================================
+   أداة عارض وتفكيك عناصر IFC المعمارية (IFC BIM Viewer & Inspector)
+   ========================================================== */
+
+.ifc-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ifc-action-btn.primary {
+  background: rgba(0, 210, 255, 0.18);
+  border-color: var(--accent-cyan);
+  color: #7dd3fc;
+}
+.ifc-action-btn.primary:hover {
+  background: rgba(0, 210, 255, 0.3);
+  box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
+  color: #fff;
+}
+
+.ifc-action-btn.warning {
+  background: rgba(234, 179, 8, 0.18);
+  border-color: #eab308;
+  color: #fde047;
+}
+.ifc-action-btn.warning:hover {
+  background: rgba(234, 179, 8, 0.3);
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.4);
+  color: #fff;
+}
+
+.ifc-action-btn.secondary {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #cbd5e1;
+}
+.ifc-action-btn.secondary:hover {
+  background: rgba(148, 163, 184, 0.22);
+  border-color: #cbd5e1;
+  color: #fff;
+}
+
+.storey-pill {
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.storey-pill:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+.storey-pill.active {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.ifc-layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+.ifc-layer-row:hover {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.ifc-layer-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ifc-layer-icon {
+  font-size: 1.1rem;
+  width: 26px;
+  text-align: center;
+}
+
+.ifc-layer-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.ifc-layer-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.ifc-layer-count {
+  font-size: 0.75rem;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  margin-left: 8px;
+}
+
+.ifc-btn-sm {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ifc-btn-sm:hover {
+  filter: brightness(1.25);
+  transform: translateY(-1px);
+}
+
+/* iOS-style toggle switch */
+.ifc-toggle {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 20px;
+}
+.ifc-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.ifc-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #334155;
+  transition: .25s;
+  border-radius: 20px;
+}
+.ifc-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .25s;
+  border-radius: 50%;
+}
+.ifc-toggle input:checked + .ifc-toggle-slider {
+  background-color: #00d2ff;
+}
+.ifc-toggle input:checked + .ifc-toggle-slider:before {
+  transform: translateX(18px);
+}
+
 
