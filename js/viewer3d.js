@@ -58,6 +58,9 @@ class Twin3DViewer {
         this.particleTexture = null;
         this.corridorFlowState = {};
         this.flowColorTheme = localStorage.getItem('adaptive_twin_flow_theme') || 'royal_blue';
+        this.isPanMode = false;
+        this.wallHighlightMeshes = {};
+        this.batchedWallBoxes = {};
         
         this.init();
     }
@@ -169,6 +172,18 @@ class Twin3DViewer {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.container.appendChild(this.renderer.domElement);
+
+        // مؤشر اليد للسحب والإزاحة عند تفعيل نمط التحريك (Grab / Grabbing Pan Cursor)
+        this.renderer.domElement.addEventListener('pointerdown', (e) => {
+            if (this.isPanMode && e.button === 0) {
+                this.renderer.domElement.style.cursor = 'grabbing';
+            }
+        });
+        window.addEventListener('pointerup', () => {
+            if (this.isPanMode && this.renderer?.domElement) {
+                this.renderer.domElement.style.cursor = 'grab';
+            }
+        });
 
         // 4. OrbitControls — تحكم وتدوير وإزاحة وتقريب فائق السلاسة (Smooth CAD/BIM Orbit Controls)
         try {
@@ -307,6 +322,15 @@ class Twin3DViewer {
             }
         }
         this.beamMeshes = {};
+        if (this.wallHighlightMeshes) {
+            for (const mesh of Object.values(this.wallHighlightMeshes)) {
+                if (mesh && this.buildingGroup) this.buildingGroup.remove(mesh);
+                if (mesh?.geometry) mesh.geometry.dispose();
+                if (mesh?.material) mesh.material.dispose();
+            }
+        }
+        this.wallHighlightMeshes = {};
+        this.batchedWallBoxes = {};
         this.clearSelection();
         this.activeStoreyFilter = 'all';
         this.isExplodedView = false;
@@ -1714,6 +1738,32 @@ class Twin3DViewer {
         this.controls.update();
     }
 
+    // تفعيل أو تعطيل نمط أداة اليد لتحريك وإزاحة المشهد بسلاسة (Pan Hand Tool Mode)
+    togglePanMode(forceState = null) {
+        this.isPanMode = (forceState !== null) ? forceState : !this.isPanMode;
+        if (this.controls && this.controls.mouseButtons) {
+            this.controls.mouseButtons.LEFT = this.isPanMode ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
+        }
+        const canvas = this.renderer?.domElement;
+        if (canvas) {
+            canvas.style.cursor = this.isPanMode ? 'grab' : '';
+        }
+        const btn = document.getElementById('btn-nav-hand-pan');
+        if (btn) {
+            btn.classList.toggle('active', this.isPanMode);
+            if (this.isPanMode) {
+                btn.style.background = 'rgba(37, 99, 235, 0.45)';
+                btn.style.borderColor = '#38bdf8';
+                btn.style.boxShadow = '0 0 10px rgba(56, 189, 248, 0.6)';
+            } else {
+                btn.style.background = '';
+                btn.style.borderColor = '';
+                btn.style.boxShadow = '';
+            }
+        }
+        return this.isPanMode;
+    }
+
     fitCameraToBuilding() {
         this.frameBuildingInView(this.buildingData);
     }
@@ -2904,6 +2954,15 @@ class Twin3DViewer {
         }
         this.wallMeshes = {};
         this.openingMeshes = {};
+        if (this.wallHighlightMeshes) {
+            for (const mesh of Object.values(this.wallHighlightMeshes)) {
+                if (mesh && this.buildingGroup) this.buildingGroup.remove(mesh);
+                if (mesh?.geometry) mesh.geometry.dispose();
+                if (mesh?.material) mesh.material.dispose();
+            }
+        }
+        this.wallHighlightMeshes = {};
+        this.batchedWallBoxes = {};
 
         if (this.jointCapsGroup && this.buildingGroup) {
             this.buildingGroup.remove(this.jointCapsGroup);
@@ -3068,6 +3127,9 @@ class Twin3DViewer {
 
             for (const [stId, boxList] of Object.entries(storeyWallBoxes)) {
                 if (boxList.length === 0) continue;
+                for (const b of boxList) {
+                    this.batchedWallBoxes[b.wallId] = b;
+                }
                 const mergedGeo = this._createMergedBoxesGeometry(boxList);
                 const batchMesh = new THREE.Mesh(mergedGeo, wallMaterial);
                 batchMesh.userData = {
@@ -3538,36 +3600,97 @@ class Twin3DViewer {
     }
 
     highlightWall(wId, color = 0xff3838) {
-        const wallGroup = this.wallMeshes[wId];
-        if (!wallGroup) return;
-        const isAmber = (color === 0xf59e0b || color === 0xf39c12 || color === 0xffd166);
-        const emissiveColor = isAmber ? 0x553300 : 0x550000;
-        wallGroup.traverse((child) => {
-            if (child.isMesh && child.material) {
-                if (!child._origMaterial) {
-                    child._origMaterial = child.material;
-                    child.material = child.material.clone();
+        if (!this.wallHighlightMeshes) this.wallHighlightMeshes = {};
+
+        // 1. إذا كان الجدار يملك مجسم Group مستقل (Standard Wall Mesh)
+        const wallGroup = this.wallMeshes ? this.wallMeshes[wId] : null;
+        if (wallGroup) {
+            const isAmber = (color === 0xf59e0b || color === 0xf39c12 || color === 0xffd166);
+            const emissiveColor = isAmber ? 0x553300 : 0x550000;
+            wallGroup.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    if (!child._origMaterial) {
+                        child._origMaterial = child.material;
+                        child.material = child.material.clone();
+                    }
+                    if (child.material.color) {
+                        child.material.color.setHex(color);
+                    }
+                    if (child.material.emissive) {
+                        child.material.emissive.setHex(emissiveColor);
+                    }
                 }
-                if (child.material.color) {
-                    child.material.color.setHex(color);
-                }
-                if (child.material.emissive) {
-                    child.material.emissive.setHex(emissiveColor);
-                }
+            });
+            return;
+        }
+
+        // 2. إذا كان الجدار مدمجاً في نموذج IFC ضخم (Batched IFC Wall)
+        const wallData = this.buildingData?.walls?.[wId] || (this.batchedWallBoxes && this.batchedWallBoxes[wId]);
+        if (wallData && this.buildingGroup) {
+            this.clearWallHighlight(wId);
+
+            let x, y, z, rotY, w, h, d;
+            if (wallData.start && wallData.end) {
+                const x1 = wallData.start[0], z1 = wallData.start[1];
+                const x2 = wallData.end[0], z2 = wallData.end[1];
+                const dx = x2 - x1, dz = z2 - z1;
+                w = Math.max(0.2, Math.hypot(dx, dz));
+                h = (wallData.height || 2.8) + 0.08;
+                d = (wallData.thickness || 0.25) + 0.12;
+                rotY = -Math.atan2(dz, dx);
+                x = (x1 + x2) / 2;
+                z = (z1 + z2) / 2;
+                const baseY = wallData.base_elevation || wallData.elevation || 0;
+                y = baseY + (wallData.height || 2.8) / 2;
+            } else if (wallData.w !== undefined) {
+                x = wallData.x; y = wallData.y; z = wallData.z;
+                rotY = wallData.rotY;
+                w = wallData.w + 0.05; h = wallData.h + 0.08; d = wallData.d + 0.12;
+            } else {
+                return;
             }
-        });
+
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.75,
+                transparent: true,
+                opacity: 0.88,
+                roughness: 0.2,
+                metalness: 0.1,
+                depthTest: true
+            });
+            const hlMesh = new THREE.Mesh(geo, mat);
+            hlMesh.position.set(x, y, z);
+            hlMesh.rotation.y = rotY;
+            hlMesh.renderOrder = 999;
+            this.buildingGroup.add(hlMesh);
+            this.wallHighlightMeshes[wId] = hlMesh;
+        }
     }
 
     clearWallHighlight(wId) {
-        const wallGroup = this.wallMeshes[wId];
-        if (!wallGroup) return;
-        wallGroup.traverse((child) => {
-            if (child.isMesh && child._origMaterial) {
-                if (child.material) child.material.dispose();
-                child.material = child._origMaterial;
-                delete child._origMaterial;
-            }
-        });
+        // 1. تنظيف المجسم المستقل
+        const wallGroup = this.wallMeshes ? this.wallMeshes[wId] : null;
+        if (wallGroup) {
+            wallGroup.traverse((child) => {
+                if (child.isMesh && child._origMaterial) {
+                    if (child.material) child.material.dispose();
+                    child.material = child._origMaterial;
+                    delete child._origMaterial;
+                }
+            });
+        }
+
+        // 2. تنظيف مجسم التمييز المخصص لجدران IFC المدمجة
+        if (this.wallHighlightMeshes && this.wallHighlightMeshes[wId]) {
+            const mesh = this.wallHighlightMeshes[wId];
+            if (this.buildingGroup) this.buildingGroup.remove(mesh);
+            if (mesh.geometry) mesh.geometry.dispose();
+            if (mesh.material) mesh.material.dispose();
+            delete this.wallHighlightMeshes[wId];
+        }
     }
 
     trackOpeningMesh(opId, mesh) {
@@ -3850,6 +3973,10 @@ class Twin3DViewer {
         this.renderer.domElement.addEventListener('pointerup', (e) => {
             const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
             if (dist > 6) return; // المستخدم يسحب الكاميرا (Orbit Drag)
+
+            // عدم التدخل عند تفعيل أدوات التحديد والمعايرة المعمارية فوق المخطط (Tracer Mode)
+            const tracerBar = document.getElementById('blueprint-tracer-bar');
+            if (tracerBar && tracerBar.style.display !== 'none') return;
 
             const rect = this.renderer.domElement.getBoundingClientRect();
             this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;

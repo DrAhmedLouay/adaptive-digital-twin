@@ -2211,10 +2211,10 @@ class PlanManager {
         const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         const planeIntersectPoint = new THREE.Vector3();
 
-        // حساب الإحداثيات الدقيقة فوق مسقط الـ PDF المستورد
+        // حساب الإحداثيات الدقيقة فوق مسقط الـ PDF المستورد أو بلاطات IFC أو الأرضية
         const getPointOnBlueprint = (clientX, clientY) => {
             const canvas = this.app.viewer?.renderer?.domElement;
-            if (!canvas) return null;
+            if (!canvas || !this.app.viewer?.camera) return null;
             const rect = canvas.getBoundingClientRect();
             mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -2228,7 +2228,17 @@ class PlanManager {
                     return hits[0].point;
                 }
             }
-            // 2. التقاطع مع أرضية المشهد
+            // 2. فحص التقاطع المباشر مع بلاطات طوابق مبنى الـ IFC (Slabs)
+            if (this.app.viewer?.slabMeshes) {
+                const visibleSlabs = Object.values(this.app.viewer.slabMeshes).filter(s => s && s.visible);
+                if (visibleSlabs.length > 0) {
+                    const hits = raycaster.intersectObjects(visibleSlabs, true);
+                    if (hits && hits.length > 0) {
+                        return hits[0].point;
+                    }
+                }
+            }
+            // 3. التقاطع مع أرضية المشهد الافتراضية
             if (raycaster.ray.intersectPlane(groundPlane, planeIntersectPoint)) {
                 return planeIntersectPoint.clone();
             }
@@ -2241,6 +2251,7 @@ class PlanManager {
             let bestProj = null;
 
             for (const wall of Object.values(walls || {})) {
+                if (!wall.start || !wall.end) continue;
                 const x1 = wall.start[0], z1 = wall.start[1];
                 const x2 = wall.end[0], z2 = wall.end[1];
                 const dx = x2 - x1, dz = z2 - z1;
@@ -2248,7 +2259,7 @@ class PlanManager {
                 if (l2 === 0) continue;
 
                 let t = ((cx - x1) * dx + (cz - z1) * dz) / l2;
-                t = Math.max(0.08, Math.min(0.92, t));
+                t = Math.max(0.05, Math.min(0.95, t));
                 const px = x1 + t * dx;
                 const pz = z1 + t * dz;
                 const dist = Math.hypot(cx - px, cz - pz);
@@ -2270,13 +2281,20 @@ class PlanManager {
             mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, this.app.viewer.camera);
 
-            // 1. فحص التقاطع المباشر بالـ Raycaster مع كائنات الجدران ثلاثية الأبعاد
+            // 1. فحص التقاطع المباشر بالـ Raycaster مع كائنات الجدران ثلاثية الأبعاد (عادية أو مجمعة IFC)
             if (this.app.viewer.wallMeshes) {
                 const wallGroups = Object.values(this.app.viewer.wallMeshes).filter(Boolean);
                 if (wallGroups.length > 0) {
                     const hits = raycaster.intersectObjects(wallGroups, true);
-                    if (hits && hits.length > 0) {
-                        let cur = hits[0].object;
+                    for (const hit of hits) {
+                        // أ. دعم جدران الـ IFC المجمعة (wall_batch)
+                        if (hit.object.userData && hit.object.userData.type === 'wall_batch') {
+                            const boxIdx = Math.floor(hit.faceIndex / 12);
+                            const wallId = hit.object.userData.wallIds?.[boxIdx];
+                            if (wallId) return wallId;
+                        }
+                        // ب. دعم جدران الموديل العادي
+                        let cur = hit.object;
                         while (cur && (!cur.userData || !cur.userData.wallId)) {
                             cur = cur.parent;
                         }
@@ -2291,8 +2309,23 @@ class PlanManager {
             const pt = getPointOnBlueprint(clientX, clientY);
             const bData = this.app.viewer?.buildingData;
             if (pt && bData && bData.walls) {
-                const snap = findNearestWallProjection(pt.x, pt.z, bData.walls);
-                if (snap && snap.dist <= 0.75) {
+                let candidateWalls = bData.walls;
+                const actStorey = this.app.viewer?.activeStoreyFilter;
+                if (actStorey && actStorey !== 'all') {
+                    candidateWalls = {};
+                    for (const [wId, w] of Object.entries(bData.walls)) {
+                        if (w.storey_id === actStorey) candidateWalls[wId] = w;
+                    }
+                } else if (pt.y !== undefined && pt.y > 0.5) {
+                    candidateWalls = {};
+                    for (const [wId, w] of Object.entries(bData.walls)) {
+                        const elev = w.base_elevation || w.elevation || 0;
+                        if (Math.abs(elev - pt.y) < 3.0) candidateWalls[wId] = w;
+                    }
+                    if (Object.keys(candidateWalls).length === 0) candidateWalls = bData.walls;
+                }
+                const snap = findNearestWallProjection(pt.x, pt.z, candidateWalls);
+                if (snap && snap.dist <= 1.2) {
                     return snap.wall.id;
                 }
             }
@@ -2655,10 +2688,28 @@ class PlanManager {
             };
         };
 
-        const detectEnclosingWallsFromPoint = (px, pz, walls) => {
+        const detectEnclosingWallsFromPoint = (px, pz, walls, targetElev = null) => {
             if (!walls || Object.keys(walls).length < 3) return null;
+
+            // تصفية الجدران بحسب الطابق والارتفاع لتجنب تداخل جدران الطوابق المتعددة في ملفات الـ IFC
+            let filteredWalls = walls;
+            const actStorey = this.app.viewer?.activeStoreyFilter;
+            if (actStorey && actStorey !== 'all') {
+                filteredWalls = {};
+                for (const [wId, w] of Object.entries(walls)) {
+                    if (w.storey_id === actStorey) filteredWalls[wId] = w;
+                }
+            } else if (targetElev !== null && targetElev > 0.5) {
+                filteredWalls = {};
+                for (const [wId, w] of Object.entries(walls)) {
+                    const elev = w.base_elevation || w.elevation || 0;
+                    if (Math.abs(elev - targetElev) < 2.8) filteredWalls[wId] = w;
+                }
+                if (Object.keys(filteredWalls).length < 3) filteredWalls = walls;
+            }
+
             const numRays = 72;
-            const maxDist = 45.0;
+            const maxDist = 60.0;
             const rayHits = [];
 
             for (let i = 0; i < numRays; i++) {
@@ -2669,7 +2720,8 @@ class PlanManager {
                 let bestT = maxDist;
                 let bestWallId = null;
 
-                for (const [wId, w] of Object.entries(walls)) {
+                for (const [wId, w] of Object.entries(filteredWalls)) {
+                    if (!w.start || !w.end) continue;
                     const x1 = w.start[0], z1 = w.start[1];
                     const x2 = w.end[0], z2 = w.end[1];
                     const vx = x2 - x1, vz = z2 - z1;
@@ -2704,7 +2756,7 @@ class PlanManager {
 
             if (wallCycle.length < 3) return null;
 
-            const polyRes = computePolygonFromWallCycle(wallCycle, walls);
+            const polyRes = computePolygonFromWallCycle(wallCycle, filteredWalls);
             if (!polyRes || !polyRes.valid) return null;
 
             if (!isPointInPolygon(px, pz, polyRes.vertices)) {
@@ -2725,10 +2777,11 @@ class PlanManager {
             const segments = [];
             for (const wid of wallIds) {
                 const w = walls[wid];
-                if (!w) return null;
+                if (!w || !w.start || !w.end) return null;
                 segments.push({ id: wid, start: [...w.start], end: [...w.end] });
             }
 
+            // محاولة 1: الترتيب المتسلسل بالنهايات المتقاربة (Greedy Chain)
             const orderedSegments = [segments[0]];
             const used = new Set([0]);
             let currentPt = segments[0].end;
@@ -2755,7 +2808,7 @@ class PlanManager {
                     }
                 }
 
-                if (bestIdx !== -1 && bestDist <= 2.8) {
+                if (bestIdx !== -1 && bestDist <= 6.5) {
                     used.add(bestIdx);
                     const seg = segments[bestIdx];
                     if (flip) {
@@ -2770,16 +2823,30 @@ class PlanManager {
                 }
             }
 
-            if (orderedSegments.length !== segments.length) {
-                return { valid: false };
+            let cycleIds = null;
+            if (orderedSegments.length === segments.length) {
+                const dClose = Math.hypot(currentPt[0] - orderedSegments[0].start[0], currentPt[1] - orderedSegments[0].start[1]);
+                if (dClose <= 7.0) {
+                    cycleIds = orderedSegments.map(s => s.id);
+                }
             }
 
-            const dClose = Math.hypot(currentPt[0] - orderedSegments[0].start[0], currentPt[1] - orderedSegments[0].start[1]);
-            if (dClose > 3.0) {
-                return { valid: false };
+            // محاولة 2 ذكية مخصصة لملفات IFC: الترتيب الزاوي الدائري حول المركز المعماري (Angular Ordering)
+            if (!cycleIds) {
+                const centers = segments.map(s => [ (s.start[0] + s.end[0]) / 2, (s.start[1] + s.end[1]) / 2 ]);
+                const avgX = centers.reduce((sum, c) => sum + c[0], 0) / centers.length;
+                const avgZ = centers.reduce((sum, c) => sum + c[1], 0) / centers.length;
+
+                const sorted = [...segments].sort((a, b) => {
+                    const caX = (a.start[0] + a.end[0]) / 2;
+                    const caZ = (a.start[1] + a.end[1]) / 2;
+                    const cbX = (b.start[0] + b.end[0]) / 2;
+                    const cbZ = (b.start[1] + b.end[1]) / 2;
+                    return Math.atan2(caZ - avgZ, caX - avgX) - Math.atan2(cbZ - avgZ, cbX - avgX);
+                });
+                cycleIds = sorted.map(s => s.id);
             }
 
-            const cycleIds = orderedSegments.map(s => s.id);
             const polyRes = computePolygonFromWallCycle(cycleIds, walls);
             return polyRes;
         };
@@ -3729,7 +3796,7 @@ class PlanManager {
                     } else {
                         // ب. الكشف التلقائي الذكي بالنقر داخل الفضاء المغلق (Auto-Detection via 360° Raycasting)
                         setHint("⏳ جاري تحليل أشعة الرصد وكشف الجدران المحيطة بالفضاء...");
-                        detectedSpace = detectEnclosingWallsFromPoint(pt.x, pt.z, bData.walls);
+                        detectedSpace = detectEnclosingWallsFromPoint(pt.x, pt.z, bData.walls, pt.y);
                     }
 
                     if (!detectedSpace) {
@@ -3767,6 +3834,10 @@ class PlanManager {
                         return;
                     }
 
+                    const firstWall = bData.walls[detectedSpace.wallIds[0]];
+                    const wallElev = firstWall?.base_elevation || firstWall?.elevation || (pt.y !== undefined ? Math.round(pt.y * 10) / 10 : 0);
+                    const wallStorey = firstWall?.storey_id || this.app.viewer?.activeStoreyFilter || 'st_g';
+
                     const spaceId = `space_${Date.now()}`;
                     const spaceObj = {
                         id: spaceId,
@@ -3778,6 +3849,8 @@ class PlanManager {
                         centroid: detectedSpace.centroid,
                         polygon: detectedSpace.vertices,
                         bounds: detectedSpace.bounds,
+                        base_elevation: wallElev,
+                        storey_id: wallStorey,
                         enclosing_wall_ids: detectedSpace.wallIds,
                         color: "#2ecc71"
                     };
@@ -3975,6 +4048,9 @@ class PlanManager {
                         const roomName = prompt(`أدخل اسم الفضاء أو الغرفة المعمارية (${rw}م × ${rd}م):`, "فضاء إداري جديد");
                         if (!roomName) return;
 
+                        const targetElev = (pt.y !== undefined && pt.y > 0.5) ? Math.round(pt.y * 10) / 10 : 0;
+                        const targetStorey = this.app.viewer?.activeStoreyFilter || 'st_g';
+
                         const spaceId = `space_${Date.now()}`;
                         const spaceObj = {
                             id: spaceId,
@@ -3984,6 +4060,8 @@ class PlanManager {
                             capacity: Math.max(10, Math.round((rw * rd) / 3.5)),
                             area_m2: Math.round(rw * rd),
                             bounds: { x: rx, z: rz, width: rw, depth: rd, height: 3.5 },
+                            base_elevation: targetElev,
+                            storey_id: targetStorey,
                             color: "#00d2ff"
                         };
 
@@ -3991,10 +4069,10 @@ class PlanManager {
 
                         // توليد الجدران المحيطية الأربعة وباب الغرفة
                         const w1 = `w_${spaceId}_n`, w2 = `w_${spaceId}_s`, w3 = `w_${spaceId}_w`, w4 = `w_${spaceId}_e`;
-                        bData.walls[w1] = { id: w1, start: [rx, rz], end: [rx + rw, rz], thickness: 0.25, height: 2.8, type: "exterior" };
-                        bData.walls[w2] = { id: w2, start: [rx, rz + rd], end: [rx + rw, rz + rd], thickness: 0.25, height: 2.8, type: "interior" };
-                        bData.walls[w3] = { id: w3, start: [rx, rz], end: [rx, rz + rd], thickness: 0.25, height: 2.8, type: "interior" };
-                        bData.walls[w4] = { id: w4, start: [rx + rw, rz], end: [rx + rw, rz + rd], thickness: 0.25, height: 2.8, type: "interior" };
+                        bData.walls[w1] = { id: w1, start: [rx, rz], end: [rx + rw, rz], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "exterior" };
+                        bData.walls[w2] = { id: w2, start: [rx, rz + rd], end: [rx + rw, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
+                        bData.walls[w3] = { id: w3, start: [rx, rz], end: [rx, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
+                        bData.walls[w4] = { id: w4, start: [rx + rw, rz], end: [rx + rw, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
 
                         const d1 = `door_${spaceId}`;
                         bData.openings[d1] = {

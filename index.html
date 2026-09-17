@@ -9,12 +9,12 @@
     <script>
         // كسر التخزين المؤقت تلقائياً وإعادة التحميل القسري لأحدث كود مباشرة
         (function() {
-            var CURRENT_VER = '2.3.3';
+            var CURRENT_VER = '2.3.4';
             var stored = localStorage.getItem('adaptive_twin_ver');
             var urlParams = new URLSearchParams(window.location.search);
-            if (stored !== CURRENT_VER && !urlParams.has('v233')) {
+            if (stored !== CURRENT_VER && !urlParams.has('v234')) {
                 localStorage.setItem('adaptive_twin_ver', CURRENT_VER);
-                urlParams.set('v233', Date.now());
+                urlParams.set('v234', Date.now());
                 window.location.replace(window.location.pathname + '?' + urlParams.toString());
             }
         })();
@@ -24,7 +24,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.3.3">
+    <link rel="stylesheet" href="css/styles.css?v=2.3.4">
 </head>
 <body>
 
@@ -157,15 +157,20 @@
                 </div>
                 <div class="nav-gizmo-row">
                     <button class="nav-gizmo-btn" id="btn-nav-pan-left" data-tooltip-title="إزاحة لليسار (Pan)" data-tooltip="تحريك المشهد أفقياً لليسار.">◄</button>
-                    <button class="nav-gizmo-btn" id="btn-nav-tilt-down" data-tooltip-title="إمالة للأسفل" data-tooltip="خفض زاوية الرؤية لفحص الطوابق السفلى والأرضيات.">▼</button>
+                    <button class="nav-gizmo-btn" id="btn-nav-hand-pan" data-tooltip-title="أداة اليد (Pan Tool)" data-tooltip="تفعيل أداة اليد لسحب وتحريك المشهد والأشياء بحرية تامة بزر الفأرة الأيسر.">✋</button>
                     <button class="nav-gizmo-btn" id="btn-nav-pan-right" data-tooltip-title="إزاحة لليمين (Pan)" data-tooltip="تحريك المشهد أفقياً لليمين.">►</button>
-                    <button class="nav-gizmo-btn" id="btn-top-view" data-tooltip-title="تغيير المنظور 2D / 3D" data-tooltip="التبديل بين المنظور المجسم ثلاثي الأبعاد والمسقط الأفقي العلوي 2D.">📐</button>
+                    <button class="nav-gizmo-btn" id="btn-nav-tilt-down" data-tooltip-title="إمالة للأسفل" data-tooltip="خفض زاوية الرؤية لفحص الطوابق السفلى والأرضيات.">▼</button>
                 </div>
                 <div class="nav-gizmo-row">
                     <button class="nav-gizmo-btn" id="btn-nav-zoom-in" data-tooltip-title="تقريب (Zoom In)" data-tooltip="تقريب الكاميرا بسلاسة لتفحص التفاصيل الدقيقة للمبنى.">➕</button>
                     <button class="nav-gizmo-btn" id="btn-nav-zoom-out" data-tooltip-title="تبعيد (Zoom Out)" data-tooltip="تبعيد الكاميرا لإظهار المبنى ومحيطه بالكامل.">➖</button>
+                    <button class="nav-gizmo-btn" id="btn-top-view" data-tooltip-title="تغيير المنظور 2D / 3D" data-tooltip="التبديل بين المنظور المجسم ثلاثي الأبعاد والمسقط الأفقي العلوي 2D.">📐</button>
                     <button class="nav-gizmo-btn" id="btn-reset-view" data-tooltip-title="استعادة الوضع الافتراضي" data-tooltip="إعادة ضبط زاوية الرؤية ومستوى التقريب للوضع الافتراضي.">🔄</button>
-                    <button class="nav-gizmo-btn" id="btn-toggle-bg-theme" data-tooltip-title="تبديل الخلفية (أبيض / معتم)" data-tooltip="التبديل الفوري بين خلفية الاستوديو المعماري البيضاء الناصعة والخلفية الداكنة.">🌓</button>
+                </div>
+                <div class="nav-gizmo-row">
+                    <button class="nav-gizmo-btn" id="btn-nav-pan-up" data-tooltip-title="إزاحة للأعلى (Pan Up)" data-tooltip="تحريك المشهد رأسياً للأعلى.">🔼</button>
+                    <button class="nav-gizmo-btn" id="btn-nav-pan-down" data-tooltip-title="إزاحة للأسفل (Pan Down)" data-tooltip="تحريك المشهد رأسياً للأسفل.">🔽</button>
+                    <button class="nav-gizmo-btn" id="btn-toggle-bg-theme" style="flex:1;" data-tooltip-title="تبديل الخلفية (أبيض / معتم)" data-tooltip="التبديل الفوري بين خلفية الاستوديو المعماري البيضاء الناصعة والخلفية الداكنة.">🌓 خلفية</button>
                 </div>
             </div>
 
@@ -973,12 +978,12 @@
     </script>
 
     <!-- Application Scripts -->
-    <script src="js/default_model.js?v=2.3.3"></script>
-    <script src="js/viewer3d.js?v=2.3.3"></script>
-    <script src="js/analytics.js?v=2.3.3"></script>
-    <script src="js/ifc_step_parser.js?v=2.3.3"></script>
-    <script src="js/plan_manager.js?v=2.3.3"></script>
-    <script src="js/tooltip.js?v=2.3.3"></script>
-    <script src="js/app.js?v=2.3.3"></script>
+    <script src="js/default_model.js?v=2.3.4"></script>
+    <script src="js/viewer3d.js?v=2.3.4"></script>
+    <script src="js/analytics.js?v=2.3.4"></script>
+    <script src="js/ifc_step_parser.js?v=2.3.4"></script>
+    <script src="js/plan_manager.js?v=2.3.4"></script>
+    <script src="js/tooltip.js?v=2.3.4"></script>
+    <script src="js/app.js?v=2.3.4"></script>
 </body>
 </html>

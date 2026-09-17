@@ -234,6 +234,13 @@ class TwinApp {
         bindGizmoBtn('btn-nav-tilt-down', () => this.viewer.orbitCamera(0, -10));
         bindGizmoBtn('btn-nav-pan-left', () => this.viewer.panCamera(-10, 0));
         bindGizmoBtn('btn-nav-pan-right', () => this.viewer.panCamera(10, 0));
+        bindGizmoBtn('btn-nav-pan-up', () => this.viewer.panCamera(0, 10));
+        bindGizmoBtn('btn-nav-pan-down', () => this.viewer.panCamera(0, -10));
+        bindGizmoBtn('btn-nav-hand-pan', () => {
+            if (this.viewer && typeof this.viewer.togglePanMode === 'function') {
+                this.viewer.togglePanMode();
+            }
+        });
         bindGizmoBtn('btn-nav-zoom-in', () => this.viewer.zoomCamera(1.25));
         bindGizmoBtn('btn-nav-zoom-out', () => this.viewer.zoomCamera(0.8));
         bindGizmoBtn('btn-nav-fit', () => this.viewer.fitCameraToBuilding());
