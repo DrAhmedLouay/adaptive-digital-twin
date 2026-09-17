@@ -1495,4 +1495,36 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   transform: translateX(18px);
 }
 
+/* Blueprint Scale & Alignment Control Panel (v2.3.9) */
+.hud-blueprint-scale-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(0, 210, 255, 0.28);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  min-width: 260px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.calib-chip {
+  padding: 4px 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.calib-chip:hover, .calib-chip.active {
+  background: rgba(0, 210, 255, 0.22);
+  border-color: #00d2ff;
+  color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+
 

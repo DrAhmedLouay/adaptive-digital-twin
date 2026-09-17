@@ -10,13 +10,13 @@
         // كسر التخزين المؤقت تلقائياً وإعادة التحميل لأحدث كود بأمان مع تفادي التكرار وأخطاء التخزين
         (function() {
             try {
-                var CURRENT_VER = '2.3.8';
+                var CURRENT_VER = '2.3.9';
                 var stored = null;
                 try { stored = localStorage.getItem('adaptive_twin_ver'); } catch(e) {}
                 var urlParams = new URLSearchParams(window.location.search);
-                if (stored !== CURRENT_VER && !urlParams.has('v238')) {
+                if (stored !== CURRENT_VER && !urlParams.has('v239')) {
                     try { localStorage.setItem('adaptive_twin_ver', CURRENT_VER); } catch(e) {}
-                    urlParams.set('v238', Date.now());
+                    urlParams.set('v239', Date.now());
                     window.location.replace(window.location.pathname + '?' + urlParams.toString());
                 }
             } catch(e) {
@@ -61,7 +61,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.3.8">
+    <link rel="stylesheet" href="css/styles.css?v=2.3.9">
 </head>
 <body>
 
@@ -259,6 +259,47 @@
                         <span id="pdf-page-indicator" style="font-size:11px; font-weight:bold; color:var(--accent-cyan); min-width:65px; text-align:center;">صفحة 1 / 1</span>
                         <button class="hud-mini-btn" id="btn-pdf-next" data-tooltip-title="الصفحة التالية" data-tooltip="الانتقال إلى المخطط أو الطابق التالي في ملف الـ PDF.">▶</button>
                     </div>
+
+                    <!-- Blueprint Scale & Alignment Control Panel -->
+                    <div class="hud-blueprint-scale-panel" id="hud-blueprint-scale-panel" style="display:none;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%;">
+                            <span style="font-size:11px; font-weight:bold; color:var(--accent-cyan); display:flex; align-items:center; gap:4px;">
+                                <span>📏</span> مقياس وأبعاد المسقط
+                            </span>
+                            <button class="hud-mini-btn" id="btn-hud-calibrate-scale" style="background:rgba(0,210,255,0.2); border-color:var(--accent-cyan); color:#38bdf8; padding:2px 8px; font-size:10px; font-weight:bold;"
+                                    data-tooltip-title="معايرة المقياس بنقطتين معلومتين"
+                                    data-tooltip="النقر على نقطتين لبُعد معلوم (طرفي جدار أو خط قياس) لضبط مقياس المخطط الحقيقي 1:1.">📏 معايرة بنقطتين</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:#cbd5e1;">
+                            <span>العرض:</span>
+                            <input type="number" id="input-bp-width" min="1" max="1000" step="0.5" value="60.0"
+                                   style="width:52px; padding:2px 4px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); border-radius:4px; color:#fff; font-size:11px; text-align:center;"
+                                   data-tooltip-title="عرض المسقط الحقيقي (متر)" data-tooltip="تعديل العرض الكلي للمسقط المعماري بالمتر الواقعي.">
+                            <span>م × العمق:</span>
+                            <input type="number" id="input-bp-depth" min="1" max="1000" step="0.5" value="45.0"
+                                   style="width:52px; padding:2px 4px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); border-radius:4px; color:#fff; font-size:11px; text-align:center;"
+                                   data-tooltip-title="عمق المسقط الحقيقي (متر)" data-tooltip="تعديل العمق الكلي للمسقط المعماري بالمتر الواقعي.">
+                            <span>م</span>
+                            <button class="hud-mini-btn active" id="btn-lock-bp-aspect" title="قفل نسبة التناسب" style="padding:2px 6px; font-size:11px;">🔒</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; font-size:11px; width:100%;">
+                            <label style="min-width:38px; color:var(--text-muted); font-size:10px;">النسبة:</label>
+                            <input type="range" id="slider-bp-scale" min="20" max="300" value="100" style="flex:1;"
+                                   data-tooltip-title="نسبة تكبير/تصغير المسقط" data-tooltip="سحب الشريط لتكبير أو تصغير مقياس المخطط كنسبة مئوية.">
+                            <span id="label-bp-scale" style="min-width:36px; color:var(--accent-cyan); font-weight:bold; font-size:11px; text-align:center;">100%</span>
+                            <button class="hud-mini-btn" id="btn-reset-bp-scale" title="إعادة ضبط 100%" style="padding:1px 5px; font-size:10px;">↺</button>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; font-size:10px; color:var(--text-muted); width:100%;">
+                            <span>المحاذاة (Nudge):</span>
+                            <div style="display:flex; gap:3px;">
+                                <button class="hud-mini-btn" id="btn-nudge-up" title="تحريك للأعلى (Z-)" style="padding:2px 5px;">⬆️</button>
+                                <button class="hud-mini-btn" id="btn-nudge-down" title="تحريك للأسفل (Z+)" style="padding:2px 5px;">⬇️</button>
+                                <button class="hud-mini-btn" id="btn-nudge-left" title="تحريك لليسار (X-)" style="padding:2px 5px;">⬅️</button>
+                                <button class="hud-mini-btn" id="btn-nudge-right" title="تحريك لليمين (X+)" style="padding:2px 5px;">➡️</button>
+                                <button class="hud-mini-btn" id="btn-nudge-origin" title="تمركز في المركز (0,0)" style="padding:2px 5px;">🎯</button>
+                            </div>
+                        </div>
+                    </div>
                     <button class="hud-toggle-btn" id="btn-toggle-iot-vis" style="background:rgba(0,210,255,0.15); border-color:var(--accent-cyan);"
                             data-tooltip-title="إظهار / إخفاء مستشعرات الـ IoT في المشهد 3D"
                             data-tooltip="التبديل بين إظهار أو إخفاء مجسمات حساسات الحركة PIR وعدادات الأبواب ثلاثية الأبعاد فوق الفضاءات.">📡 إخفاء الحساسات</button>
@@ -293,6 +334,9 @@
                     <span style="color:var(--text-muted); font-size:11px;" id="tracer-hint">انقر على أدوات الرسم لبناء العناصر فوق المسقط:</span>
                 </div>
                 <div class="tracer-tools">
+                    <button class="tracer-tool-btn" data-tool="calibrate-scale" id="tool-calibrate-scale" style="background:rgba(0,210,255,0.12); border-color:var(--accent-cyan); color:#38bdf8; font-weight:bold;"
+                            data-tooltip-title="معايرة مقياس الـ PDF بنقطتين"
+                            data-tooltip="انقر نقطتين على أي جدار أو خط قياس معلوم الطول في مسقط الـ PDF لتعديل مقياس المخطط ليطابق الأبعاد الحقيقية 1:1.">📏 معايرة المقياس</button>
                     <button class="tracer-tool-btn active" data-tool="wall" id="tool-draw-wall"
                             data-tooltip-title="رسم جدار فوق الـ PDF"
                             data-tooltip="انقر نقطتين مباشرة فوق خطوط جدران المسقط المستورد لتجسيم جدار معماري ثلاثي الأبعاد.">🧱 رسم جدار</button>
@@ -1001,6 +1045,80 @@
         </div>
     </div>
 
+    <!-- Modal: Architectural PDF Scale Calibration Dialog -->
+    <div class="modal-overlay" id="modal-scale-calibration" style="display:none; z-index:10000;">
+        <div class="modal-card" style="max-width:540px; background:linear-gradient(145deg, #0f172a, #1e293b); border:1px solid #00d2ff; box-shadow:0 10px 40px rgba(0,210,255,0.3); border-radius:12px;">
+            <div class="modal-header" style="border-bottom:1px solid rgba(0,210,255,0.2); padding-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:24px;">📏</span>
+                    <div>
+                        <h3 style="margin:0; font-size:16px; color:#38bdf8; font-weight:bold;">معايرة مقياس مسقط الـ PDF (Reference Scale)</h3>
+                        <p style="margin:2px 0 0 0; font-size:11px; color:#94a3b8;">مطابقة خطوط المسقط 1:1 مع الأبعاد الحقيقية للجدران ثلاثية الأبعاد</p>
+                    </div>
+                </div>
+                <button class="modal-close" id="btn-close-scale-modal" style="font-size:20px; color:#94a3b8; background:none; border:none; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding:16px 0; display:flex; flex-direction:column; gap:14px;">
+                <div style="background:rgba(0,0,0,0.35); padding:12px 14px; border-radius:8px; border-right:4px solid #00d2ff;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:12px; color:#cbd5e1;">المسافة المقاسة حالياً في المشهد:</span>
+                        <span id="calib-measured-dist" style="font-size:16px; font-weight:bold; color:#00d2ff; direction:ltr;">12.45 m</span>
+                    </div>
+                    <div style="font-size:10px; color:#94a3b8; margin-top:4px;">
+                        تم قياسها بين النقطتين اللتين قمت بتحديدهما على المسقط.
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#e2e8f0; margin-bottom:6px;">
+                        أدخل الطول الحقيقي الواقعي للجدار / البُعد المرجعي (بالمتر):
+                    </label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="number" id="calib-real-input" step="0.05" min="0.1" max="1000" value="5.00" 
+                               style="flex:1; padding:10px 14px; background:rgba(0,0,0,0.5); border:1px solid #10b981; border-radius:8px; color:#10b981; font-size:18px; font-weight:bold; text-align:center; outline:none; box-shadow:0 0 10px rgba(16,185,129,0.2);">
+                        <span style="font-size:14px; font-weight:bold; color:#cbd5e1;">متر (m)</span>
+                    </div>
+                </div>
+
+                <!-- Quick Preset Chips -->
+                <div>
+                    <span style="font-size:11px; color:#94a3b8; margin-bottom:6px; display:block;">أطوال مرجعية قياسية شائعة:</span>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;" id="calib-quick-chips">
+                        <button type="button" class="calib-chip" data-val="1.0">1.0م (باب)</button>
+                        <button type="button" class="calib-chip" data-val="2.0">2.0م (ممر)</button>
+                        <button type="button" class="calib-chip" data-val="3.0">3.0م</button>
+                        <button type="button" class="calib-chip" data-val="4.0">4.0م (غرفة)</button>
+                        <button type="button" class="calib-chip" data-val="5.0">5.0م</button>
+                        <button type="button" class="calib-chip" data-val="6.0">6.0م</button>
+                        <button type="button" class="calib-chip" data-val="8.0">8.0م</button>
+                        <button type="button" class="calib-chip" data-val="10.0">10.0م</button>
+                        <button type="button" class="calib-chip" data-val="12.0">12.0م</button>
+                    </div>
+                </div>
+
+                <!-- Proportional scaling options -->
+                <div style="display:flex; flex-direction:column; gap:8px; background:rgba(255,255,255,0.03); padding:10px 12px; border-radius:8px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:11px; color:#cbd5e1; cursor:pointer;">
+                        <input type="checkbox" id="calib-lock-aspect" checked style="accent-color:#00d2ff;">
+                        <span>الحفاظ على نسبة العرض للارتفاع الأصلية للمسقط (موصى به)</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:11px; color:#cbd5e1; cursor:pointer;">
+                        <input type="checkbox" id="calib-rescale-elements" style="accent-color:#10b981;">
+                        <span>إعادة تحجيم الجدران والفضاءات والسلالم المرسومة مسبقاً بالتناسب</span>
+                    </label>
+                </div>
+
+                <div id="calib-preview-summary" style="font-size:11px; color:#38bdf8; background:rgba(56,189,248,0.1); padding:8px 12px; border-radius:6px; border:1px dashed rgba(56,189,248,0.3);">
+                    عامل التحجيم: <strong id="calib-calc-factor">1.00×</strong> — أبعاد المسقط الجديدة: <strong id="calib-calc-dims">60.0م × 42.5م</strong>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:12px; display:flex; justify-content:flex-end; gap:8px;">
+                <button class="modal-btn-cancel" id="btn-cancel-scale-modal" style="padding:8px 16px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); border-radius:6px; color:#cbd5e1; cursor:pointer; font-size:12px;">إلغاء</button>
+                <button class="modal-btn-confirm" id="btn-apply-scale-modal" style="padding:8px 20px; background:linear-gradient(135deg, #10b981, #059669); border:none; border-radius:6px; color:#fff; font-weight:bold; cursor:pointer; font-size:12px; box-shadow:0 4px 14px rgba(16,185,129,0.4);">✓ تطبيق وإعادة التحجيم</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer Bar -->
     <footer class="main-footer"
             data-tooltip-title="حقوق الملكية الفكرية والبحث الأكاديمي"
@@ -1015,13 +1133,13 @@
     <!-- PDF.js CDN for High-Resolution Vector/Raster Architectural Floor Plan Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
-    <!-- Application Scripts (v2.3.8) -->
-    <script src="js/default_model.js?v=2.3.8"></script>
-    <script src="js/viewer3d.js?v=2.3.8"></script>
-    <script src="js/analytics.js?v=2.3.8"></script>
-    <script src="js/ifc_step_parser.js?v=2.3.8"></script>
-    <script src="js/plan_manager.js?v=2.3.8"></script>
-    <script src="js/tooltip.js?v=2.3.8"></script>
-    <script src="js/app.js?v=2.3.8"></script>
+    <!-- Application Scripts (v2.3.9) -->
+    <script src="js/default_model.js?v=2.3.9"></script>
+    <script src="js/viewer3d.js?v=2.3.9"></script>
+    <script src="js/analytics.js?v=2.3.9"></script>
+    <script src="js/ifc_step_parser.js?v=2.3.9"></script>
+    <script src="js/plan_manager.js?v=2.3.9"></script>
+    <script src="js/tooltip.js?v=2.3.9"></script>
+    <script src="js/app.js?v=2.3.9"></script>
 </body>
 </html>

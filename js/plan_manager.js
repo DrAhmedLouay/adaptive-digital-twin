@@ -513,6 +513,9 @@ class PlanManager {
         this.currentPdfPage = 1;
         this.pdfTotalPages = pdfDoc.numPages;
 
+        this.calibratedScaleFactor = null;
+        this.calibratedBounds = null;
+
         // 2. تصيير الصفحة الأولى كمسقط عالي الدقة واستخراج الفضاءات
         const { canvas, spaces, bounds } = await this.renderPdfPageAndExtractSpaces(pdfDoc, 1);
 
@@ -533,6 +536,7 @@ class PlanManager {
         // 3. تحميل المخطط في محرك Three.js
         this.app.viewer.loadBuildingModel(customModel);
         this.updateActiveBuildingTitle(customModel);
+        if (this.syncBlueprintHud) this.syncBlueprintHud();
 
         // 4. تفعيل أزرار التنقل بين الصفحات في المشهد إن كان الملف يحتوي عدة صفحات
         this.setupPdfPageControls();
@@ -729,7 +733,15 @@ class PlanManager {
         return {
             canvas: canvas,
             spaces: spaces,
-            bounds: { width: worldW, depth: worldD }
+            bounds: {
+                width: worldW,
+                depth: worldD,
+                baseWidth: worldW,
+                baseDepth: worldD,
+                offsetX: 0,
+                offsetZ: 0,
+                scaleFactor: 1.0
+            }
         };
     }
 
@@ -817,13 +829,22 @@ class PlanManager {
                         name_en: `Imported Floor Plan Image (${file.name})`,
                         building_type: "imported_image",
                         blueprintCanvas: canvas,
-                        blueprintBounds: { width: worldW, depth: worldD },
+                        blueprintBounds: {
+                            width: worldW,
+                            depth: worldD,
+                            baseWidth: worldW,
+                            baseDepth: worldD,
+                            offsetX: 0,
+                            offsetZ: 0,
+                            scaleFactor: 1.0
+                        },
                         spaces: spaces,
                         partitions: this.generateDefaultPartitions(spaces)
                     };
 
                     this.app.viewer.loadBuildingModel(customModel);
                     this.updateActiveBuildingTitle(customModel);
+                    if (this.syncBlueprintHud) this.syncBlueprintHud();
                     this.closeModal();
                     alert(`✓ تم تصيير المسقط المعماري وإسقاط التوأم الرقمي ثلاثي الأبعاد فوقه بنجاح!`);
                     resolve();
@@ -882,6 +903,16 @@ class PlanManager {
         try {
             const { canvas, spaces, bounds } = await this.renderPdfPageAndExtractSpaces(this.activePdfDoc, this.currentPdfPage);
 
+            if (this.calibratedScaleFactor && this.calibratedBounds) {
+                bounds.width = this.calibratedBounds.width;
+                bounds.depth = this.calibratedBounds.depth;
+                bounds.offsetX = this.calibratedBounds.offsetX;
+                bounds.offsetZ = this.calibratedBounds.offsetZ;
+                bounds.scaleFactor = this.calibratedScaleFactor;
+                bounds.baseWidth = this.calibratedBounds.baseWidth;
+                bounds.baseDepth = this.calibratedBounds.baseDepth;
+            }
+
             const customModel = {
                 id: `user_pdf_p${this.currentPdfPage}_${Date.now()}`,
                 name_ar: `مخطط PDF معماري: ${this.activePdfFileName} (صفحة ${this.currentPdfPage})`,
@@ -898,6 +929,7 @@ class PlanManager {
 
             this.app.viewer.loadBuildingModel(customModel);
             this.updateActiveBuildingTitle(customModel);
+            if (this.syncBlueprintHud) this.syncBlueprintHud();
             if (pageIndicator) pageIndicator.textContent = `صفحة ${this.currentPdfPage} / ${this.pdfTotalPages}`;
         } catch (err) {
             console.error("Error changing PDF page:", err);
@@ -1168,6 +1200,12 @@ class PlanManager {
         let spaceSeparatorPreviewLine = null;
         let circleSpaceCenter = null;
         let circleSpacePreviewMesh = null;
+        let scaleCalibP1 = null;
+        let scaleCalibP2 = null;
+        let scaleCalibMarker1 = null;
+        let scaleCalibMarker2 = null;
+        let scaleCalibPreviewLine = null;
+        let scaleAspectLocked = true;
         const historyStack = [];
 
         const setHint = (text) => {
@@ -1273,6 +1311,24 @@ class PlanManager {
             selectedMoveStairId = null;
             stairMoveStartPoint = null;
             stairMoveOriginal = null;
+            if (scaleCalibMarker1 && this.app.viewer?.scene) {
+                this.app.viewer.scene.remove(scaleCalibMarker1);
+                scaleCalibMarker1 = null;
+            }
+            if (scaleCalibMarker2 && this.app.viewer?.scene) {
+                this.app.viewer.scene.remove(scaleCalibMarker2);
+                scaleCalibMarker2 = null;
+            }
+            if (scaleCalibPreviewLine && this.app.viewer?.scene) {
+                this.app.viewer.scene.remove(scaleCalibPreviewLine);
+                scaleCalibPreviewLine = null;
+            }
+            scaleCalibP1 = null;
+            scaleCalibP2 = null;
+            const calibModal = document.getElementById('modal-scale-calibration');
+            if (calibModal && calibModal.style.display !== 'none') {
+                calibModal.style.display = 'none';
+            }
             hideTransformPanel();
         };
 
@@ -1805,6 +1861,8 @@ class PlanManager {
                 setHint("➗ قاطع فضائي افتراضي: انقر النقطة الأولى ثم الثانية عبر أي فضاء مفتوح لتقسيمه إلى منطقتين وظيفيتين بحساسات ومساحات مستقلة (Room Separator)...");
             } else if (tool === 'circle-space') {
                 setHint("🔘 فضاء دائري/شعاعي: انقر في المركز واسحب لتحديد نصف القطر ثم انقر مجدداً لتجسيم الفضاء الدائري والبهو المركزي (Atrium)...");
+            } else if (tool === 'calibrate-scale') {
+                setHint("📏 أداة معايرة مقياس الـ PDF: انقر على النقطة الأولى لبُعد مرجعي معلوم في المسقط (بداية جدار أو خط قياس)...");
             }
         };
 
@@ -4526,8 +4584,301 @@ class PlanManager {
                         circleSpacePreviewMesh.geometry = ringGeo;
                     }
                     setHint(`🔘 فضاء دائري/شعاعي: نصف القطر ${R.toFixed(1)}م (المساحة: ${area.toFixed(1)}م²) — انقر لتثبيت وتجسيم الفضاء.`);
+                } else if (activeTool === 'calibrate-scale' && scaleCalibP1) {
+                    const x1 = scaleCalibP1.x, z1 = scaleCalibP1.z;
+                    const x2 = pt.x, z2 = pt.z;
+                    const liveDist = Math.hypot(x2 - x1, z2 - z1);
+
+                    if (!scaleCalibPreviewLine) {
+                        const geom = new THREE.BufferGeometry().setFromPoints([
+                            new THREE.Vector3(x1, 0.35, z1),
+                            new THREE.Vector3(x2, 0.35, z2)
+                        ]);
+                        const mat = new THREE.LineDashedMaterial({
+                            color: 0x00d2ff,
+                            dashSize: 0.6,
+                            gapSize: 0.3,
+                            linewidth: 3
+                        });
+                        scaleCalibPreviewLine = new THREE.Line(geom, mat);
+                        scaleCalibPreviewLine.computeLineDistances();
+                        this.app.viewer.scene.add(scaleCalibPreviewLine);
+                    } else {
+                        const posAttr = scaleCalibPreviewLine.geometry.attributes.position;
+                        posAttr.setXYZ(0, x1, 0.35, z1);
+                        posAttr.setXYZ(1, x2, 0.35, z2);
+                        posAttr.needsUpdate = true;
+                        scaleCalibPreviewLine.computeLineDistances();
+                    }
+                    setHint(`📏 البُعد المرجعي المقاس: ${liveDist.toFixed(2)}م — انقر لتثبيت النقطة الثانية وإدخال الطول الحقيقي (Esc للإلغاء).`);
                 }
             });
+
+            const syncHudInputs = () => {
+                const bp = this.app.viewer?.getBlueprintTransform();
+                if (!bp) return;
+                const inputW = document.getElementById('input-bp-width');
+                const inputD = document.getElementById('input-bp-depth');
+                const sliderScale = document.getElementById('slider-bp-scale');
+                const labelScale = document.getElementById('label-bp-scale');
+
+                if (inputW) inputW.value = bp.width.toFixed(1);
+                if (inputD) inputD.value = bp.depth.toFixed(1);
+                if (sliderScale && labelScale) {
+                    const pct = Math.round((bp.scaleFactor || 1) * 100);
+                    sliderScale.value = Math.min(300, Math.max(20, pct));
+                    labelScale.textContent = `${pct}%`;
+                }
+            };
+            this.syncBlueprintHud = syncHudInputs;
+
+            const showScaleCalibrationModal = (distM, p1, p2) => {
+                const modal = document.getElementById('modal-scale-calibration');
+                const measuredDistEl = document.getElementById('calib-measured-dist');
+                const realInput = document.getElementById('calib-real-input');
+                const calcFactorEl = document.getElementById('calib-calc-factor');
+                const calcDimsEl = document.getElementById('calib-calc-dims');
+                const rescaleElemCheck = document.getElementById('calib-rescale-elements');
+                const closeBtn = document.getElementById('btn-close-scale-modal');
+                const cancelBtn = document.getElementById('btn-cancel-scale-modal');
+                const applyBtn = document.getElementById('btn-apply-scale-modal');
+                const chips = document.querySelectorAll('.calib-chip');
+
+                if (!modal) {
+                    const inputLen = prompt(`المسافة المقاسة على المخطط حالياً: ${distM.toFixed(2)}م\nأدخل الطول الواقعي الحقيقي للجدار بالمتر:`, distM.toFixed(2));
+                    if (inputLen) {
+                        applyScaleCalibration(parseFloat(inputLen), distM, p1, false);
+                    }
+                    return;
+                }
+
+                if (measuredDistEl) measuredDistEl.textContent = `${distM.toFixed(2)} m (${distM.toFixed(2)} متر)`;
+                if (realInput) realInput.value = distM.toFixed(2);
+
+                const bpTrans = this.app.viewer.getBlueprintTransform() || { width: 60, depth: 45, offsetX: 0, offsetZ: 0 };
+
+                const updateCalcPreview = () => {
+                    const realVal = parseFloat(realInput.value);
+                    if (realVal && realVal > 0 && distM > 0) {
+                        const factor = realVal / distM;
+                        const newW = bpTrans.width * factor;
+                        const newD = bpTrans.depth * factor;
+                        if (calcFactorEl) calcFactorEl.textContent = `${factor.toFixed(3)}× (${(factor * 100).toFixed(1)}%)`;
+                        if (calcDimsEl) calcDimsEl.textContent = `${newW.toFixed(1)}م × ${newD.toFixed(1)}م`;
+                    } else {
+                        if (calcFactorEl) calcFactorEl.textContent = '—';
+                        if (calcDimsEl) calcDimsEl.textContent = '—';
+                    }
+                };
+
+                updateCalcPreview();
+                modal.style.display = 'flex';
+                if (realInput) setTimeout(() => realInput.select(), 100);
+
+                chips.forEach(chip => {
+                    chip.onclick = (e) => {
+                        e.preventDefault();
+                        chips.forEach(c => c.classList.remove('active'));
+                        chip.classList.add('active');
+                        if (realInput) {
+                            realInput.value = chip.dataset.val;
+                            updateCalcPreview();
+                        }
+                    };
+                });
+
+                if (realInput) {
+                    realInput.oninput = () => {
+                        chips.forEach(c => c.classList.remove('active'));
+                        updateCalcPreview();
+                    };
+                }
+
+                const closeModal = () => {
+                    modal.style.display = 'none';
+                    cleanupTempVisuals();
+                    updateToolUI('wall');
+                };
+
+                if (closeBtn) closeBtn.onclick = closeModal;
+                if (cancelBtn) cancelBtn.onclick = closeModal;
+
+                if (applyBtn) {
+                    applyBtn.onclick = () => {
+                        const realVal = parseFloat(realInput.value);
+                        if (!realVal || realVal <= 0) {
+                            alert("⚠️ يرجى إدخال طول مرجعي صحيح أكبر من الصفر.");
+                            return;
+                        }
+                        const factor = realVal / distM;
+                        if (!isFinite(factor) || factor <= 0) {
+                            alert("⚠️ قيمة غير صالحة لمعامل التحجيم.");
+                            return;
+                        }
+
+                        const rescaleElements = rescaleElemCheck ? rescaleElemCheck.checked : false;
+                        applyScaleCalibration(realVal, distM, p1, rescaleElements);
+                        closeModal();
+                    };
+                }
+            };
+
+            const applyScaleCalibration = (realVal, measuredDist, anchorPoint, rescaleExisting) => {
+                const factor = realVal / measuredDist;
+                const bp = this.app.viewer.getBlueprintTransform();
+                if (!bp) return;
+
+                const oldW = bp.width;
+                const oldD = bp.depth;
+                const newW = Math.round(oldW * factor * 100) / 100;
+                const newD = Math.round(oldD * factor * 100) / 100;
+
+                const newCenterX = Math.round((anchorPoint.x + factor * (bp.offsetX - anchorPoint.x)) * 100) / 100;
+                const newCenterZ = Math.round((anchorPoint.z + factor * (bp.offsetZ - anchorPoint.z)) * 100) / 100;
+
+                this.app.viewer.setBlueprintScaleAndOffset(newW, newD, newCenterX, newCenterZ, factor);
+
+                if (rescaleExisting) {
+                    this.app.viewer.rescaleSceneElements(factor, anchorPoint.x, anchorPoint.z);
+                }
+
+                this.calibratedScaleFactor = factor;
+                this.calibratedBounds = {
+                    width: newW,
+                    depth: newD,
+                    offsetX: newCenterX,
+                    offsetZ: newCenterZ,
+                    baseWidth: bp.baseWidth,
+                    baseDepth: bp.baseDepth
+                };
+
+                syncHudInputs();
+
+                alert(
+                    `✓ تم بنجاح ضبط ومعايرة مقياس مسقط الـ PDF!\n\n` +
+                    `• الطول المرجعي المعاير: ${realVal.toFixed(2)} م (كان مقاساً: ${measuredDist.toFixed(2)} م)\n` +
+                    `• نسبة التحجيم: ${(factor * 100).toFixed(1)}% (${factor.toFixed(3)}×)\n` +
+                    `• الأبعاد الواقعية الجديدة للمسقط: ${newW.toFixed(1)} م × ${newD.toFixed(1)} م\n\n` +
+                    `💡 كافة الجدران والفتحات والفضاءات التي سترسمها الآن ستطابق الأبعاد المعمارية الحقيقية بدقة 1:1.`
+                );
+                setHint(`✓ تم معايرة مقياس المخطط بنجاح (${newW.toFixed(1)}م × ${newD.toFixed(1)}م). يمكنك الآن رسم الجدران بدقة واقعية.`);
+            };
+
+            // تفعيل عناصر التحكم بمقياس ومحاذاة المسقط في الـ HUD
+            const btnHudCalib = document.getElementById('btn-hud-calibrate-scale');
+            if (btnHudCalib) {
+                btnHudCalib.onclick = (e) => {
+                    e.stopPropagation();
+                    if (!isTracing) {
+                        enterTracerMode();
+                    }
+                    updateToolUI('calibrate-scale');
+                };
+            }
+
+            const inputBpW = document.getElementById('input-bp-width');
+            const inputBpD = document.getElementById('input-bp-depth');
+            const btnLockAspect = document.getElementById('btn-lock-bp-aspect');
+            let bpAspectLocked = true;
+
+            if (btnLockAspect) {
+                btnLockAspect.onclick = (e) => {
+                    e.stopPropagation();
+                    bpAspectLocked = !bpAspectLocked;
+                    btnLockAspect.textContent = bpAspectLocked ? '🔒' : '🔓';
+                    btnLockAspect.classList.toggle('active', bpAspectLocked);
+                };
+            }
+
+            if (inputBpW) {
+                inputBpW.onchange = () => {
+                    const bp = this.app.viewer?.getBlueprintTransform();
+                    if (!bp) return;
+                    const newW = Math.max(1, parseFloat(inputBpW.value) || bp.width);
+                    let newD = bp.depth;
+                    if (bpAspectLocked && bp.aspect) {
+                        newD = Math.round((newW / bp.aspect) * 10) / 10;
+                        if (inputBpD) inputBpD.value = newD.toFixed(1);
+                    }
+                    const factor = newW / bp.baseWidth;
+                    this.app.viewer.setBlueprintScaleAndOffset(newW, newD, bp.offsetX, bp.offsetZ, factor);
+                    syncHudInputs();
+                };
+            }
+
+            if (inputBpD) {
+                inputBpD.onchange = () => {
+                    const bp = this.app.viewer?.getBlueprintTransform();
+                    if (!bp) return;
+                    const newD = Math.max(1, parseFloat(inputBpD.value) || bp.depth);
+                    let newW = bp.width;
+                    if (bpAspectLocked && bp.aspect) {
+                        newW = Math.round((newD * bp.aspect) * 10) / 10;
+                        if (inputBpW) inputBpW.value = newW.toFixed(1);
+                    }
+                    const factor = newW / bp.baseWidth;
+                    this.app.viewer.setBlueprintScaleAndOffset(newW, newD, bp.offsetX, bp.offsetZ, factor);
+                    syncHudInputs();
+                };
+            }
+
+            const sliderBpScale = document.getElementById('slider-bp-scale');
+            const labelBpScale = document.getElementById('label-bp-scale');
+            const btnResetBpScale = document.getElementById('btn-reset-bp-scale');
+
+            if (sliderBpScale) {
+                sliderBpScale.oninput = () => {
+                    const bp = this.app.viewer?.getBlueprintTransform();
+                    if (!bp) return;
+                    const pct = parseInt(sliderBpScale.value, 10);
+                    if (labelBpScale) labelBpScale.textContent = `${pct}%`;
+                    const factor = pct / 100.0;
+                    const newW = Math.round(bp.baseWidth * factor * 10) / 10;
+                    const newD = Math.round(bp.baseDepth * factor * 10) / 10;
+                    this.app.viewer.setBlueprintScaleAndOffset(newW, newD, bp.offsetX, bp.offsetZ, factor);
+                    if (inputBpW) inputBpW.value = newW.toFixed(1);
+                    if (inputBpD) inputBpD.value = newD.toFixed(1);
+                };
+            }
+
+            if (btnResetBpScale) {
+                btnResetBpScale.onclick = (e) => {
+                    e.stopPropagation();
+                    const bp = this.app.viewer?.getBlueprintTransform();
+                    if (!bp) return;
+                    this.app.viewer.setBlueprintScaleAndOffset(bp.baseWidth, bp.baseDepth, bp.offsetX, bp.offsetZ, 1.0);
+                    syncHudInputs();
+                };
+            }
+
+            const nudgeBp = (dx, dz) => {
+                const bp = this.app.viewer?.getBlueprintTransform();
+                if (!bp) return;
+                const newOx = Math.round((bp.offsetX + dx) * 100) / 100;
+                const newOz = Math.round((bp.offsetZ + dz) * 100) / 100;
+                this.app.viewer.setBlueprintScaleAndOffset(bp.width, bp.depth, newOx, newOz, bp.scaleFactor);
+                setHint(`📐 إزاحة المسقط: X = ${newOx.toFixed(2)}م ، Z = ${newOz.toFixed(2)}م`);
+            };
+
+            const btnNudgeUp = document.getElementById('btn-nudge-up');
+            const btnNudgeDown = document.getElementById('btn-nudge-down');
+            const btnNudgeLeft = document.getElementById('btn-nudge-left');
+            const btnNudgeRight = document.getElementById('btn-nudge-right');
+            const btnNudgeOrigin = document.getElementById('btn-nudge-origin');
+
+            if (btnNudgeUp) btnNudgeUp.onclick = (e) => { e.stopPropagation(); nudgeBp(0, e.shiftKey ? -0.1 : -0.5); };
+            if (btnNudgeDown) btnNudgeDown.onclick = (e) => { e.stopPropagation(); nudgeBp(0, e.shiftKey ? 0.1 : 0.5); };
+            if (btnNudgeLeft) btnNudgeLeft.onclick = (e) => { e.stopPropagation(); nudgeBp(e.shiftKey ? -0.1 : -0.5, 0); };
+            if (btnNudgeRight) btnNudgeRight.onclick = (e) => { e.stopPropagation(); nudgeBp(e.shiftKey ? 0.1 : 0.5, 0); };
+            if (btnNudgeOrigin) {
+                btnNudgeOrigin.onclick = (e) => {
+                    e.stopPropagation();
+                    const bp = this.app.viewer?.getBlueprintTransform();
+                    if (!bp) return;
+                    this.app.viewer.setBlueprintScaleAndOffset(bp.width, bp.depth, 0, 0, bp.scaleFactor);
+                    setHint("🎯 تم تمركز المسقط في نقطة الأصل (0, 0).");
+                };
+            }
 
             // معالجة النقر المنفذة للأدوات
             const executeClickAction = async (clientX, clientY) => {
@@ -4538,6 +4889,42 @@ class PlanManager {
                 if (!bData.walls) bData.walls = {};
                 if (!bData.openings) bData.openings = {};
                 if (!bData.spaces) bData.spaces = {};
+
+                if (activeTool === 'calibrate-scale') {
+                    const pt = getPointOnBlueprint(clientX, clientY);
+                    if (!pt) {
+                        setHint("⚠️ يرجى النقر فوق مسقط المخطط المعماري.");
+                        return;
+                    }
+
+                    if (!scaleCalibP1) {
+                        scaleCalibP1 = { x: pt.x, z: pt.z };
+                        const dotGeo = new THREE.SphereGeometry(0.35, 16, 16);
+                        const dotMat = new THREE.MeshBasicMaterial({ color: 0x00d2ff });
+                        scaleCalibMarker1 = new THREE.Mesh(dotGeo, dotMat);
+                        scaleCalibMarker1.position.set(pt.x, 0.25, pt.z);
+                        this.app.viewer.scene.add(scaleCalibMarker1);
+
+                        setHint("📏 تم تحديد النقطة الأولى بنجاح! انقر الآن على النقطة الثانية لنهاية البُعد المرجعي (الطرف الآخر للجدار أو خط القياس)...");
+                        return;
+                    } else {
+                        scaleCalibP2 = { x: pt.x, z: pt.z };
+                        const distM = Math.hypot(scaleCalibP2.x - scaleCalibP1.x, scaleCalibP2.z - scaleCalibP1.z);
+                        if (distM < 0.1) {
+                            setHint("⚠️ النقطتان متقاربتان جداً! يرجى النقر على نقطة ثانية متباعدة بما فيه الكفاية.");
+                            return;
+                        }
+
+                        const dotGeo = new THREE.SphereGeometry(0.35, 16, 16);
+                        const dotMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+                        scaleCalibMarker2 = new THREE.Mesh(dotGeo, dotMat);
+                        scaleCalibMarker2.position.set(pt.x, 0.25, pt.z);
+                        this.app.viewer.scene.add(scaleCalibMarker2);
+
+                        showScaleCalibrationModal(distM, scaleCalibP1, scaleCalibP2);
+                        return;
+                    }
+                }
 
                 if (activeTool === 'delete-wall') {
                     const targetOpeningId = findOpeningUnderCursor(clientX, clientY);

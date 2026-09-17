@@ -434,17 +434,23 @@ class Twin3DViewer {
             });
             this.blueprintMesh = new THREE.Mesh(bpGeo, bpMat);
             this.blueprintMesh.rotation.x = -Math.PI / 2;
-            this.blueprintMesh.position.set(0, 0.02, 0); // رفع مليمترى لمنع التداخل مع الشبكة
+            const bpPosX = (modelData.blueprintBounds && typeof modelData.blueprintBounds.offsetX === 'number') ? modelData.blueprintBounds.offsetX : 0;
+            const bpPosZ = (modelData.blueprintBounds && typeof modelData.blueprintBounds.offsetZ === 'number') ? modelData.blueprintBounds.offsetZ : 0;
+            this.blueprintMesh.position.set(bpPosX, 0.02, bpPosZ);
             this.blueprintMesh.visible = this.blueprintVisible;
             this.buildingGroup.add(this.blueprintMesh);
 
             // إظهار عناصر التحكم المتعلقة بالمسقط عند تحميله
             if (bpOpCtrl) bpOpCtrl.style.display = 'flex';
             if (zonesOpCtrl) zonesOpCtrl.style.display = 'flex';
+            const bpScalePanel = document.getElementById('hud-blueprint-scale-panel');
+            if (bpScalePanel) bpScalePanel.style.display = 'flex';
         } else {
             // إخفاء عناصر التحكم المتعلقة بالمسقط عند غيابه
             if (bpOpCtrl) bpOpCtrl.style.display = 'none';
             if (zonesOpCtrl) zonesOpCtrl.style.display = 'none';
+            const bpScalePanel = document.getElementById('hud-blueprint-scale-panel');
+            if (bpScalePanel) bpScalePanel.style.display = 'none';
         }
 
         // 1.ب تهيئة مجموعات الطوابق والمستويات المعمارية (Storey Groups)
@@ -1917,8 +1923,10 @@ class Twin3DViewer {
         }
         const bpOpCtrl = document.getElementById('hud-blueprint-opacity-ctrl');
         const zonesOpCtrl = document.getElementById('hud-zones-opacity-ctrl');
+        const bpScalePanel = document.getElementById('hud-blueprint-scale-panel');
         if (bpOpCtrl) bpOpCtrl.style.display = 'none';
         if (zonesOpCtrl) zonesOpCtrl.style.display = 'none';
+        if (bpScalePanel) bpScalePanel.style.display = 'none';
     }
 
     animate() {
@@ -4017,6 +4025,150 @@ class Twin3DViewer {
             this.blueprintMesh.material.map = newTexture;
             this.blueprintMesh.material.needsUpdate = true;
         }
+    }
+
+    getBlueprintTransform() {
+        if (!this.blueprintMesh) return null;
+        const geo = this.blueprintMesh.geometry;
+        const w = geo?.parameters?.width || (this.buildingData?.blueprintBounds?.width) || 60;
+        const d = geo?.parameters?.height || (this.buildingData?.blueprintBounds?.depth) || 45;
+        const bBounds = this.buildingData?.blueprintBounds || {};
+        return {
+            width: w,
+            depth: d,
+            offsetX: this.blueprintMesh.position.x,
+            offsetZ: this.blueprintMesh.position.z,
+            aspect: w / (d || 1),
+            scaleFactor: (typeof bBounds.scaleFactor === 'number') ? bBounds.scaleFactor : 1.0,
+            baseWidth: (typeof bBounds.baseWidth === 'number') ? bBounds.baseWidth : w,
+            baseDepth: (typeof bBounds.baseDepth === 'number') ? bBounds.baseDepth : d
+        };
+    }
+
+    setBlueprintScaleAndOffset(width, depth, offsetX = 0, offsetZ = 0, scaleFactor = null) {
+        if (!this.blueprintMesh) return;
+        width = Math.max(0.5, parseFloat(width) || 60);
+        depth = Math.max(0.5, parseFloat(depth) || 45);
+        offsetX = parseFloat(offsetX) || 0;
+        offsetZ = parseFloat(offsetZ) || 0;
+
+        if (this.blueprintMesh.geometry) {
+            this.blueprintMesh.geometry.dispose();
+        }
+        this.blueprintMesh.geometry = new THREE.PlaneGeometry(width, depth);
+        this.blueprintMesh.position.set(offsetX, 0.02, offsetZ);
+
+        if (this.buildingData) {
+            if (!this.buildingData.blueprintBounds) {
+                this.buildingData.blueprintBounds = {};
+            }
+            const b = this.buildingData.blueprintBounds;
+            if (typeof b.baseWidth !== 'number' || b.baseWidth <= 0) {
+                b.baseWidth = width / (scaleFactor || 1);
+                b.baseDepth = depth / (scaleFactor || 1);
+            }
+            b.width = width;
+            b.depth = depth;
+            b.offsetX = offsetX;
+            b.offsetZ = offsetZ;
+            if (scaleFactor !== null) {
+                b.scaleFactor = scaleFactor;
+            }
+        }
+    }
+
+    rescaleSceneElements(scaleFactor, anchorX = 0, anchorZ = 0) {
+        if (!this.buildingData || !scaleFactor || scaleFactor === 1) return;
+
+        // 1. تحجيم الجدران
+        if (this.buildingData.walls) {
+            for (const wall of Object.values(this.buildingData.walls)) {
+                if (wall.start && wall.start.length >= 2) {
+                    wall.start[0] = Math.round((anchorX + (wall.start[0] - anchorX) * scaleFactor) * 100) / 100;
+                    wall.start[1] = Math.round((anchorZ + (wall.start[1] - anchorZ) * scaleFactor) * 100) / 100;
+                }
+                if (wall.end && wall.end.length >= 2) {
+                    wall.end[0] = Math.round((anchorX + (wall.end[0] - anchorX) * scaleFactor) * 100) / 100;
+                    wall.end[1] = Math.round((anchorZ + (wall.end[1] - anchorZ) * scaleFactor) * 100) / 100;
+                }
+            }
+        }
+
+        // 2. تحجيم فتحات الأبواب والشبابيك
+        if (this.buildingData.openings) {
+            for (const op of Object.values(this.buildingData.openings)) {
+                if (typeof op.offset === 'number') {
+                    op.offset = Math.round(op.offset * scaleFactor * 100) / 100;
+                }
+                if (op.position && op.position.length >= 2) {
+                    op.position[0] = Math.round((anchorX + (op.position[0] - anchorX) * scaleFactor) * 100) / 100;
+                    op.position[1] = Math.round((anchorZ + (op.position[1] - anchorZ) * scaleFactor) * 100) / 100;
+                }
+            }
+        }
+
+        // 3. تحجيم الفضاءات المعمارية
+        if (this.buildingData.spaces) {
+            for (const sp of Object.values(this.buildingData.spaces)) {
+                if (sp.bounds) {
+                    sp.bounds.x = Math.round((anchorX + (sp.bounds.x - anchorX) * scaleFactor) * 100) / 100;
+                    sp.bounds.z = Math.round((anchorZ + (sp.bounds.z - anchorZ) * scaleFactor) * 100) / 100;
+                    sp.bounds.width = Math.round((sp.bounds.width || 5) * scaleFactor * 100) / 100;
+                    sp.bounds.depth = Math.round((sp.bounds.depth || 5) * scaleFactor * 100) / 100;
+                }
+                if (Array.isArray(sp.polygon)) {
+                    sp.polygon = sp.polygon.map(pt => [
+                        Math.round((anchorX + (pt[0] - anchorX) * scaleFactor) * 100) / 100,
+                        Math.round((anchorZ + (pt[1] - anchorZ) * scaleFactor) * 100) / 100
+                    ]);
+                }
+                if (Array.isArray(sp.polygonPoints)) {
+                    sp.polygonPoints = sp.polygonPoints.map(pt => [
+                        Math.round((anchorX + (pt[0] - anchorX) * scaleFactor) * 100) / 100,
+                        Math.round((anchorZ + (pt[1] - anchorZ) * scaleFactor) * 100) / 100
+                    ]);
+                }
+                if (sp.circleCenter && sp.circleCenter.length >= 2) {
+                    sp.circleCenter[0] = Math.round((anchorX + (sp.circleCenter[0] - anchorX) * scaleFactor) * 100) / 100;
+                    sp.circleCenter[1] = Math.round((anchorZ + (sp.circleCenter[1] - anchorZ) * scaleFactor) * 100) / 100;
+                    if (typeof sp.circleRadius === 'number') {
+                        sp.circleRadius = Math.round(sp.circleRadius * scaleFactor * 100) / 100;
+                    }
+                }
+                if (typeof sp.area_m2 === 'number') {
+                    sp.area_m2 = Math.round(sp.area_m2 * scaleFactor * scaleFactor * 10) / 10;
+                }
+            }
+        }
+
+        // 4. تحجيم السلالم المعمارية
+        if (this.buildingData.stairs) {
+            for (const st of Object.values(this.buildingData.stairs)) {
+                if (st.position && st.position.length >= 2) {
+                    st.position[0] = Math.round((anchorX + (st.position[0] - anchorX) * scaleFactor) * 100) / 100;
+                    st.position[1] = Math.round((anchorZ + (st.position[1] - anchorZ) * scaleFactor) * 100) / 100;
+                }
+                if (st.landing_pos && st.landing_pos.length >= 2) {
+                    st.landing_pos[0] = Math.round((anchorX + (st.landing_pos[0] - anchorX) * scaleFactor) * 100) / 100;
+                    st.landing_pos[1] = Math.round((anchorZ + (st.landing_pos[1] - anchorZ) * scaleFactor) * 100) / 100;
+                }
+            }
+        }
+
+        // 5. تحجيم مواقع مستشعرات الـ IoT
+        if (this.buildingData.iotSensors) {
+            for (const s of Object.values(this.buildingData.iotSensors)) {
+                if (typeof s.x === 'number') s.x = Math.round((anchorX + (s.x - anchorX) * scaleFactor) * 100) / 100;
+                if (typeof s.z === 'number') s.z = Math.round((anchorZ + (s.z - anchorZ) * scaleFactor) * 100) / 100;
+            }
+        }
+
+        // 6. إعادة بناء وتجسيم المشهد ثلاثي الأبعاد
+        this.buildWallsAndOpenings(this.buildingData.walls, this.buildingData.openings, this.buildingData.spaces);
+        if (this.buildingData.stairs) {
+            this.buildStaircases(this.buildingData.stairs);
+        }
+        this.loadBuildingModel(this.buildingData);
     }
 
     // ==========================================
