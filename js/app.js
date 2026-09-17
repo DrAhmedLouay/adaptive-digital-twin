@@ -290,6 +290,9 @@ class TwinApp {
             });
             const data = await res.json();
 
+            this.reconfigMode = mode;
+            this.isAdaptive = (mode !== 'baseline');
+
             // إظهار أو إخفاء صندوق العائد المعماري
             const impactBox = document.getElementById('reconfig-impact-box');
             if (impactBox) {
@@ -315,9 +318,17 @@ class TwinApp {
                 }
             }
 
+            // إرسال طلب التكيف إلى الخادم إذا كان متاحاً
+            await fetch('/api/reconfiguration/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode })
+            });
+
             this.fetchAndUpdate();
         } catch (e) {
-            console.error("Failed to apply reconfiguration mode:", e);
+            // صامت في بيئة العرض الثابتة
+            this.fetchAndUpdate();
         }
     }
 
@@ -334,42 +345,136 @@ class TwinApp {
             const res = await fetch('/api/state');
             if (res.ok) {
                 const data = await res.json();
-                this.viewer.updateRealtimeState(data);
-                this.analytics.updateDashboard(data);
+                this.lastState = data;
+                if (this.viewer) this.viewer.updateRealtimeState(data);
+                if (this.analytics) this.analytics.updateDashboard(data);
                 return;
             }
         } catch (err) {
             // صامت في بيئة العرض الثابتة (مثل GitHub Pages)
         }
-        if (this.viewer && this.viewer.currentModel) {
+        if (this.viewer && (this.viewer.buildingData || this.viewer.currentModel)) {
             this.simulateClientTick();
         }
     }
 
     simulateClientTick() {
-        const spaces = this.viewer.currentModel.spaces || {};
+        this.stepCount = (this.stepCount || 0) + 1;
+        const bData = this.viewer?.buildingData || this.viewer?.currentModel || {};
+        const spaces = bData.spaces || {};
+        const partitions = bData.partitions || {};
+
+        const scenario = this.activeScenario || 'normal';
+        const mode = this.reconfigMode || (this.isAdaptive ? 'kinetic' : 'baseline');
+
         const occ = {};
+        const overcrowdedRooms = [];
+
         for (const [id, sp] of Object.entries(spaces)) {
             const cap = sp.capacity || 10;
-            occ[id] = Math.max(1, Math.round(cap * (0.4 + 0.3 * Math.sin(Date.now() / 3000 + id.charCodeAt(0)))));
+            let factor = 0.45;
+            if (scenario === 'morning_peak') {
+                factor = (id.includes('reception') || id.includes('wait') || id.includes('lobby') || sp.type === 'public') ? 1.25 : 0.8;
+            } else if (scenario === 'corridor_choke') {
+                factor = (sp.type === 'circulation' || id.includes('corridor')) ? 1.35 : 0.5;
+            } else if (scenario === 'after_hours') {
+                factor = 0.08;
+            }
+
+            if (mode === 'kinetic' && (id.includes('wait') || id.includes('reception'))) {
+                factor = Math.min(0.85, factor * 0.7);
+            } else if (mode === 'functional_swap' && (id.includes('corridor') || sp.type === 'circulation')) {
+                factor = Math.min(0.8, factor * 0.65);
+            }
+
+            const currentCount = Math.max(1, Math.round(cap * (factor + 0.12 * Math.sin(Date.now() / 3500 + id.charCodeAt(0)))));
+            occ[id] = currentCount;
+
+            if (currentCount > cap) {
+                overcrowdedRooms.push(id);
+            }
         }
+
+        let centralFlow = 24.0;
+        if (scenario === 'morning_peak') centralFlow = 36.5;
+        else if (scenario === 'corridor_choke') centralFlow = 48.0;
+        else if (scenario === 'after_hours') centralFlow = 6.0;
+
+        if (mode === 'kinetic') centralFlow = Math.max(12.0, centralFlow * 0.75);
+        else if (mode === 'functional_swap') centralFlow = Math.max(10.0, centralFlow * 0.58);
+
+        centralFlow = +(centralFlow + 2.0 * Math.sin(Date.now() / 3000)).toFixed(1);
+
+        let balanceScore = 74.0;
+        if (scenario === 'morning_peak') balanceScore = 66.5;
+        else if (scenario === 'corridor_choke') balanceScore = 62.0;
+
+        let circWork = 4350;
+        if (scenario === 'morning_peak') circWork = 5400;
+        else if (scenario === 'corridor_choke') circWork = 5950;
+
+        const actions = [];
+        if (mode === 'kinetic') {
+            balanceScore = +(balanceScore + 17.5).toFixed(1);
+            circWork = Math.round(circWork * 0.74);
+            actions.push({
+                type: "MOVABLE_PARTITION_EXPANSION",
+                title_ar: "تمدد القاطع الذكي الميكانيكي (Smart Partition P1)",
+                reason_ar: "تكدس الفضاء الرئيسي وتجاوز عتبة الإشغال المسموحة",
+                impact_ar: "زيادة السعة الاستيعابية بنسبة 45% وتخفيض زمن الانتظار"
+            });
+        } else if (mode === 'functional_swap') {
+            balanceScore = +(balanceScore + 21.0).toFixed(1);
+            circWork = Math.round(circWork * 0.68);
+            actions.push({
+                type: "FUNCTIONAL_ZONE_SWAP",
+                title_ar: "إعادة توجيه التدفق والتوزيع الوظيفي التكيفي",
+                reason_ar: "ارتفاع تدفق الممرات واختناق عنق الزجاجة",
+                impact_ar: "تخفيض إجهاد حركة المشاة (Circulation Work W) بنسبة 32%"
+            });
+        }
+
         const state = {
-            step: Math.floor(Date.now() / 1500),
-            scenario: "normal",
+            step: this.stepCount,
+            scenario: scenario,
+            layout_mode: mode,
             sensor_readings: occ,
-            corridor_flows: { "corridor_central": 24 },
-            partitions: this.viewer.currentModel.partitions || {},
+            corridor_flows: { "corridor_central": centralFlow },
+            partitions: partitions,
             evaluation: {
-                spatial_balance_score: 84.5,
-                congestion_work: 4120,
-                active_recommendations: []
+                spatial_balance_score: balanceScore,
+                current_kpis: {
+                    spatial_balance_score: balanceScore,
+                    overcrowded_rooms: overcrowdedRooms,
+                    j_circ_penalty: +(circWork / 100).toFixed(1),
+                    circulation_work_index: circWork
+                },
+                baseline_kpis: {
+                    spatial_balance_score: 72.0,
+                    overcrowded_rooms: scenario === 'normal' ? [] : ["reception_space"],
+                    j_circ_penalty: 45.8,
+                    circulation_work_index: 4580
+                },
+                improvement_summary: {
+                    balance_gain_percent: +(Math.max(0, balanceScore - 72.0)).toFixed(1),
+                    congestion_reduction_percent: mode === 'baseline' ? 0.0 : 28.5
+                },
+                actions: actions
             }
         };
-        this.viewer.updateRealtimeState(state);
+
+        this.lastState = state;
+        if (this.viewer) {
+            this.viewer.updateRealtimeState(state);
+        }
+        if (this.analytics) {
+            this.analytics.updateDashboard(state);
+        }
     }
 }
 
 // بدء التشغيل عند تحميل الصفحة
 window.addEventListener('DOMContentLoaded', () => {
     window.twinApp = new TwinApp();
+    window.app = window.twinApp;
 });

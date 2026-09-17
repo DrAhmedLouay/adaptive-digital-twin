@@ -44,6 +44,14 @@ class Twin3DViewer {
         this.init();
     }
 
+    get currentModel() {
+        return this.buildingData;
+    }
+
+    set currentModel(val) {
+        this.buildingData = val;
+    }
+
     init() {
         const width = this.container.clientWidth || window.innerWidth - 380;
         const height = this.container.clientHeight || window.innerHeight - 60;
@@ -1481,6 +1489,24 @@ class Twin3DViewer {
             this.particleSystem.geometry.attributes.color.needsUpdate = true;
         }
 
+        // نبض وتوهج بصري لمستشعرات IoT في المشهد
+        if (this.iotSensorsGroup && this.iotSensorsVisible && this.sensorMeshes) {
+            const t = Date.now() * 0.003;
+            for (const group of Object.values(this.sensorMeshes)) {
+                if (!group) continue;
+                group.children.forEach(c => {
+                    if (c.geometry && c.geometry.type === 'RingGeometry') {
+                        const s = 1.0 + 0.15 * Math.sin(t + group.position.x);
+                        c.scale.set(s, s, s);
+                    } else if (c.geometry && c.geometry.type === 'ConeGeometry') {
+                        if (c.material) {
+                            c.material.opacity = 0.2 + 0.15 * Math.abs(Math.sin(t + group.position.z));
+                        }
+                    }
+                });
+            }
+        }
+
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
     }
@@ -1556,6 +1582,68 @@ class Twin3DViewer {
         }
     }
 
+    generateDefaultSensorsFromModel() {
+        const bData = this.buildingData || {};
+        const spaces = bData.spaces || {};
+        const openings = bData.openings || {};
+        const sensors = {};
+
+        // 1. مستشعرات الفضاءات (PIR & Environmental)
+        for (const [sid, sp] of Object.entries(spaces)) {
+            const b = sp.bounds || { x: 0, z: 0, width: 10, depth: 8 };
+            const cx = (b.x || 0) + (b.width || 10) / 2.0;
+            const cz = (b.z || 0) + (b.depth || 8) / 2.0;
+            const baseY = sp.base_elevation || 0;
+            const h = (b.height || 3.5);
+
+            // حساس حركة وإشغال PIR سقفي
+            const pirId = `pir_${sid}`;
+            sensors[pirId] = {
+                id: pirId,
+                type: 'PIR_OCCUPANCY',
+                space_id: sid,
+                name_ar: `حساس حركة وإشغال (${sp.name_ar || sid})`,
+                position: { x: +cx.toFixed(2), y: +(baseY + h - 0.2).toFixed(2), z: +cz.toFixed(2) },
+                status: 'ONLINE',
+                battery: 98.5
+            };
+
+            // مستشعر بيئي CO2 في القاعات الرئيسية والمكاتب
+            if (sp.type === 'public' || sp.type === 'flexible' || sp.type === 'workspace') {
+                const envId = `env_${sid}`;
+                sensors[envId] = {
+                    id: envId,
+                    type: 'ENVIRONMENTAL_TELEMETRY',
+                    space_id: sid,
+                    name_ar: `مستشعر بيئي وCO2 (${sp.name_ar || sid})`,
+                    position: { x: +(cx + 1.2).toFixed(2), y: +(baseY + 2.4).toFixed(2), z: +cz.toFixed(2) },
+                    status: 'ONLINE',
+                    co2_baseline: 420.0
+                };
+            }
+        }
+
+        // 2. عدادات تدفق المشاة عند الأبواب
+        for (const [oid, op] of Object.entries(openings)) {
+            if (op.type === 'door' || op.type === 'passage') {
+                const pos = op.position || [0, 0];
+                const doorX = pos[0];
+                const doorZ = pos[1];
+                const cntId = `counter_${oid}`;
+                sensors[cntId] = {
+                    id: cntId,
+                    type: 'OPTICAL_DOOR_COUNTER',
+                    door_id: oid,
+                    name_ar: `عداد مرور (${op.name_ar || oid})`,
+                    position: { x: +doorX.toFixed(2), y: 2.2, z: +doorZ.toFixed(2) },
+                    status: 'ONLINE'
+                };
+            }
+        }
+
+        return sensors;
+    }
+
     initIoTSensors() {
         if (this.iotSensorsGroup && this.buildingGroup) {
             this.buildingGroup.remove(this.iotSensorsGroup);
@@ -1575,19 +1663,48 @@ class Twin3DViewer {
             this.buildingGroup.add(this.iotSensorsGroup);
         }
 
+        const fallbackLocalSensors = () => {
+            const sensors = this.generateDefaultSensorsFromModel();
+            this.iotSensors = sensors;
+            for (const [sId, s] of Object.entries(sensors)) {
+                this.addIoTSensorMesh(s);
+            }
+        };
+
+        if (window.location.hostname.includes('github.io') || window.location.protocol === 'file:') {
+            fallbackLocalSensors();
+            return;
+        }
+
         fetch('/api/iot/sensors')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                return res.json();
+            })
             .then(data => {
                 const sensors = data.sensors || {};
-                for (const [sId, s] of Object.entries(sensors)) {
-                    this.addIoTSensorMesh(s);
+                const sensorEntries = Object.entries(sensors);
+                if (sensorEntries.length === 0) {
+                    fallbackLocalSensors();
+                } else {
+                    this.iotSensors = sensors;
+                    for (const [sId, s] of sensorEntries) {
+                        this.addIoTSensorMesh(s);
+                    }
                 }
             })
-            .catch(e => console.warn("Failed to load 3D IoT sensors:", e));
+            .catch(e => {
+                console.warn("Failed to load 3D IoT sensors from server, using local model sensors:", e);
+                fallbackLocalSensors();
+            });
     }
 
     addIoTSensorMesh(s) {
         if (!s || !s.id) return null;
+        if (!this.iotSensors) {
+            this.iotSensors = {};
+        }
+        this.iotSensors[s.id] = s;
         if (!this.iotSensorsGroup) {
             this.iotSensorsGroup = new THREE.Group();
             if (this.buildingGroup) this.buildingGroup.add(this.iotSensorsGroup);
@@ -1710,6 +1827,7 @@ class Twin3DViewer {
             }
         });
         delete this.sensorMeshes[sensorId];
+        if (this.iotSensors) delete this.iotSensors[sensorId];
     }
 
     highlightIoTSensor(sensorId) {
