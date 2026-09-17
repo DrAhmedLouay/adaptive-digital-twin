@@ -237,6 +237,34 @@ class TwinApp {
         bindGizmoBtn('btn-nav-zoom-in', () => this.viewer.zoomCamera(1.25));
         bindGizmoBtn('btn-nav-zoom-out', () => this.viewer.zoomCamera(0.8));
         bindGizmoBtn('btn-nav-fit', () => this.viewer.fitCameraToBuilding());
+        bindGizmoBtn('btn-toggle-bg-theme', () => {
+            const isWhite = this.viewer.toggleBackgroundTheme();
+            const btn = document.getElementById('btn-toggle-bg-theme');
+            if (btn) btn.title = isWhite ? 'الخلفية: أبيض (انقر للتبديل للداكن)' : 'الخلفية: داكن (انقر للتبديل للأبيض)';
+        });
+
+        // طي وتوسيع اللوحة الجانبية (Sidebar Collapse) لتوسيع المشهد إلى 100%
+        const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+        const btnRestoreSidebar = document.getElementById('btn-restore-sidebar');
+        const mainSidebar = document.getElementById('main-sidebar');
+
+        const toggleSidebar = (collapse) => {
+            if (!mainSidebar) return;
+            mainSidebar.classList.toggle('collapsed', collapse);
+            if (btnRestoreSidebar) btnRestoreSidebar.style.display = collapse ? 'inline-flex' : 'none';
+            setTimeout(() => {
+                if (this.viewer && typeof this.viewer.onWindowResize === 'function') {
+                    this.viewer.onWindowResize();
+                }
+            }, 320);
+        };
+
+        if (btnToggleSidebar) {
+            btnToggleSidebar.addEventListener('click', () => toggleSidebar(true));
+        }
+        if (btnRestoreSidebar) {
+            btnRestoreSidebar.addEventListener('click', () => toggleSidebar(false));
+        }
 
         // أزرار طي وتوسيع لوحات العرض (HUD & Blueprint Overlay) لتوفير أقصى مساحة رؤية
         const btnToggleHud = document.getElementById('btn-toggle-hud');

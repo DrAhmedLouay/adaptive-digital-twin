@@ -74,12 +74,14 @@ class Twin3DViewer {
 
         // 1. Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x0c111a);
+        // خلفية بيضاء معمارية نقية وناصعة (Pure White Architectural Studio)
+        this.scene.background = new THREE.Color(0xffffff);
+        this.isWhiteBackground = true;
         // تم إلغاء الضباب تماماً لضمان بقاء المخطط والمسقط ناصعاً وواضحاً دون أي اسوداد عند الابتعاد (Zoom Out)
         this.scene.fog = null;
 
-        // 2. Camera — توسيع مدى الرؤية الأقصى (Far Plane = 2500) لمنع تلاشي أو قطع المخطط عند الابتعاد
-        this.camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 2500);
+        // 2. Camera — توسيع مدى الرؤية الأقصى (Far Plane = 5000) لمنع تلاشي أو قطع المخطط عند الابتعاد
+        this.camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 5000);
         this.camera.position.set(0, 45, 38);
 
         // 3. Renderer
@@ -102,7 +104,7 @@ class Twin3DViewer {
                 this.controls.zoomSpeed = 1.2;
                 this.controls.panSpeed = 1.0;
                 this.controls.minDistance = 0.5;
-                this.controls.maxDistance = 3500.0;
+                this.controls.maxDistance = 6000.0;
                 this.controls.maxPolarAngle = Math.PI - 0.02; // حرية كاملة في تدوير ورؤية المبنى من كافة الزوايا
                 this.controls.target.set(0, 0, 0);
                 this.controls.mouseButtons = {
@@ -122,12 +124,12 @@ class Twin3DViewer {
         // 5. Lighting
         this.setupLighting();
 
-        // 6. Architectural Grid — شبكة معمارية ثلاثية الأبعاد بيضاء ناصعة وأنيقة (Pure White 3D Grid)
-        const grid = new THREE.GridHelper(260, 80, 0xffffff, 0xd8d8d8);
+        // 6. Architectural Grid — شبكة معمارية واضحة وأنيقة فوق الخلفية البيضاء (Architectural Slate & Light Grey Grid)
+        const grid = new THREE.GridHelper(300, 100, 0x94a3b8, 0xe2e8f0);
         grid.position.y = -0.05;
         if (grid.material) {
             grid.material.transparent = true;
-            grid.material.opacity = 0.6; // لون أبيض ناصع وواضح جداً ومريح للعين
+            grid.material.opacity = 0.85;
             grid.material.depthWrite = false;
         }
         this.gridHelper = grid;
@@ -1472,36 +1474,84 @@ class Twin3DViewer {
         this.controls.update();
     }
 
-    frameBuildingInView(modelData = null) {
-        // 1. إعادة ضبط وتثبيت نقطة ارتكاز الكاميرا في منتصف الشبكة المحورية (0, 0, 0)
-        if (this.controls && this.controls.target) {
-            this.controls.target.set(0, 0, 0);
-        }
+    fitCameraToBuilding() {
+        this.frameBuildingInView(this.buildingData);
+    }
 
-        // 2. احتساب المدى الفراغي والأبعاد الهندسية للمسقط أو المبنى
+    frameBuildingInView(modelData = null) {
+        let center = new THREE.Vector3(0, 0, 0);
         let maxDim = 45.0;
-        if (modelData && modelData.blueprintBounds) {
-            maxDim = Math.max(modelData.blueprintBounds.width || 45, modelData.blueprintBounds.depth || 45);
-        } else if (this.buildingGroup) {
+
+        // احتساب المركز الحقيقي والأبعاد الفراغية القصوى لكامل عناصر المبنى
+        if (this.buildingGroup && this.buildingGroup.children.length > 0) {
             const box = new THREE.Box3().setFromObject(this.buildingGroup);
             if (!box.isEmpty()) {
+                box.getCenter(center);
                 const size = new THREE.Vector3();
                 box.getSize(size);
-                maxDim = Math.max(size.x, size.z, 20.0);
+                maxDim = Math.max(size.x, size.y, size.z, 20.0);
             }
+        } else if (modelData && modelData.blueprintBounds) {
+            maxDim = Math.max(modelData.blueprintBounds.width || 45, modelData.blueprintBounds.depth || 45);
         }
 
-        // 3. ضبط زاوية ومسافة الكاميرا لتأطير المبنى أو المسقط في منتصف الشاشة بدقة
-        if (this.isTopView) {
-            this.camera.position.set(0, Math.max(55, maxDim * 1.35), 0.01);
-        } else {
-            const dist = Math.max(42, maxDim * 1.15);
-            this.camera.position.set(0, dist * 0.95, dist * 0.85);
+        // 1. إعادة ضبط ارتكاز الكاميرا (OrbitControls Target) على مركز المبنى الحقيقي
+        // هذا يضمن دوران الكاميرا بسلاسة تامة حول المبنى نفسه بدلاً من الدوران حول فراغ
+        if (this.controls && this.controls.target) {
+            this.controls.target.copy(center);
         }
+
+        // 2. احتساب الموضع الدقيق للكاميرا لتأطير المبنى بارتفاع وحجم مثاليين في منتصف الشاشة
+        if (this.isTopView) {
+            this.camera.position.set(center.x, center.y + Math.max(55, maxDim * 1.4), center.z + 0.01);
+        } else {
+            const dist = Math.max(45, maxDim * 1.25);
+            this.camera.position.set(center.x, center.y + dist * 0.75, center.z + dist * 0.9);
+        }
+
+        this.camera.near = 0.5;
+        this.camera.far = Math.max(6000, maxDim * 20);
+        this.camera.updateProjectionMatrix();
 
         if (this.controls && typeof this.controls.update === 'function') {
             this.controls.update();
         }
+    }
+
+    // تبديل خلفية المشهد ثلاثي الأبعاد بين الأبيض الناصع والداكن بضغطة زر
+    toggleBackgroundTheme() {
+        this.isWhiteBackground = !this.isWhiteBackground;
+        const containerEl = document.getElementById('viewport-container');
+        if (this.isWhiteBackground) {
+            this.scene.background = new THREE.Color(0xffffff);
+            if (this.gridHelper) {
+                this.scene.remove(this.gridHelper);
+                this.gridHelper = new THREE.GridHelper(300, 100, 0x94a3b8, 0xe2e8f0);
+                this.gridHelper.position.y = -0.05;
+                if (this.gridHelper.material) {
+                    this.gridHelper.material.transparent = true;
+                    this.gridHelper.material.opacity = 0.85;
+                    this.gridHelper.material.depthWrite = false;
+                }
+                this.scene.add(this.gridHelper);
+            }
+            if (containerEl) containerEl.style.background = '#ffffff';
+        } else {
+            this.scene.background = new THREE.Color(0x0c111a);
+            if (this.gridHelper) {
+                this.scene.remove(this.gridHelper);
+                this.gridHelper = new THREE.GridHelper(300, 100, 0xffffff, 0x475569);
+                this.gridHelper.position.y = -0.05;
+                if (this.gridHelper.material) {
+                    this.gridHelper.material.transparent = true;
+                    this.gridHelper.material.opacity = 0.6;
+                    this.gridHelper.material.depthWrite = false;
+                }
+                this.scene.add(this.gridHelper);
+            }
+            if (containerEl) containerEl.style.background = '#0a0d14';
+        }
+        return this.isWhiteBackground;
     }
 
     clearBlueprint() {

@@ -117,7 +117,8 @@ header {
 #viewport-container {
   flex: 1;
   position: relative;
-  background: radial-gradient(circle at center, #182232 0%, #0a0d14 100%);
+  background: #ffffff;
+  transition: background 0.3s ease;
 }
 
 #canvas3d {
@@ -547,6 +548,31 @@ header {
 }
 
 /* Sidebar Panel */
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 30;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: var(--accent-cyan);
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.sidebar-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #fff;
+}
+
 .sidebar {
   width: 380px;
   background: rgba(18, 25, 36, 0.95);
@@ -556,6 +582,17 @@ header {
   z-index: 20;
   backdrop-filter: blur(12px);
   overflow-y: auto;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+.sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  border-left: none !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
 }
 
 .sidebar-section {

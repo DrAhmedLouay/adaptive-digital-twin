@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AdaptiveTwin - التوأم الرقمي التكيفي للمباني الإدارية</title>
     <!-- Google Fonts for Architecture Dashboard -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=2.2.0">
 </head>
 <body>
 
@@ -149,6 +152,7 @@
                     <button class="nav-gizmo-btn" id="btn-nav-zoom-in" data-tooltip-title="تقريب (Zoom In)" data-tooltip="تقريب الكاميرا بسلاسة لتفحص التفاصيل الدقيقة للمبنى.">➕</button>
                     <button class="nav-gizmo-btn" id="btn-nav-zoom-out" data-tooltip-title="تبعيد (Zoom Out)" data-tooltip="تبعيد الكاميرا لإظهار المبنى ومحيطه بالكامل.">➖</button>
                     <button class="nav-gizmo-btn" id="btn-reset-view" data-tooltip-title="استعادة الوضع الافتراضي" data-tooltip="إعادة ضبط زاوية الرؤية ومستوى التقريب للوضع الافتراضي.">🔄</button>
+                    <button class="nav-gizmo-btn" id="btn-toggle-bg-theme" data-tooltip-title="تبديل الخلفية (أبيض / معتم)" data-tooltip="التبديل الفوري بين خلفية الاستوديو المعماري البيضاء الناصعة والخلفية الداكنة.">🌓</button>
                 </div>
             </div>
 
@@ -378,15 +382,24 @@
                 </div>
             </div>
 
+            <!-- Floating Sidebar Restore Button (shown when sidebar is collapsed) -->
+            <button id="btn-restore-sidebar" class="hud-toggle-pill" style="display:none; position:absolute; top:12px; left:auto; right:16px; z-index:25; pointer-events:auto;"
+                    data-tooltip-title="إظهار القائمة الجانبية"
+                    data-tooltip="إعادة إظهار لوحة التحكم وإدارة المرافق وسيناريوهات التشغيل.">
+                <span>📋 لوحة التحكم ◀</span>
+            </button>
         </div>
 
         <!-- Sidebar Management Panel -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="main-sidebar">
 
             <!-- 1. Mode Switcher -->
             <div class="sidebar-section">
                 <div class="section-title">
                     <span>نظام التشغيل والتكيف اللحظي</span>
+                    <button id="btn-toggle-sidebar" class="hud-mini-btn" style="padding: 3px 8px; font-size: 11px; cursor: pointer; pointer-events:auto;"
+                            data-tooltip-title="طي القائمة الجانبية"
+                            data-tooltip="طي اللوحة الجانبية بالكامل لتوسيع مساحة الرؤية ثلاثية الأبعاد إلى 100% من الشاشة.">◀ طي القائمة</button>
                 </div>
                 <div class="mode-toggle-card"
                      data-tooltip-title="مفتاح الخوارزمية التكيفية الذكية"
@@ -941,12 +954,12 @@
     </script>
 
     <!-- Application Scripts -->
-    <script src="js/default_model.js"></script>
-    <script src="js/viewer3d.js"></script>
-    <script src="js/analytics.js"></script>
-    <script src="js/ifc_step_parser.js"></script>
-    <script src="js/plan_manager.js"></script>
-    <script src="js/tooltip.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/default_model.js?v=2.2.0"></script>
+    <script src="js/viewer3d.js?v=2.2.0"></script>
+    <script src="js/analytics.js?v=2.2.0"></script>
+    <script src="js/ifc_step_parser.js?v=2.2.0"></script>
+    <script src="js/plan_manager.js?v=2.2.0"></script>
+    <script src="js/tooltip.js?v=2.2.0"></script>
+    <script src="js/app.js?v=2.2.0"></script>
 </body>
 </html>
