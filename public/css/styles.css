@@ -519,21 +519,26 @@ header {
   transform: translateY(-1px);
 }
 
-/* Heatmap Legend */
+/* Heatmap Legend — Docked Bottom-Right Corner */
 .heatmap-legend {
   position: absolute;
-  bottom: 20px;
-  right: 390px;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  padding: 8px 16px;
-  border-radius: 8px;
+  bottom: 16px;
+  right: 16px;
+  left: auto;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 6px 14px;
+  border-radius: 20px;
   font-size: 11px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  backdrop-filter: blur(8px);
-  z-index: 10;
+  gap: 10px;
+  backdrop-filter: blur(10px);
+  z-index: 15;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  white-space: nowrap;
+  max-width: fit-content;
 }
 
 .legend-item {
