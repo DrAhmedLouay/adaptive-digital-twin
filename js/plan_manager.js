@@ -97,6 +97,7 @@ class PlanManager {
         this.setupFileUpload();
         this.renderPresetsList();
         this.setupBlueprintTracer();
+        this.setupScaleCalibrationUI();
     }
 
     setupModalEvents() {
@@ -1925,6 +1926,7 @@ class PlanManager {
 
         this.enterTracerMode = enterTracerMode;
         this.exitTracerMode = exitTracerMode;
+        this.updateToolUI = updateToolUI;
 
         openTracerBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -6095,5 +6097,466 @@ class PlanManager {
 
         setTimeout(attachCanvasListeners, 500);
         openTracerBtn.addEventListener('click', attachCanvasListeners);
+    }
+
+    /* =========================================================================
+       Scale Calibration UI, Guides & Instant Sample Blueprint (v2.3.9)
+       ========================================================================= */
+
+    setupScaleCalibrationUI() {
+        const btnHeaderCalib = document.getElementById('btn-header-scale-calibration');
+        if (btnHeaderCalib) {
+            btnHeaderCalib.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.triggerScaleCalibrationWorkflow();
+            });
+        }
+
+        const btnToggleScale = document.getElementById('btn-toggle-scale-panel');
+        if (btnToggleScale) {
+            btnToggleScale.addEventListener('click', (e) => {
+                e.preventDefault();
+                const bpScalePanel = document.getElementById('hud-blueprint-scale-panel');
+                const hasBp = Boolean(this.app.viewer?.blueprintMesh || this.app.viewer?.blueprintCanvas);
+                if (!hasBp) {
+                    this.openScaleInfoModal();
+                    return;
+                }
+                if (bpScalePanel) {
+                    const isVisible = bpScalePanel.style.display === 'flex';
+                    bpScalePanel.style.display = isVisible ? 'none' : 'flex';
+                }
+            });
+        }
+
+        this.setupScaleInfoModalEvents();
+    }
+
+    setupScaleInfoModalEvents() {
+        const modal = document.getElementById('modal-scale-info');
+        const btnClose = document.getElementById('btn-close-scale-info-modal');
+        if (btnClose) {
+            btnClose.addEventListener('click', () => this.closeScaleInfoModal());
+        }
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) this.closeScaleInfoModal();
+            });
+        }
+
+        const btnLoadSample = document.getElementById('btn-scale-info-load-sample');
+        if (btnLoadSample) {
+            btnLoadSample.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.loadSampleBlueprintForCalibration();
+            });
+        }
+
+        const btnUploadPdf = document.getElementById('btn-scale-info-upload-pdf');
+        if (btnUploadPdf) {
+            btnUploadPdf.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.closeScaleInfoModal();
+                this.openModal();
+                this.switchTab('upload');
+            });
+        }
+
+        const btnCurrentScene = document.getElementById('btn-scale-info-current-scene');
+        if (btnCurrentScene) {
+            btnCurrentScene.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.closeScaleInfoModal();
+                const bpScalePanel = document.getElementById('hud-blueprint-scale-panel');
+                if (bpScalePanel) bpScalePanel.style.display = 'flex';
+                const hudBar = document.getElementById('blueprint-hud-bar');
+                if (hudBar) hudBar.classList.remove('collapsed');
+            });
+        }
+
+        const btnTabSample = document.getElementById('btn-load-sample-pdf-blueprint');
+        if (btnTabSample) {
+            btnTabSample.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.loadSampleBlueprintForCalibration();
+            });
+        }
+    }
+
+    triggerScaleCalibrationWorkflow() {
+        const hasBp = Boolean(this.app.viewer?.blueprintMesh || this.app.viewer?.blueprintCanvas);
+        if (hasBp) {
+            // مسقط محمل مسبقاً: إظهار لوحة التحكم وتفعيل أداة المعايرة بنقطتين فوراً
+            const hudBar = document.getElementById('blueprint-hud-bar');
+            if (hudBar) hudBar.classList.remove('collapsed');
+
+            const bpScalePanel = document.getElementById('hud-blueprint-scale-panel');
+            if (bpScalePanel) bpScalePanel.style.display = 'flex';
+
+            if (this.app.viewer?.setCameraView) {
+                this.app.viewer.setCameraView(true);
+            }
+
+            if (this.enterTracerMode) this.enterTracerMode();
+            if (this.updateToolUI) this.updateToolUI('calibrate-scale');
+        } else {
+            // لا يوجد مسقط حالي: فتح نافذة التوجيه الذكية
+            this.openScaleInfoModal();
+        }
+    }
+
+    openScaleInfoModal() {
+        const modal = document.getElementById('modal-scale-info');
+        if (modal) modal.style.display = 'flex';
+    }
+
+    closeScaleInfoModal() {
+        const modal = document.getElementById('modal-scale-info');
+        if (modal) modal.style.display = 'none';
+    }
+
+    switchTab(targetTab) {
+        const tabBtns = document.querySelectorAll('.modal-tab-btn');
+        const tabContents = document.querySelectorAll('.modal-tab-content');
+        tabBtns.forEach(b => {
+            if (b.dataset.tab === targetTab) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        tabContents.forEach(c => c.classList.remove('active'));
+        const activeContent = document.getElementById(`tab-${targetTab}`);
+        if (activeContent) activeContent.classList.add('active');
+    }
+
+    /**
+     * توليد مسقط معماري نموذجي عالي الدقة به خط أبعاد مرجعي معلوم (10.00م)
+     * وتفعيله فورياً لاختبار وتجربة أداة المعايرة بنقطتين.
+     */
+    loadSampleBlueprintForCalibration() {
+        // 1. إنشاء لوحة كانفاس عالية الدقة (2400 × 1600 بكسل)
+        const canvas = document.createElement('canvas');
+        canvas.width = 2400;
+        canvas.height = 1600;
+        const ctx = canvas.getContext('2d');
+
+        // خلفية بيضاء نقية
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // شبكة معمارية خفيفة (CAD Grid)
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.lineWidth = 1.5;
+        for (let x = 0; x <= canvas.width; x += 60) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= canvas.height; y += 60) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+
+        // إطار اللوحة المعمارية الخارجي
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+
+        // جدول بيانات المشروع (Cartouche / Title Block)
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(canvas.width - 560, canvas.height - 210, 510, 160);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(canvas.width - 560, canvas.height - 210, 510, 160);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 22px system-ui, Cairo, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('مشروع: المجمع الإداري والبحثي النموذجي', canvas.width - 70, canvas.height - 165);
+        ctx.font = '15px system-ui, Cairo, sans-serif';
+        ctx.fillStyle = '#475569';
+        ctx.fillText('مسقط الطابق الأرضي - مخطط معايرة المقياس 1:1', canvas.width - 70, canvas.height - 135);
+        ctx.fillText('المصمم: د. أحمد لؤي أحمد | الجامعة التكنولوجية', canvas.width - 70, canvas.height - 105);
+        ctx.fillStyle = '#0284c7';
+        ctx.font = 'bold 14px monospace';
+        ctx.fillText('SCALE: 1:100 @ A1 (CALIBRATION READY)', canvas.width - 70, canvas.height - 75);
+
+        // رسم الجدران المعمارية والممرات
+        // جدران المحيط الخارجي
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 14;
+        ctx.lineJoin = 'miter';
+        ctx.strokeRect(200, 320, 2000, 1000);
+
+        // الممر الحركي المركزي الأفقي (Central Circulation Spine)
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(200, 740);
+        ctx.lineTo(2200, 740);
+        ctx.moveTo(200, 880);
+        ctx.lineTo(2200, 880);
+
+        // قواطع الغرف الشمالية
+        ctx.moveTo(700, 320);
+        ctx.lineTo(700, 740);
+        ctx.moveTo(1200, 320);
+        ctx.lineTo(1200, 740);
+        ctx.moveTo(1700, 320);
+        ctx.lineTo(1700, 740);
+
+        // قواطع الغرف الجنوبية
+        ctx.moveTo(850, 880);
+        ctx.lineTo(850, 1320);
+        ctx.moveTo(1500, 880);
+        ctx.lineTo(1500, 1320);
+        ctx.stroke();
+
+        // فتحات الأبواب وأقواس الفتح المعمارية
+        const drawDoorArc = (x, y, w, rot) => {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rot);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-w / 2, -10, w, 20);
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(-w / 2, 0);
+            ctx.lineTo(-w / 2 + w * 0.7, -w * 0.7);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(-w / 2, 0, w, -Math.PI / 4, 0);
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.restore();
+        };
+
+        drawDoorArc(450, 740, 70, 0);
+        drawDoorArc(950, 740, 70, 0);
+        drawDoorArc(1450, 740, 70, 0);
+        drawDoorArc(1950, 740, 70, 0);
+        drawDoorArc(525, 880, 70, Math.PI);
+        drawDoorArc(1175, 880, 70, Math.PI);
+        drawDoorArc(1850, 880, 70, Math.PI);
+
+        // نصوص وتسميات الفضاءات
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 26px system-ui, Cairo, sans-serif';
+        ctx.fillText('ردهة الاستقبال الرئيسية', 450, 510);
+        ctx.font = '17px system-ui, Cairo, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('المساحة: 60 م² | السعة: 18 فرد', 450, 545);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 26px system-ui, Cairo, sans-serif';
+        ctx.fillText('صالة انتظار المراجعين', 950, 510);
+        ctx.font = '17px system-ui, Cairo, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('المساحة: 72 م² | السعة: 25 فرد', 950, 545);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 26px system-ui, Cairo, sans-serif';
+        ctx.fillText('القاعة المتعددة المرنة', 1450, 510);
+        ctx.font = '17px system-ui, Cairo, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('المساحة: 72 م² | السعة: 22 فرد', 1450, 545);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 26px system-ui, Cairo, sans-serif';
+        ctx.fillText('قاعة الاجتماعات والتدريب', 1950, 510);
+        ctx.font = '17px system-ui, Cairo, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('المساحة: 60 م² | السعة: 20 فرد', 1950, 545);
+
+        ctx.fillStyle = '#0284c7';
+        ctx.font = 'bold 22px system-ui, Cairo, sans-serif';
+        ctx.fillText('الشريان الحركي والممر المركزي (Central Circulation Spine - 4.0m width)', 1200, 810);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 26px system-ui, Cairo, sans-serif';
+        ctx.fillText('مكاتب الموظفين (القسم أ)', 525, 1100);
+        ctx.fillText('مكاتب الموظفين (القسم ب)', 1175, 1100);
+        ctx.fillText('استراحة الكادر والخدمات', 1850, 1100);
+
+        // -------------------------------------------------------------
+        // خط الأبعاد المرجعي لمعايرة مقياس المسقط (10.00 متر)
+        // -------------------------------------------------------------
+        // في المشهد ثلاثي الأبعاد: العرض 60.0م والعمق 40.0م
+        // النقطة 1: 3D(-5.0, -15.25) -> Canvas(1000, 190)
+        // النقطة 2: 3D(+5.0, -15.25) -> Canvas(1400, 190)
+        // المسافة في المشهد ثلاثي الأبعاد بين النقطتين = 10.00 متر تماماً!
+        const x1 = 1000, x2 = 1400, yDim = 190;
+
+        // بطاقة إرشادية مميزة حول خط الأبعاد المرجعي
+        ctx.fillStyle = '#eff6ff';
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(840, 85, 720, 185);
+        ctx.setLineDash([]);
+        ctx.fillRect(840, 85, 720, 185);
+
+        // عنوان إرشادي فوق خط القياس
+        ctx.fillStyle = '#1d4ed8';
+        ctx.font = 'bold 18px system-ui, Cairo, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('📏 خط أبعاد مرجعي لمعايرة مقياس المسقط (Reference Dimension)', 1200, 120);
+        ctx.font = '14px system-ui, Cairo, sans-serif';
+        ctx.fillStyle = '#475569';
+        ctx.fillText('انقر على 📍 النقطة 1 ثم 📍 النقطة 2 لمعايرة المقياس الحقيقي 1:1', 1200, 145);
+
+        // خطوط الامتداد الرأسية للأبعاد (Extension Lines)
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, 155);
+        ctx.lineTo(x1, 230);
+        ctx.moveTo(x2, 155);
+        ctx.lineTo(x2, 230);
+        // خط البعد الرئيسي (Dimension Line)
+        ctx.moveTo(x1, yDim);
+        ctx.lineTo(x2, yDim);
+        ctx.stroke();
+
+        // شُرَط التحديد المعمارية المائلة 45 درجة (Architectural Slashes)
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = '#0369a1';
+        ctx.beginPath();
+        ctx.moveTo(x1 - 10, yDim + 10); ctx.lineTo(x1 + 10, yDim - 10);
+        ctx.moveTo(x2 - 10, yDim + 10); ctx.lineTo(x2 + 10, yDim - 10);
+        ctx.stroke();
+
+        // علامة الهدف الدائرية عند النقطة 1
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.arc(x1, yDim, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#0369a1';
+        ctx.font = 'bold 15px system-ui, Cairo, sans-serif';
+        ctx.fillText('📍 النقطة 1 (10.00m)', x1, yDim + 32);
+
+        // علامة الهدف الدائرية عند النقطة 2
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(x2, yDim, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#047857';
+        ctx.font = 'bold 15px system-ui, Cairo, sans-serif';
+        ctx.fillText('📍 النقطة 2', x2, yDim + 32);
+
+        // شارة رقم البعد في المنتصف
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(1130, yDim - 18, 140, 36);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1130, yDim - 18, 140, 36);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText('10.00 m', 1200, yDim + 1);
+
+        // 2. بناء كائن النموذج المعماري الكامل
+        const worldW = 60.0;
+        const worldD = 40.0;
+        const sampleModel = {
+            id: "sample_blueprint_calib_" + Date.now(),
+            name_ar: "مسقط معماري نموذجي (معايرة المقياس 10.00م)",
+            name_en: "Architectural Blueprint (10.00m Scale Reference)",
+            building_type: "administrative",
+            blueprintCanvas: canvas,
+            blueprintBounds: {
+                width: worldW,
+                depth: worldD,
+                baseWidth: worldW,
+                baseDepth: worldD,
+                aspect: 2400 / 1600,
+                scaleFactor: 1.0,
+                offsetX: 0,
+                offsetZ: 0
+            },
+            spaces: {
+                "reception": { id: "reception", name_ar: "ردهة الاستقبال الرئيسية", name_en: "Main Reception", type: "public", capacity: 18, area_m2: 60, bounds: { x: -25, z: -14, width: 12.5, depth: 10, height: 3.5 }, color: "#4a90e2" },
+                "waiting_hall": { id: "waiting_hall", name_ar: "صالة انتظار المراجعين", name_en: "Waiting Hall", type: "public", capacity: 25, area_m2: 72, bounds: { x: -12.5, z: -14, width: 12.5, depth: 10, height: 3.5 }, color: "#f5a623" },
+                "multi_hall": { id: "multi_hall", name_ar: "القاعة المتعددة المرنة", name_en: "Multipurpose Hall", type: "flexible", capacity: 22, area_m2: 72, bounds: { x: 0, z: -14, width: 12.5, depth: 10, height: 3.5 }, color: "#7ed321" },
+                "meeting_hall": { id: "meeting_hall", name_ar: "قاعة الاجتماعات والتدريب", name_en: "Meeting Hall", type: "flexible", capacity: 20, area_m2: 60, bounds: { x: 12.5, z: -14, width: 12.5, depth: 10, height: 3.5 }, color: "#9013fe" },
+                "corridor_central": { id: "corridor_central", name_ar: "الشريان الحركي المركزي", name_en: "Central Corridor", type: "circulation", capacity: 45, area_m2: 85, flow_capacity_per_min: 65, bounds: { x: -25, z: -4, width: 50, depth: 4, height: 3.5 }, color: "#606060" },
+                "office_a": { id: "office_a", name_ar: "مكاتب الموظفين (القسم أ)", name_en: "Office Workzone A", type: "workspace", capacity: 24, area_m2: 95, bounds: { x: -25, z: 0, width: 16, depth: 14, height: 3.5 }, color: "#50e3c2" },
+                "office_b": { id: "office_b", name_ar: "مكاتب الموظفين (القسم ب)", name_en: "Office Workzone B", type: "workspace", capacity: 24, area_m2: 95, bounds: { x: -9, z: 0, width: 16, depth: 14, height: 3.5 }, color: "#4a90e2" },
+                "staff_lounge": { id: "staff_lounge", name_ar: "استراحة الكادر والخدمات", name_en: "Staff Lounge", type: "amenity", capacity: 18, area_m2: 65, bounds: { x: 7, z: 0, width: 18, depth: 14, height: 3.5 }, color: "#b8e986" }
+            },
+            walls: {
+                "w_ext_n": { id: "w_ext_n", name_ar: "الجدار الخارجي الشمالي", start: [-25, -14], end: [25, -14], thickness: 0.35, height: 3.0, type: "exterior" },
+                "w_ext_s": { id: "w_ext_s", name_ar: "الجدار الخارجي الجنوبي", start: [-25, 14], end: [25, 14], thickness: 0.35, height: 3.0, type: "exterior" },
+                "w_ext_w": { id: "w_ext_w", name_ar: "الجدار الخارجي الغربي", start: [-25, -14], end: [-25, 14], thickness: 0.35, height: 3.0, type: "exterior" },
+                "w_ext_e": { id: "w_ext_e", name_ar: "الجدار الخارجي الشرقي", start: [25, -14], end: [25, 14], thickness: 0.35, height: 3.0, type: "exterior" },
+                "w_corr_n": { id: "w_corr_n", name_ar: "جدار الممر الشمالي", start: [-25, -4], end: [25, -4], thickness: 0.2, height: 3.0, type: "interior" },
+                "w_corr_s": { id: "w_corr_s", name_ar: "جدار الممر الجنوبي", start: [-25, 0], end: [25, 0], thickness: 0.2, height: 3.0, type: "interior" },
+                "w_div_1": { id: "w_div_1", name_ar: "قاطع الاستقبال - الانتظار", start: [-12.5, -14], end: [-12.5, -4], thickness: 0.2, height: 3.0, type: "interior" },
+                "w_div_2": { id: "w_div_2", name_ar: "قاطع الانتظار - القاعة المتعددة", start: [0, -14], end: [0, -4], thickness: 0.2, height: 3.0, type: "interior" },
+                "w_div_3": { id: "w_div_3", name_ar: "قاطع القاعة المتعددة - الاجتماعات", start: [12.5, -14], end: [12.5, -4], thickness: 0.2, height: 3.0, type: "interior" },
+                "w_div_4": { id: "w_div_4", name_ar: "قاطع مكاتب أ - مكاتب ب", start: [-9, 0], end: [-9, 14], thickness: 0.2, height: 3.0, type: "interior" },
+                "w_div_5": { id: "w_div_5", name_ar: "قاطع مكاتب ب - الاستراحة", start: [7, 0], end: [7, 14], thickness: 0.2, height: 3.0, type: "interior" }
+            },
+            openings: {
+                "d_rec": { id: "d_rec", type: "door", wallId: "w_corr_n", position: -18.75, width: 1.2, height: 2.2 },
+                "d_wait": { id: "d_wait", type: "door", wallId: "w_corr_n", position: -6.25, width: 1.2, height: 2.2 },
+                "d_multi": { id: "d_multi", type: "door", wallId: "w_corr_n", position: 6.25, width: 1.2, height: 2.2 },
+                "d_meet": { id: "d_meet", type: "door", wallId: "w_corr_n", position: 18.75, width: 1.2, height: 2.2 },
+                "d_off_a": { id: "d_off_a", type: "door", wallId: "w_corr_s", position: -17, width: 1.2, height: 2.2 },
+                "d_off_b": { id: "d_off_b", type: "door", wallId: "w_corr_s", position: -1, width: 1.2, height: 2.2 },
+                "d_lounge": { id: "d_lounge", type: "door", wallId: "w_corr_s", position: 16, width: 1.2, height: 2.2 }
+            },
+            partitions: {
+                "p_waiting_multi": { id: "p_waiting_multi", name_ar: "القاطع الصوتي المنزلق (صالة الانتظار - القاعة المتعددة)", between: ["waiting_hall", "multi_hall"], status: "closed", position: { x: 0, z: -14, width: 0.25, depth: 10, height: 3.5 }, expansion_capacity: 20 }
+            }
+        };
+
+        // 3. تحميل النموذج في العارض ثلاثي الأبعاد
+        this.app.viewer.loadBuildingModel(sampleModel);
+        this.updateActiveBuildingTitle(sampleModel);
+
+        // 4. إغلاق النوافذ المنبثقة
+        this.closeModal();
+        this.closeScaleInfoModal();
+
+        // 5. إظهار وتفعيل لوحة مقياس المسقط في الـ HUD
+        const bpScalePanel = document.getElementById('hud-blueprint-scale-panel');
+        if (bpScalePanel) bpScalePanel.style.display = 'flex';
+        const hudBar = document.getElementById('blueprint-hud-bar');
+        if (hudBar) hudBar.classList.remove('collapsed');
+        if (this.syncBlueprintHud) this.syncBlueprintHud();
+
+        // 6. التبديل للمسقط العلوي العمودي المباشر 2D Top View لتسهيل القياس والرسم
+        if (this.app.viewer?.setCameraView) {
+            this.app.viewer.setCameraView(true);
+        }
+
+        // 7. تفعيل وضع التحديد وأداة المعايرة بنقطتين فوراً
+        if (this.enterTracerMode) {
+            this.enterTracerMode();
+            if (this.updateToolUI) {
+                this.updateToolUI('calibrate-scale');
+            }
+        }
+
+        // 8. رسالة إرشادية واضحة للدكتور أحمد
+        alert(
+            "🏛️ تم تصيير وتحميل المسقط المعماري النموذجي بنجاح في المشهد ثلاثي الأبعاد!\n\n" +
+            "📏 تم تفعيل أداة معايرة مقياس المسقط (2-Point Scale Calibration):\n" +
+            "• يظهر في أعلى المخطط خط أبعاد مرجعي باللون الأزرق بطول 10.00m.\n" +
+            "• انقر الآن على 📍 النقطة 1 (الطرف الأيسر)، ثم انقر على 📍 النقطة 2 (الطرف الأيمن).\n" +
+            "• سيظهر لك صندوق إدخال الطول الحقيقي للمطابقة التلقائية 1:1."
+        );
     }
 }

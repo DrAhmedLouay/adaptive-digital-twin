@@ -91,6 +91,11 @@
                     data-tooltip="فتح نافذة لاختيار دراسات الحالة الجاهزة (إدارية، صحية، خدمية) أو رفع مخططات BIM بصيغة IFC (Revit / ArchiCAD)، أو مخططات PDF معمارية، أو AutoCAD DXF.">
                 📐 المخططات المعمارية
             </button>
+            <button class="btn-plan-manager" id="btn-header-scale-calibration" style="background: rgba(0, 210, 255, 0.18); border-color: var(--accent-cyan); color: #7dd3fc; box-shadow: 0 0 10px rgba(0, 210, 255, 0.25);"
+                    data-tooltip-title="معايرة وتعديل مقياس مسقط الـ PDF (Scale Calibration)"
+                    data-tooltip="فتح لوحة وأدوات ضبط ومعايرة مقياس مساقط الـ PDF والمخططات الحقيقية بنقطتين معلومتين أو بنسبة مئوية لتطابق أبعاد الجدران 1:1.">
+                📏 معايرة مقياس المسقط
+            </button>
             <button class="btn-plan-manager" id="btn-open-ifc-viewer" style="background: rgba(59, 130, 246, 0.18); border-color: #3b82f6; color: #93c5fd;"
                     data-tooltip-title="أداة عارض وتفكيك عناصر IFC (BIM Inspector)"
                     data-tooltip="أداة متقدمة لفحص نموذج BIM: إظهار وإخفاء الطبقات (جدران، أسقف، بلاطات، أعمدة، جسور، أبواب، شبابيك)، تنظيف السطوح الدخيلة تلقائياً، عزل الطوابق، وفحص خصائص وأبعاد أي عنصر عند النقر عليه في المشهد ثلاثي الأبعاد.">
@@ -321,6 +326,9 @@
                     <button class="hud-toggle-btn" id="btn-toggle-blueprint-vis"
                             data-tooltip-title="إخفاء / إظهار المسقط"
                             data-tooltip="التبديل بين إظهار المسقط المعماري الحقيقي أو الاكتفاء بالكتل ثلاثية الأبعاد فقط.">👁️ إخفاء المسقط</button>
+                    <button class="hud-toggle-btn" id="btn-toggle-scale-panel" style="background:rgba(0,210,255,0.18); border-color:var(--accent-cyan); color:#38bdf8;"
+                            data-tooltip-title="إظهار / إخفاء لوحة مقياس وأبعاد المسقط"
+                            data-tooltip="التحكم بمقياس المسقط الواقعي (العرض، العمق، التكبير والتصغير، وأداة المعايرة بنقطتين).">📏 مقياس المسقط</button>
                     <button class="hud-toggle-btn" id="btn-open-tracer-mode" style="background:rgba(0,210,255,0.22); border-color:var(--accent-cyan); color:#38bdf8;"
                             data-tooltip-title="أداة التحديد المعماري التفاعلي"
                             data-tooltip="تفعيل لوحة أدوات الرسم المباشر للنقر وبناء الجدران والأبواب والفتحات والسلالم فوق المسقط.">✏️ تحديد معالم المخطط</button>
@@ -848,6 +856,22 @@
                         <p style="margin-top:4px;">يدعم: <strong>PDF (مخططات معمارية حقيقية)</strong> • <strong>صور المساقط (PNG, JPG, SVG)</strong> • <strong>IFC (Revit / ArchiCAD)</strong> • <strong>DXF</strong> • <strong>JSON</strong></p>
                         <input type="file" id="file-upload-input" accept=".pdf,.png,.jpg,.jpeg,.svg,.ifc,.dxf,.json" style="display:none;">
                     </div>
+
+                    <!-- Scale Calibration Guidance & Instant Sample Blueprint Option -->
+                    <div class="scale-info-card" style="margin-top: 14px; background: rgba(0, 210, 255, 0.08); border: 1px dashed var(--accent-cyan); border-radius: 8px; padding: 12px 16px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size: 22px;">📏</span>
+                                <div>
+                                    <div style="font-weight: 600; color: var(--accent-cyan); font-size: 0.85rem;">معايرة مقياس الـ PDF (1:1 Architectural Scale)</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">بعد رفع أي مسقط، يمكنك مطابقة أبعاد جدرانه الواقعية بنقر نقطتين على بعد معلوم (خط أبعاد أو جدار).</div>
+                                </div>
+                            </div>
+                            <button id="btn-load-sample-pdf-blueprint" type="button" class="btn-primary" style="font-size: 0.82rem; padding: 6px 14px; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600;">
+                                🏛️ تحميل مسقط نموذجي وتجربة المعايرة فوراً
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Tab 3: Spaces Editor -->
@@ -1039,6 +1063,67 @@
                     </button>
                     <button class="btn-plan-manager" id="btn-modal-apply-swap" style="padding: 10px 20px; font-weight: bold; background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399; color: white;">
                         🔄 تطبيق التوزيع الوظيفي الأمثل
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Scale Calibration Guide & Direct Launcher -->
+    <div class="modal-overlay" id="modal-scale-info" style="display:none; z-index:10000;">
+        <div class="modal-card" style="max-width:580px; background:linear-gradient(145deg, #0f172a, #1e293b); border:1px solid #00d2ff; box-shadow:0 12px 48px rgba(0,210,255,0.35); border-radius:12px; padding:20px;">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,210,255,0.2); padding-bottom:12px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:26px;">📏</span>
+                    <div>
+                        <h3 style="margin:0; font-size:16px; color:#38bdf8; font-weight:bold;">أداة معايرة مقياس مساقط الـ PDF والمخططات المعمارية</h3>
+                        <p style="margin:2px 0 0 0; font-size:11px; color:#94a3b8;">Architectural Scale Calibration (1:1 Real-World Matching)</p>
+                    </div>
+                </div>
+                <button class="modal-close" id="btn-close-scale-info-modal" style="font-size:22px; color:#94a3b8; background:none; border:none; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:14px; font-size:12px; color:#cbd5e1; line-height:1.6;">
+                <p style="margin:0;">
+                    تتيح لك هذه الأداة ضبط وتعديل مقياس مساقط الـ PDF والصور المعمارية لتطابق الأبعاد الإنشائية الواقعية للجدران والفضاءات ثلاثية الأبعاد، بحيث تصبح وحدة القياس مطابقة 100% للمتر الواقعي.
+                </p>
+
+                <div style="background:rgba(0,0,0,0.35); border-radius:8px; padding:12px; border-right:4px solid var(--accent-cyan); display:flex; flex-direction:column; gap:8px;">
+                    <div style="font-weight:bold; color:var(--accent-cyan);">✨ خيارات المعايرة المتاحة في المنصة:</div>
+                    <div style="display:flex; gap:8px; align-items:flex-start;">
+                        <span>1️⃣</span>
+                        <div><strong>المعايرة التفاعلية بنقطتين (2-Point Calibration):</strong> النقر على طرفي جدار أو خط قياس معلوم الطول في المسقط وكتابة طوله الحقيقي، ليتم تحجيم المخطط آلياً.</div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:flex-start;">
+                        <span>2️⃣</span>
+                        <div><strong>لوحة الأبعاد والنسبة المئوية في الـ HUD:</strong> إدخال العرض والعمق بالمتر مباشرة أو سحب منزلقة النسبة المئوية (Scale %) مع الحفاظ على التناسب ومحاذاة المحاور (Nudge).</div>
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:6px;">
+                    <!-- Option 1: Instant Sample Blueprint -->
+                    <button id="btn-scale-info-load-sample" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:linear-gradient(135deg, rgba(2, 132, 199, 0.35), rgba(16, 185, 129, 0.25)); border:1.5px solid #38bdf8; border-radius:8px; color:#fff; cursor:pointer; text-align:right;">
+                        <div>
+                            <div style="font-weight:bold; font-size:13px; color:#38bdf8; margin-bottom:2px;">🏛️ تجربة المعايرة فوراً (تحميل مسقط معماري نموذجي به خط قياس 10.00m)</div>
+                            <div style="font-size:11px; color:#94a3b8;">يتم تصيير مسقط مخطط معماري عالي الدقة به أبعاد واضحة وتفعيل أداة النقر بنقطتين فوراً لتجربتها مباشرة.</div>
+                        </div>
+                        <span style="font-size:18px; margin-right:8px;">⚡</span>
+                    </button>
+
+                    <!-- Option 2: Upload Own PDF -->
+                    <button id="btn-scale-info-upload-pdf" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:#e2e8f0; cursor:pointer; text-align:right;">
+                        <div>
+                            <div style="font-weight:bold; font-size:13px; color:#f8fafc; margin-bottom:2px;">📥 استيراد ملف PDF من جهازي للبدء بالمعايرة</div>
+                            <div style="font-size:11px; color:#94a3b8;">فتح نافذة رفع المخططات لاختيار ملف PDF أو AutoCAD DXF خاص بمشروعك.</div>
+                        </div>
+                        <span style="font-size:18px; margin-right:8px;">📁</span>
+                    </button>
+
+                    <!-- Option 3: Continue with current scene -->
+                    <button id="btn-scale-info-current-scene" style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#94a3b8; cursor:pointer; text-align:right;">
+                        <div>
+                            <div style="font-weight:600; font-size:12px; color:#cbd5e1;">📐 إظهار لوحة أبعاد المسقط في الـ HUD على المشهد الحالي</div>
+                        </div>
+                        <span style="font-size:16px; margin-right:8px;">👁️</span>
                     </button>
                 </div>
             </div>
