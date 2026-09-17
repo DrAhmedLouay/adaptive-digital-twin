@@ -1160,6 +1160,7 @@ class PlanManager {
         let stairRotationAngle = 0;
         let stairLastTargetPos = null;
         let currentHoveredStairId = null;
+        let trimBoundingWallHighlights = [];
         const historyStack = [];
 
         const setHint = (text) => {
@@ -1178,6 +1179,10 @@ class PlanManager {
             if (currentHoveredWallId && this.app.viewer) {
                 this.app.viewer.clearWallHighlight(currentHoveredWallId);
                 currentHoveredWallId = null;
+            }
+            if (trimBoundingWallHighlights && trimBoundingWallHighlights.length > 0 && this.app.viewer) {
+                trimBoundingWallHighlights.forEach(wId => this.app.viewer.clearWallHighlight(wId));
+                trimBoundingWallHighlights = [];
             }
             if (movingWallId && this.app.viewer) {
                 this.app.viewer.clearWallHighlight(movingWallId);
@@ -1258,11 +1263,13 @@ class PlanManager {
             transformPanel.style.display = 'flex';
             const stairControls = document.getElementById('stair-direction-controls');
             const btnDelete = document.getElementById('btn-transform-delete');
+            const btnTrim = document.getElementById('btn-transform-trim');
 
             if (type === 'wall') {
                 if (transformPanelIcon) transformPanelIcon.textContent = '🧱🔄';
                 if (stairControls) stairControls.style.display = 'none';
                 if (btnDelete) btnDelete.textContent = '🗑️ حذف الجدار';
+                if (btnTrim) btnTrim.style.display = 'inline-flex';
                 const bData = this.app.viewer?.buildingData;
                 const w = bData?.walls?.[id];
                 let lenStr = '';
@@ -1271,11 +1278,12 @@ class PlanManager {
                     lenStr = ` (الطول: ${l.toFixed(1)}م)`;
                 }
                 if (transformPanelTitle) transformPanelTitle.textContent = `جدار محدد: ${id}${lenStr}`;
-                setHint(`🧱 تم تحديد الجدار (${id}). اسحبه لنقله، أو استخدم أزرار التدوير (أو مفتاح R)، أو انقر زر الحذف لإزالته.`);
+                setHint(`🧱 تم تحديد الجدار (${id}). اسحبه لنقله، أو اضغط زر التقليم ✂️ لقصه وتوسيع الفضاء، أو اضغط R للتدوير.`);
             } else if (type === 'stair') {
                 if (transformPanelIcon) transformPanelIcon.textContent = '🪜🔄';
                 if (stairControls) stairControls.style.display = 'flex';
                 if (btnDelete) btnDelete.textContent = '🗑️ حذف السلم';
+                if (btnTrim) btnTrim.style.display = 'none';
                 const bData = this.app.viewer?.buildingData;
                 const s = bData?.stairs?.[id];
                 const rot = s?.rotation ?? 0;
@@ -1297,6 +1305,8 @@ class PlanManager {
 
         const hideTransformPanel = () => {
             if (transformPanel) transformPanel.style.display = 'none';
+            const btnTrim = document.getElementById('btn-transform-trim');
+            if (btnTrim) btnTrim.style.display = 'none';
         };
 
         const changeStairDirection = async (newDir) => {
@@ -1640,6 +1650,19 @@ class PlanManager {
                 deleteSelectedElement();
             });
         }
+        const btnTransformTrim = document.getElementById('btn-transform-trim');
+        if (btnTransformTrim) {
+            btnTransformTrim.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (selectedMoveWallId) {
+                    const wallToTrim = selectedMoveWallId;
+                    if (this.app.viewer) this.app.viewer.clearWallHighlight(wallToTrim);
+                    selectedMoveWallId = null;
+                    hideTransformPanel();
+                    await trimWallAndExpandSpace(wallToTrim);
+                }
+            });
+        }
         if (btnStairDirTwoWay) {
             btnStairDirTwoWay.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1729,7 +1752,7 @@ class PlanManager {
 
             const canvas = this.app.viewer?.renderer?.domElement;
             if (canvas) {
-                canvas.style.cursor = tool === 'delete-wall' ? 'pointer' : (tool === 'move-wall' ? 'grab' : 'crosshair');
+                canvas.style.cursor = (tool === 'delete-wall' || tool === 'trim-wall') ? 'pointer' : (tool === 'move-wall' ? 'grab' : 'crosshair');
             }
 
             if (tool === 'wall') {
@@ -1752,6 +1775,8 @@ class PlanManager {
                 setHint("↔️🔄 انقر فوق أي جدار أو سلم لاختياره أو سحبه؛ اضغط مفتاح R لتدوير الجدار 45° أو تدوير السلم 90° مع تحديث الفتحات فورياً...");
             } else if (tool === 'delete-wall') {
                 setHint("🗑️ انقر فوق أي باب، شباك، فتحة عبور، سلم، مستشعر IoT، أو جدار لحذفه فورياً من النموذج...");
+            } else if (tool === 'trim-wall') {
+                setHint("✂️ أداة Trim: انقر مباشرة فوق أي جدار فاصل بين جدارين لتقليمه وحذفه فورياً، ودمج الفضاءين وتوسيع وتكبير المساحة الناتجة وتحديث المؤشرات...");
             }
         };
 
@@ -2076,6 +2101,35 @@ class PlanManager {
                             });
                         } catch(err) {}
                     }
+                } else if (last.type === 'trim-wall') {
+                    if (last.prevWalls) {
+                        bData.walls = last.prevWalls;
+                    } else if (last.deletedWall) {
+                        bData.walls[last.deletedWall.id] = last.deletedWall;
+                    }
+                    if (last.prevSpaces) {
+                        bData.spaces = last.prevSpaces;
+                    }
+                    if (last.deletedOpenings) {
+                        Object.assign(bData.openings, last.deletedOpenings);
+                    }
+                    if (last.deletedPartition && bData.partitions) {
+                        bData.partitions[last.deletedPartition.id] = last.deletedPartition;
+                    }
+                    this.app.viewer.loadBuildingModel(bData);
+                    this.populateSpacesEditor();
+                    setHint(`↩️ تم التراجع عن عملية التقليم (Trim) واسترجاع الجدار وفصل الفضاءات لحالتها السابقة.`);
+                    try {
+                        await fetch('/api/model/sync_model', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                walls: bData.walls,
+                                spaces: bData.spaces,
+                                openings: bData.openings
+                            })
+                        });
+                    } catch(err) {}
                 } else if (last.type === 'clear-all-elements' || last.type === 'clear-all-walls') {
                     bData.walls = last.walls || {};
                     bData.openings = last.openings || {};
@@ -2851,6 +2905,471 @@ class PlanManager {
             return polyRes;
         };
 
+        const pointInPolygon = (x, z, poly) => {
+            if (!poly || poly.length < 3) return false;
+            let inside = false;
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                const xi = poly[i][0] !== undefined ? poly[i][0] : poly[i].x;
+                const zi = poly[i][1] !== undefined ? poly[i][1] : poly[i].z;
+                const xj = poly[j][0] !== undefined ? poly[j][0] : poly[j].x;
+                const zj = poly[j][1] !== undefined ? poly[j][1] : poly[j].z;
+                const intersect = ((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi + 1e-9) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        };
+
+        const analyzeWallTrim = (wId, clickPt = null) => {
+            const bData = this.app.viewer?.buildingData;
+            if (!bData || !bData.walls || !bData.walls[wId]) {
+                return { valid: false, error: 'الجدار غير موجود' };
+            }
+
+            const targetWall = bData.walls[wId];
+            if (!targetWall.start || !targetWall.end) {
+                return { valid: false, error: 'إحداثيات الجدار غير صالحة' };
+            }
+
+            const sx = targetWall.start[0], sz = targetWall.start[1];
+            const ex = targetWall.end[0], ez = targetWall.end[1];
+            const dx = ex - sx, dz = ez - sz;
+            const len = Math.hypot(dx, dz);
+            if (len < 0.1) return { valid: false, error: 'طول الجدار قصير جداً' };
+
+            const wElev = targetWall.base_elevation || targetWall.elevation || 0;
+            const wStorey = targetWall.storey_id || null;
+
+            // 1. البحث عن كافة الجدران المتقاطعة أو المتصلة بالجدار المستهدف
+            const contacts = [];
+            for (const [otherId, otherW] of Object.entries(bData.walls)) {
+                if (otherId === wId || !otherW.start || !otherW.end) continue;
+
+                // التحقق من تماثل الطابق والمنسوب
+                const oElev = otherW.base_elevation || otherW.elevation || 0;
+                if (Math.abs(oElev - wElev) > 2.5) continue;
+                if (wStorey && otherW.storey_id && wStorey !== otherW.storey_id && wStorey !== 'all' && otherW.storey_id !== 'all') continue;
+
+                const ox1 = otherW.start[0], oz1 = otherW.start[1];
+                const ox2 = otherW.end[0], oz2 = otherW.end[1];
+                const odx = ox2 - ox1, odz = oz2 - oz1;
+                const oLen = Math.hypot(odx, odz);
+                if (oLen < 0.1) continue;
+
+                // أ. تقاطع الخطوط 2D
+                const denom = dx * odz - dz * odx;
+                let foundContact = false;
+
+                if (Math.abs(denom) > 1e-5) {
+                    const t = ((ox1 - sx) * odz - (oz1 - sz) * odx) / denom;
+                    const u = ((ox1 - sx) * dz - (oz1 - sz) * dx) / denom;
+                    if (t >= -0.08 && t <= 1.08 && u >= -0.08 && u <= 1.08) {
+                        const clampedT = Math.max(0, Math.min(1, t));
+                        const pt = [sx + clampedT * dx, sz + clampedT * dz];
+                        contacts.push({
+                            wallId: otherId,
+                            wall: otherW,
+                            t: clampedT,
+                            dist: clampedT * len,
+                            point: pt,
+                            type: 'intersection'
+                        });
+                        foundContact = true;
+                    }
+                }
+
+                // ب. فحص اتصال البداية والنهاية (T-Junctions أو زوايا L)
+                if (!foundContact) {
+                    const tProjS = ((sx - ox1) * odx + (sz - oz1) * odz) / (oLen * oLen);
+                    if (tProjS >= -0.08 && tProjS <= 1.08) {
+                        const nearX = ox1 + Math.max(0, Math.min(1, tProjS)) * odx;
+                        const nearZ = oz1 + Math.max(0, Math.min(1, tProjS)) * odz;
+                        if (Math.hypot(sx - nearX, sz - nearZ) <= 0.8) {
+                            contacts.push({
+                                wallId: otherId,
+                                wall: otherW,
+                                t: 0.0,
+                                dist: 0.0,
+                                point: [sx, sz],
+                                type: 'start_junction'
+                            });
+                            foundContact = true;
+                        }
+                    }
+                }
+
+                if (!foundContact) {
+                    const tProjE = ((ex - ox1) * odx + (ez - oz1) * odz) / (oLen * oLen);
+                    if (tProjE >= -0.08 && tProjE <= 1.08) {
+                        const nearX = ox1 + Math.max(0, Math.min(1, tProjE)) * odx;
+                        const nearZ = oz1 + Math.max(0, Math.min(1, tProjE)) * odz;
+                        if (Math.hypot(ex - nearX, ez - nearZ) <= 0.8) {
+                            contacts.push({
+                                wallId: otherId,
+                                wall: otherW,
+                                t: 1.0,
+                                dist: len,
+                                point: [ex, ez],
+                                type: 'end_junction'
+                            });
+                            foundContact = true;
+                        }
+                    }
+                }
+            }
+
+            // إزالة التكرارات بحسب wallId
+            const uniqueContacts = [];
+            const seenIds = new Set();
+            for (const c of contacts) {
+                if (!seenIds.has(c.wallId)) {
+                    seenIds.add(c.wallId);
+                    uniqueContacts.push(c);
+                }
+            }
+            uniqueContacts.sort((a, b) => a.t - b.t);
+
+            // 2. تحديد الجدارين المحيطين (Bounding Walls)
+            let bound1 = null, bound2 = null;
+            if (uniqueContacts.length >= 2) {
+                if (clickPt) {
+                    const clickT = ((clickPt.x - sx) * dx + (clickPt.z - sz) * dz) / (len * len);
+                    for (let i = 0; i < uniqueContacts.length; i++) {
+                        if (uniqueContacts[i].t <= clickT) bound1 = uniqueContacts[i];
+                        if (uniqueContacts[i].t >= clickT && !bound2) bound2 = uniqueContacts[i];
+                    }
+                    if (!bound1) bound1 = uniqueContacts[0];
+                    if (!bound2 || bound1.wallId === bound2.wallId) {
+                        bound2 = uniqueContacts[uniqueContacts.length - 1];
+                    }
+                } else {
+                    bound1 = uniqueContacts[0];
+                    bound2 = uniqueContacts[uniqueContacts.length - 1];
+                }
+            } else if (uniqueContacts.length === 1) {
+                bound1 = uniqueContacts[0];
+            }
+
+            const boundingWallIds = [];
+            const boundingNames = [];
+            if (bound1) {
+                boundingWallIds.push(bound1.wallId);
+                boundingNames.push(bound1.wall.name_ar || bound1.wallId);
+            }
+            if (bound2 && bound2.wallId !== bound1?.wallId) {
+                boundingWallIds.push(bound2.wallId);
+                boundingNames.push(bound2.wall.name_ar || bound2.wallId);
+            }
+
+            // 3. كشف الفضاءات المجاورة للجدار لتوسيعها
+            const midX = (sx + ex) / 2;
+            const midZ = (sz + ez) / 2;
+            const nx = -dz / len;
+            const nz = dx / len;
+
+            const adjacentSpaces = [];
+            const seenSpaces = new Set();
+
+            // فحص الفضاءات عبر enclosing_wall_ids أولاً
+            for (const [spId, sp] of Object.entries(bData.spaces || {})) {
+                if (sp.enclosing_wall_ids && Array.isArray(sp.enclosing_wall_ids) && sp.enclosing_wall_ids.includes(wId)) {
+                    if (!seenSpaces.has(spId)) {
+                        seenSpaces.add(spId);
+                        adjacentSpaces.push(sp);
+                    }
+                }
+            }
+
+            // فحص الفضاءات عبر النقاط الاختبارية والحدود الهندسية
+            const testOffsets = [0.9, -0.9, 1.8, -1.8, 2.8, -2.8];
+            const testPoints = testOffsets.map(d => ({ x: midX + d * nx, z: midZ + d * nz }));
+
+            for (const [spId, sp] of Object.entries(bData.spaces || {})) {
+                if (seenSpaces.has(spId)) continue;
+
+                if (sp.polygon && Array.isArray(sp.polygon) && sp.polygon.length >= 3) {
+                    for (const pt of testPoints) {
+                        if (pointInPolygon(pt.x, pt.z, sp.polygon)) {
+                            seenSpaces.add(spId);
+                            adjacentSpaces.push(sp);
+                            break;
+                        }
+                    }
+                } else if (sp.bounds) {
+                    const b = sp.bounds;
+                    const bMinX = b.x - 0.5, bMaxX = b.x + b.width + 0.5;
+                    const bMinZ = b.z - 0.5, bMaxZ = b.z + b.depth + 0.5;
+                    for (const pt of testPoints) {
+                        if (pt.x >= bMinX && pt.x <= bMaxX && pt.z >= bMinZ && pt.z <= bMaxZ) {
+                            seenSpaces.add(spId);
+                            adjacentSpaces.push(sp);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return {
+                valid: true,
+                targetWall,
+                contacts: uniqueContacts,
+                bound1,
+                bound2,
+                boundingWallIds,
+                boundingNames,
+                adjacentSpaces,
+                midpoint: [midX, midZ],
+                wElev,
+                wStorey
+            };
+        };
+
+        const trimWallAndExpandSpace = async (wId, options = {}) => {
+            const bData = this.app.viewer?.buildingData;
+            if (!bData || !bData.walls || !bData.walls[wId]) {
+                setHint("⚠️ لم يتم العثور على الجدار المطلوب.");
+                return false;
+            }
+
+            const clickPt = options.clientX && options.clientY ? getPointOnBlueprint(options.clientX, options.clientY) : null;
+            const analysis = analyzeWallTrim(wId, clickPt);
+            if (!analysis.valid) {
+                setHint(`⚠️ ${analysis.error || 'تعذر تقليم الجدار'}`);
+                return false;
+            }
+
+            const targetWall = JSON.parse(JSON.stringify(bData.walls[wId]));
+            const prevWalls = JSON.parse(JSON.stringify(bData.walls));
+            const prevSpaces = JSON.parse(JSON.stringify(bData.spaces || {}));
+            const prevOpenings = JSON.parse(JSON.stringify(bData.openings || {}));
+
+            // 1. حذف الفتحات المعمارية المرتبطة بهذا الجدار
+            const deletedOpenings = {};
+            for (const [opId, op] of Object.entries(bData.openings || {})) {
+                if (op.wall_id === wId) {
+                    deletedOpenings[opId] = JSON.parse(JSON.stringify(op));
+                    delete bData.openings[opId];
+                }
+            }
+
+            // 2. حذف القواطع المنزلقة المرتبطة
+            let deletedPartition = null;
+            if (bData.partitions) {
+                for (const [pId, part] of Object.entries(bData.partitions)) {
+                    if (part.wall_id === wId || (part.between && analysis.adjacentSpaces.length >= 2 &&
+                        part.between.includes(analysis.adjacentSpaces[0].id) && part.between.includes(analysis.adjacentSpaces[1].id))) {
+                        deletedPartition = JSON.parse(JSON.stringify(part));
+                        delete bData.partitions[pId];
+                        break;
+                    }
+                }
+            }
+
+            // 3. تقليم وحذف الجدار بين الجدارين
+            let isFullDelete = true;
+            if (analysis.bound1 && analysis.bound2 && analysis.bound1.wallId !== analysis.bound2.wallId) {
+                const t1 = Math.min(analysis.bound1.t, analysis.bound2.t);
+                const t2 = Math.max(analysis.bound1.t, analysis.bound2.t);
+                const len = Math.hypot(targetWall.end[0] - targetWall.start[0], targetWall.end[1] - targetWall.start[1]);
+
+                const extStart = t1 * len;
+                const extEnd = (1.0 - t2) * len;
+
+                if (extStart > 0.6 || extEnd > 0.6) {
+                    isFullDelete = false;
+                    delete bData.walls[wId];
+
+                    if (extStart > 0.6) {
+                        const seg1Id = `${wId}_trim1`;
+                        bData.walls[seg1Id] = {
+                            ...JSON.parse(JSON.stringify(targetWall)),
+                            id: seg1Id,
+                            start: targetWall.start,
+                            end: [Math.round((targetWall.start[0] + t1 * (targetWall.end[0] - targetWall.start[0])) * 10) / 10,
+                                  Math.round((targetWall.start[1] + t1 * (targetWall.end[1] - targetWall.start[1])) * 10) / 10]
+                        };
+                    }
+                    if (extEnd > 0.6) {
+                        const seg2Id = `${wId}_trim2`;
+                        bData.walls[seg2Id] = {
+                            ...JSON.parse(JSON.stringify(targetWall)),
+                            id: seg2Id,
+                            start: [Math.round((targetWall.start[0] + t2 * (targetWall.end[0] - targetWall.start[0])) * 10) / 10,
+                                    Math.round((targetWall.start[1] + t2 * (targetWall.end[1] - targetWall.start[1])) * 10) / 10],
+                            end: targetWall.end
+                        };
+                    }
+                }
+            }
+
+            if (isFullDelete) {
+                delete bData.walls[wId];
+            }
+
+            // 4. تكبير وزيادة مساحة الفضاء (Space Expansion & Merging)
+            let expansionSummary = "";
+            let mergedSpaceId = null;
+            let deletedSpaceId = null;
+
+            if (analysis.adjacentSpaces.length >= 2) {
+                // دمج فضاءين متجاورين في فضاء واحد موسع
+                const sp1 = bData.spaces[analysis.adjacentSpaces[0].id];
+                const sp2 = bData.spaces[analysis.adjacentSpaces[1].id];
+
+                if (sp1 && sp2) {
+                    mergedSpaceId = sp1.id;
+                    deletedSpaceId = sp2.id;
+
+                    const area1 = sp1.area_m2 || 0;
+                    const area2 = sp2.area_m2 || 0;
+                    const totalArea = Math.round((area1 + area2) * 10) / 10;
+                    const cap1 = sp1.capacity || 10;
+                    const cap2 = sp2.capacity || 10;
+                    const totalCap = Math.max(cap1 + cap2, Math.round(totalArea / 3.5));
+
+                    const name1 = sp1.name_ar || sp1.id;
+                    const name2 = sp2.name_ar || sp2.id;
+                    sp1.name_ar = `${name1} (موسع - دمج مع ${name2})`;
+                    sp1.type = "flexible";
+
+                    // فحص كشف المضلع المحيطي الجديد بعد إزالة الجدار
+                    const detected = detectEnclosingWallsFromPoint(analysis.midpoint[0], analysis.midpoint[1], bData.walls, analysis.wElev);
+                    if (detected && detected.valid && detected.area > 5) {
+                        sp1.polygon = detected.vertices;
+                        sp1.bounds = detected.bounds;
+                        sp1.centroid = detected.centroid;
+                        sp1.area_m2 = Math.round(detected.area * 10) / 10;
+                        sp1.capacity = Math.max(totalCap, Math.round(sp1.area_m2 / 3.5));
+                        sp1.enclosing_wall_ids = detected.wallIds;
+                    } else if (sp1.bounds && sp2.bounds) {
+                        const minX = Math.min(sp1.bounds.x, sp2.bounds.x);
+                        const minZ = Math.min(sp1.bounds.z, sp2.bounds.z);
+                        const maxX = Math.max(sp1.bounds.x + sp1.bounds.width, sp2.bounds.x + sp2.bounds.width);
+                        const maxZ = Math.max(sp1.bounds.z + sp1.bounds.depth, sp2.bounds.z + sp2.bounds.depth);
+                        sp1.bounds = {
+                            x: Math.round(minX * 10) / 10,
+                            z: Math.round(minZ * 10) / 10,
+                            width: Math.round((maxX - minX) * 10) / 10,
+                            depth: Math.round((maxZ - minZ) * 10) / 10,
+                            height: sp1.bounds.height || 3.5
+                        };
+                        sp1.area_m2 = totalArea;
+                        sp1.capacity = totalCap;
+                    } else {
+                        sp1.area_m2 = totalArea;
+                        sp1.capacity = totalCap;
+                    }
+
+                    // حذف الفضاء الثاني ومجسمه ثلاثي الأبعاد
+                    this.app.viewer.deleteSpaceMesh(sp2.id);
+                    delete bData.spaces[sp2.id];
+
+                    expansionSummary = `تم دمج (${name1} + ${name2}) في فضاء موسع بمساحة إجمالية ${sp1.area_m2}م² (+${area2}م²) وسعة ${sp1.capacity} شخص!`;
+                }
+            } else if (analysis.adjacentSpaces.length === 1) {
+                // توسيع فضاء مجاور واحد
+                const sp = bData.spaces[analysis.adjacentSpaces[0].id];
+                if (sp) {
+                    mergedSpaceId = sp.id;
+                    const oldArea = sp.area_m2 || 0;
+                    const detected = detectEnclosingWallsFromPoint(analysis.midpoint[0], analysis.midpoint[1], bData.walls, analysis.wElev);
+                    if (detected && detected.valid && detected.area > oldArea) {
+                        sp.polygon = detected.vertices;
+                        sp.bounds = detected.bounds;
+                        sp.centroid = detected.centroid;
+                        sp.area_m2 = Math.round(detected.area * 10) / 10;
+                        sp.capacity = Math.max(sp.capacity || 10, Math.round(sp.area_m2 / 3.5));
+                        sp.enclosing_wall_ids = detected.wallIds;
+                        sp.name_ar = `${sp.name_ar} (موسع)`;
+                        expansionSummary = `تم توسيع مساحة فضاء (${sp.name_ar}) من ${oldArea}م² إلى ${sp.area_m2}م² (+${Math.round((sp.area_m2 - oldArea)*10)/10}م²)!`;
+                    } else {
+                        sp.area_m2 = Math.round((oldArea + 15.0) * 10) / 10;
+                        sp.capacity = Math.max(sp.capacity || 10, Math.round(sp.area_m2 / 3.5));
+                        sp.name_ar = `${sp.name_ar} (موسع)`;
+                        expansionSummary = `تم توسيع مساحة فضاء (${sp.name_ar}) إلى ${sp.area_m2}م² بعد إزالة القاطع!`;
+                    }
+                }
+            } else {
+                // لا يوجد فضاء مسجل مسبقاً، محاولة توليد فضاء جديد
+                const detected = detectEnclosingWallsFromPoint(analysis.midpoint[0], analysis.midpoint[1], bData.walls, analysis.wElev);
+                if (detected && detected.valid && detected.area > 5) {
+                    const newSpId = `space_${Date.now()}`;
+                    const newSpace = {
+                        id: newSpId,
+                        name_ar: "فضاء موسع جديد",
+                        name_en: "Expanded Space",
+                        type: "flexible",
+                        capacity: Math.max(10, Math.round(detected.area / 3.5)),
+                        area_m2: Math.round(detected.area * 10) / 10,
+                        centroid: detected.centroid,
+                        polygon: detected.vertices,
+                        bounds: detected.bounds,
+                        base_elevation: analysis.wElev,
+                        storey_id: analysis.wStorey || 'st_g',
+                        enclosing_wall_ids: detected.wallIds,
+                        color: "#2ecc71"
+                    };
+                    bData.spaces[newSpId] = newSpace;
+                    mergedSpaceId = newSpId;
+                    expansionSummary = `تم تكوين وتجسيم فضاء موسع جديد بمساحة ${newSpace.area_m2}م²!`;
+                } else {
+                    expansionSummary = `تم حذف الجدار بين الجدارين بنجاح وفتح المجال المعماري لتوسيع الفضاء.`;
+                }
+            }
+
+            // 5. حفظ في سجل التراجع History Stack
+            historyStack.push({
+                type: 'trim-wall',
+                wallId: wId,
+                deletedWall: targetWall,
+                deletedOpenings,
+                deletedPartition,
+                prevWalls,
+                prevSpaces,
+                mergedSpaceId,
+                deletedSpaceId
+            });
+
+            // 6. وميض بصري على الفضاء الموسع والجدارين المحيطين
+            if (analysis.boundingWallIds && analysis.boundingWallIds.length > 0) {
+                analysis.boundingWallIds.forEach(bwId => {
+                    if (this.app.viewer?.highlightWall) this.app.viewer.highlightWall(bwId, 0x00d2ff);
+                });
+                setTimeout(() => {
+                    if (this.app.viewer) {
+                        analysis.boundingWallIds.forEach(bwId => this.app.viewer.clearWallHighlight(bwId));
+                    }
+                }, 1200);
+            }
+
+            // إعادة بناء المشهد واللوحة الحركية
+            this.app.viewer.loadBuildingModel(bData);
+            this.populateSpacesEditor();
+
+            if (mergedSpaceId && this.app.viewer?.highlightSpace) {
+                this.app.viewer.highlightSpace(mergedSpaceId, 0x2ecc71);
+                setTimeout(() => {
+                    if (this.app.viewer?.clearSpaceHighlight) this.app.viewer.clearSpaceHighlight(mergedSpaceId);
+                }, 1800);
+            }
+
+            const boundDesc = analysis.boundingNames.length > 0 ? ` بين (${analysis.boundingNames.join(' و ')})` : '';
+            setHint(`✓ ✂️ تم بنجاح عمل Trim وحذف الجدار${boundDesc}! ${expansionSummary}`);
+
+            try {
+                await fetch('/api/model/sync_model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        walls: bData.walls,
+                        spaces: bData.spaces,
+                        openings: bData.openings
+                    })
+                });
+            } catch(err) {}
+
+            return true;
+        };
+
         cleanWallIntersections = () => {
             const bData = this.app.viewer?.buildingData;
             if (!bData || !bData.walls || Object.keys(bData.walls).length === 0) return 0;
@@ -3163,6 +3682,46 @@ class PlanManager {
                             currentHoveredStairId = null;
                         }
                         setHint("🗑️ انقر فوق أي باب، شباك، فتحة عبور، سلم، مستشعر IoT، جدار، أو أرضية فضاء لحذفها فورياً...");
+                    }
+                    return;
+                }
+
+                if (activeTool === 'trim-wall') {
+                    const hoveredWallId = findWallUnderCursor(e.clientX, e.clientY);
+                    const bData = this.app.viewer?.buildingData;
+                    if (hoveredWallId && bData?.walls?.[hoveredWallId]) {
+                        if (currentHoveredWallId !== hoveredWallId) {
+                            cleanupTempVisuals();
+                            currentHoveredWallId = hoveredWallId;
+                            this.app.viewer.highlightWall(hoveredWallId, 0xec4899);
+
+                            const analysis = analyzeWallTrim(hoveredWallId);
+                            if (analysis.boundingWallIds && analysis.boundingWallIds.length > 0) {
+                                analysis.boundingWallIds.forEach(bwId => {
+                                    this.app.viewer.highlightWall(bwId, 0x00d2ff);
+                                });
+                                trimBoundingWallHighlights = [...analysis.boundingWallIds];
+                            }
+
+                            if (analysis.adjacentSpaces && analysis.adjacentSpaces.length >= 2) {
+                                const sp1 = analysis.adjacentSpaces[0];
+                                const sp2 = analysis.adjacentSpaces[1];
+                                const newArea = Math.round(((sp1.area_m2 || 0) + (sp2.area_m2 || 0)) * 10) / 10;
+                                const bNames = analysis.boundingNames.length > 0 ? ` بين (${analysis.boundingNames.join(' و ')})` : '';
+                                setHint(`✂️ انقر لتقليم وحذف الجدار${bNames} ودمج الفضاءين (${sp1.name_ar} + ${sp2.name_ar}) لتكبير المساحة إلى ${newArea}م²!`);
+                            } else if (analysis.adjacentSpaces && analysis.adjacentSpaces.length === 1) {
+                                const sp = analysis.adjacentSpaces[0];
+                                setHint(`✂️ انقر لتقليم وحذف الجدار وتوسيع وزيادة مساحة فضاء (${sp.name_ar}).`);
+                            } else {
+                                const bNames = analysis.boundingNames.length > 0 ? ` بين (${analysis.boundingNames.join(' و ')})` : '';
+                                setHint(`✂️ جدار (${hoveredWallId})${bNames} — انقر لتقليمه وحذفه وتوسيع الفضاء.`);
+                            }
+                        }
+                    } else {
+                        if (currentHoveredWallId) {
+                            cleanupTempVisuals();
+                            setHint("✂️ أداة Trim: انقر مباشرة فوق أي جدار فاصل بين جدارين لتقليمه وحذفه فورياً، ودمج الفضاءين وتوسيع وزيادة مساحة الفضاء...");
+                        }
                     }
                     return;
                 }
@@ -3668,6 +4227,18 @@ class PlanManager {
                         return;
                     } else {
                         setHint("⚠️ لم يتم النقر فوق فتحة (باب/شباك) أو جدار أو سلم أو فضاء صالح للحذف. يرجى النقر مباشرة فوق العنصر المطلوب.");
+                        return;
+                    }
+                }
+
+                if (activeTool === 'trim-wall') {
+                    const targetWallId = findWallUnderCursor(clientX, clientY);
+                    if (targetWallId && bData.walls[targetWallId]) {
+                        cleanupTempVisuals();
+                        await trimWallAndExpandSpace(targetWallId, { clientX, clientY });
+                        return;
+                    } else {
+                        setHint("⚠️ يرجى النقر مباشرة فوق الجدار الفاصل بين جدارين لتقليمه وحذفه وتوسيع مساحة الفضاء.");
                         return;
                     }
                 }

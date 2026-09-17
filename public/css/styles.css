@@ -1252,6 +1252,19 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   box-shadow: 0 0 12px rgba(0, 210, 255, 0.35);
 }
 
+.tracer-tool-btn.trim-btn {
+  border-color: rgba(236, 72, 153, 0.5) !important;
+  color: #ec4899 !important;
+}
+
+.tracer-tool-btn.trim-btn:hover,
+.tracer-tool-btn.trim-btn.active {
+  background: rgba(236, 72, 153, 0.25) !important;
+  border-color: #ec4899 !important;
+  color: #f472b6 !important;
+  box-shadow: 0 0 14px rgba(236, 72, 153, 0.45) !important;
+}
+
 .tracer-done-btn {
   background: rgba(46, 204, 113, 0.2);
   border: 1px solid var(--accent-green);
