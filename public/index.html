@@ -78,118 +78,142 @@
         <!-- 3D WebGL Viewport Container -->
         <div id="viewport-container">
             
-            <!-- Floating HUD (Quick Spatial KPIs) -->
-            <div class="viewport-hud">
-                <div class="hud-card accent-cyan"
-                     data-tooltip-title="مؤشر التوازن الفراغي (Spatial Balance)"
-                     data-tooltip="مقياس لمدى التوزيع المتوازن للمستخدمين بين الفضاءات، النسبة العالية تعني انعدام التكدس وتجنب الهدر المكاني.">
-                    <div class="label">التوازن الفراغي (Balance)</div>
-                    <div class="value" id="kpi-balance-score">85%</div>
-                </div>
+            <!-- Floating HUD (Quick Spatial KPIs) — Collapsible & Compact -->
+            <div class="viewport-hud" id="viewport-hud">
+                <button class="hud-toggle-pill" id="btn-toggle-hud"
+                        data-tooltip-title="طي / توسيع شريط المؤشرات"
+                        data-tooltip="التبديل بين إظهار بطاقات المؤشرات كاملة أو طيها في شريط زجاجي مصغر لتوفير أقصى مساحة رؤية.">
+                    <span id="hud-toggle-label">📊 المؤشرات الحركية</span>
+                    <span id="hud-collapse-arrow" style="font-size:10px;">⏷</span>
+                </button>
+                <div class="hud-cards-container" id="hud-cards-container">
+                    <div class="hud-card accent-cyan"
+                         data-tooltip-title="مؤشر التوازن الفراغي (Spatial Balance)"
+                         data-tooltip="مقياس لمدى التوزيع المتوازن للمستخدمين بين الفضاءات، النسبة العالية تعني انعدام التكدس وتجنب الهدر المكاني.">
+                        <div class="label">التوازن الفراغي</div>
+                        <div class="value" id="kpi-balance-score">85%</div>
+                    </div>
 
-                <div class="hud-card accent-cyan"
-                     data-tooltip-title="مؤشر إجهاد الحركة الكلي (Circulation Effort)"
-                     data-tooltip="مجموع حاصل ضرب كثافة التدفق في مسافات السير بين الفضاءات (W = sum(Fij * Dij)). القيمة الأقل تعني كفاءة مكانية وتوفيراً في السير.">
-                    <div class="label">إجهاد الحركة (Circ. Work)</div>
-                    <div class="value" id="kpi-circ-work">1420</div>
-                </div>
+                    <div class="hud-card accent-cyan"
+                         data-tooltip-title="مؤشر إجهاد الحركة الكلي (Circulation Effort)"
+                         data-tooltip="مجموع حاصل ضرب كثافة التدفق في مسافات السير بين الفضاءات (W = sum(Fij * Dij)). القيمة الأقل تعني كفاءة مكانية وتوفيراً في السير.">
+                        <div class="label">إجهاد الحركة</div>
+                        <div class="value" id="kpi-circ-work">1420</div>
+                    </div>
 
-                <div class="hud-card accent-green"
-                     data-tooltip-title="الفضاءات المتكدسة (Overcrowded Spaces)"
-                     data-tooltip="عدد الغرف التي تجاوز فيها الإشغال الفعلي السعة الاستيعابية القصوى (>100%) وتتطلب تدخلاً تكيفياً عاجلاً.">
-                    <div class="label">فضاءات متكدسة</div>
-                    <div class="value" id="kpi-overcrowd-count">0</div>
-                </div>
+                    <div class="hud-card accent-green"
+                         data-tooltip-title="الفضاءات المتكدسة (Overcrowded Spaces)"
+                         data-tooltip="عدد الغرف التي تجاوز فيها الإشغال الفعلي السعة الاستيعابية القصوى (>100%) وتتطلب تدخلاً تكيفياً عاجلاً.">
+                        <div class="label">فضاءات متكدسة</div>
+                        <div class="value" id="kpi-overcrowd-count">0</div>
+                    </div>
 
-                <div class="hud-card accent-amber"
-                     data-tooltip-title="تدفق الممر الرئيسي (Circulation Flow)"
-                     data-tooltip="معدل مرور الأشخاص في الشريان الحركي المركزي مقاساً بوحدة (شخص/دقيقة) مقارنة بالطاقة الاستيعابية القصوى.">
-                    <div class="label">تدفق الممر الرئيسي</div>
-                    <div class="value" id="kpi-corridor-flow">24 ش/د</div>
-                </div>
+                    <div class="hud-card accent-amber"
+                         data-tooltip-title="تدفق الممر الرئيسي (Circulation Flow)"
+                         data-tooltip="معدل مرور الأشخاص في الشريان الحركي المركزي مقاساً بوحدة (شخص/دقيقة) مقارنة بالطاقة الاستيعابية القصوى.">
+                        <div class="label">تدفق الممر الرئيسي</div>
+                        <div class="value" id="kpi-corridor-flow">24 ش/د</div>
+                    </div>
 
-                <div class="hud-card accent-green" id="hud-card-co2"
-                     data-tooltip-title="مؤشر الازدحام البيئي (CO2 Telemetry)"
-                     data-tooltip="معدل تركيز غاز CO2 المستشعر لحظياً داخل الفضاءات المشغولة، مؤشر بيئي حاسم لرصد التكدس غير المرئي.">
-                    <div class="label">ازدحام بيئي (CO2)</div>
-                    <div class="value" id="kpi-co2-level">480 ppm</div>
-                </div>
+                    <div class="hud-card accent-green" id="hud-card-co2"
+                         data-tooltip-title="مؤشر الازدحام البيئي (CO2 Telemetry)"
+                         data-tooltip="معدل تركيز غاز CO2 المستشعر لحظياً داخل الفضاءات المشغولة، مؤشر بيئي حاسم لرصد التكدس غير المرئي.">
+                        <div class="label">ازدحام بيئي (CO2)</div>
+                        <div class="value" id="kpi-co2-level">480 ppm</div>
+                    </div>
 
-                <div class="hud-card accent-cyan"
-                     data-tooltip-title="قرارات التكيف النشطة (Active AI Decisions)"
-                     data-tooltip="عدد الإجراءات المعمارية التكيفية المنفذة آلياً بالزمن الحقيقي (مثل فتح القواطع المنزلقة أو تفعيل مسارات الالتفاف).">
-                    <div class="label">قرارات التكيف</div>
-                    <div class="value" id="kpi-active-actions">0</div>
+                    <div class="hud-card accent-cyan"
+                         data-tooltip-title="قرارات التكيف النشطة (Active AI Decisions)"
+                         data-tooltip="عدد الإجراءات المعمارية التكيفية المنفذة آلياً بالزمن الحقيقي (مثل فتح القواطع المنزلقة أو تفعيل مسارات الالتفاف).">
+                        <div class="label">قرارات التكيف</div>
+                        <div class="value" id="kpi-active-actions">0</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Viewport Camera Controls -->
-            <div class="viewport-controls">
-                <button class="control-btn" id="btn-top-view"
-                        data-tooltip-title="تغيير المنظور (Camera View)"
-                        data-tooltip="التبديل بين المنظور ثلاثي الأبعاد والمسقط الأفقي العلوي (2D Top Plan View) لفحص العلاقات المكانية.">📐 منظور علوي 2D / 3D</button>
-                <button class="control-btn" id="btn-reset-view"
-                        data-tooltip-title="إعادة ضبط الكاميرا (Reset View)"
-                        data-tooltip="إعادة زاوية الرؤية ومستوى التقريب إلى الوضع الافتراضي الشامل للمبنى.">🔄 إعادة ضبط الكاميرا</button>
+            <!-- Viewport 3D Smooth Navigation & Camera Controls Dock (Gizmo) -->
+            <div class="viewport-nav-gizmo" id="viewport-nav-gizmo">
+                <div class="nav-gizmo-row">
+                    <button class="nav-gizmo-btn" id="btn-nav-orbit-left" data-tooltip-title="تدوير الكاميرا لليسار" data-tooltip="تدوير المنظور بسلاسة حول المبنى باتجاه عقارب الساعة.">↺</button>
+                    <button class="nav-gizmo-btn" id="btn-nav-tilt-up" data-tooltip-title="إمالة للأعلى" data-tooltip="رفع زاوية الرؤية للأعلى لفحص الأسقف والمناسيب العليا.">▲</button>
+                    <button class="nav-gizmo-btn" id="btn-nav-orbit-right" data-tooltip-title="تدوير الكاميرا لليمين" data-tooltip="تدوير المنظور بسلاسة حول المبنى عكس عقارب الساعة.">↻</button>
+                    <button class="nav-gizmo-btn primary" id="btn-nav-fit" data-tooltip-title="تأطير وتوسيط المبنى" data-tooltip="إعادة ضبط وتركيز وتأطير كامل المبنى وعناصره في منتصف الشاشة بدقة.">🎯</button>
+                </div>
+                <div class="nav-gizmo-row">
+                    <button class="nav-gizmo-btn" id="btn-nav-pan-left" data-tooltip-title="إزاحة لليسار (Pan)" data-tooltip="تحريك المشهد أفقياً لليسار.">◄</button>
+                    <button class="nav-gizmo-btn" id="btn-nav-tilt-down" data-tooltip-title="إمالة للأسفل" data-tooltip="خفض زاوية الرؤية لفحص الطوابق السفلى والأرضيات.">▼</button>
+                    <button class="nav-gizmo-btn" id="btn-nav-pan-right" data-tooltip-title="إزاحة لليمين (Pan)" data-tooltip="تحريك المشهد أفقياً لليمين.">►</button>
+                    <button class="nav-gizmo-btn" id="btn-top-view" data-tooltip-title="تغيير المنظور 2D / 3D" data-tooltip="التبديل بين المنظور المجسم ثلاثي الأبعاد والمسقط الأفقي العلوي 2D.">📐</button>
+                </div>
+                <div class="nav-gizmo-row">
+                    <button class="nav-gizmo-btn" id="btn-nav-zoom-in" data-tooltip-title="تقريب (Zoom In)" data-tooltip="تقريب الكاميرا بسلاسة لتفحص التفاصيل الدقيقة للمبنى.">➕</button>
+                    <button class="nav-gizmo-btn" id="btn-nav-zoom-out" data-tooltip-title="تبعيد (Zoom Out)" data-tooltip="تبعيد الكاميرا لإظهار المبنى ومحيطه بالكامل.">➖</button>
+                    <button class="nav-gizmo-btn" id="btn-reset-view" data-tooltip-title="استعادة الوضع الافتراضي" data-tooltip="إعادة ضبط زاوية الرؤية ومستوى التقريب للوضع الافتراضي.">🔄</button>
+                </div>
             </div>
 
             <!-- Floating 3D Element Selection Pill -->
-            <div id="viewport-element-pill" style="display:none; position:absolute; bottom:85px; left:20px; z-index:100; background:rgba(15, 23, 42, 0.92); border:1px solid #38bdf8; border-radius:10px; padding:10px 16px; backdrop-filter:blur(10px); box-shadow:0 8px 32px rgba(0,0,0,0.6); align-items:center; gap:12px;">
-                <div style="font-size: 1.3rem;" id="vp-pill-icon">🧱</div>
+            <div id="viewport-element-pill" style="display:none; position:absolute; bottom:120px; left:16px; z-index:100; background:rgba(15, 23, 42, 0.92); border:1px solid #38bdf8; border-radius:10px; padding:8px 14px; backdrop-filter:blur(10px); box-shadow:0 8px 32px rgba(0,0,0,0.6); align-items:center; gap:10px;">
+                <div style="font-size: 1.2rem;" id="vp-pill-icon">🧱</div>
                 <div>
-                    <div id="vp-pill-title" style="font-size: 0.85rem; font-weight: 600; color: #fff;">--</div>
-                    <div id="vp-pill-sub" style="font-size: 0.72rem; color: #94a3b8; font-family: monospace;">--</div>
+                    <div id="vp-pill-title" style="font-size: 0.82rem; font-weight: 600; color: #fff;">--</div>
+                    <div id="vp-pill-sub" style="font-size: 0.7rem; color: #94a3b8; font-family: monospace;">--</div>
                 </div>
-                <button id="btn-vp-open-ifc" class="ifc-btn-sm" style="background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; color: #38bdf8; margin-right: 8px;">
+                <button id="btn-vp-open-ifc" class="ifc-btn-sm" style="background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; color: #38bdf8; margin-right: 6px;">
                     🏢 عارض IFC
                 </button>
                 <button id="btn-vp-close-pill" style="background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; padding: 0 4px; line-height: 1;">&times;</button>
             </div>
 
-            <!-- Blueprint Floor Plan HUD Overlay Controls (always visible for full control) -->
-            <div class="blueprint-hud-bar" id="blueprint-hud-bar" style="display:flex;"
-                 data-tooltip-title="لوحة تحكم المسقط المعماري الحقيقي (Blueprint Underlay)"
-                 data-tooltip="التحكم في عرض وشفافية المخطط المعماري المستورد ومطابقته مع الفضاءات والخرائط الحرارية.">
-                <div class="hud-bar-title">
-                    <span>📐 مسقط المخطط الأصلي</span>
+            <!-- Blueprint Floor Plan HUD Overlay Controls — Docked Top-Right & Collapsible -->
+            <div class="blueprint-hud-bar" id="blueprint-hud-bar" style="display:flex;">
+                <div class="hud-bar-header">
+                    <div class="hud-bar-title">
+                        <span>📐 طبقات الرؤية والمسقط</span>
+                    </div>
+                    <button class="hud-toggle-pill-sm" id="btn-toggle-blueprint-hud" title="طي / توسيع طبقات الرؤية">
+                        <span id="bp-collapse-arrow">⏷</span>
+                    </button>
                 </div>
-                <div class="hud-bar-control" id="hud-blueprint-opacity-ctrl" style="display:none;">
-                    <label>شفافية المخطط:</label>
-                    <input type="range" id="slider-blueprint-opacity" min="0" max="100" value="85"
-                           data-tooltip-title="شفافية المخطط الأصلي"
-                           data-tooltip="التحكم في درجة وضوح تفاصيل المخطط المعماري (الجدران، الأبواب، والأبعاد).">
-                    <span id="label-blueprint-opacity" style="font-size:11px; min-width:28px; color:var(--accent-cyan);">85%</span>
+                <div class="hud-bar-content" id="blueprint-hud-content">
+                    <div class="hud-bar-control" id="hud-blueprint-opacity-ctrl" style="display:none;">
+                        <label>شفافية المخطط:</label>
+                        <input type="range" id="slider-blueprint-opacity" min="0" max="100" value="85"
+                               data-tooltip-title="شفافية المخطط الأصلي"
+                               data-tooltip="التحكم في درجة وضوح تفاصيل المخطط المعماري (الجدران، الأبواب، والأبعاد).">
+                        <span id="label-blueprint-opacity" style="font-size:11px; min-width:28px; color:var(--accent-cyan);">85%</span>
+                    </div>
+                    <div class="hud-bar-control" id="hud-zones-opacity-ctrl" style="display:none;">
+                        <label>شفافية الكتل 3D:</label>
+                        <input type="range" id="slider-zones-opacity" min="0" max="100" value="40"
+                               data-tooltip-title="شفافية كتل الفضاءات الحرارية"
+                               data-tooltip="تقليل شفافية الفضاءات ثلاثية الأبعاد لإظهار خطوط المخطط المعماري بالأسفل بوضوح فائق.">
+                        <span id="label-zones-opacity" style="font-size:11px; min-width:28px; color:var(--accent-cyan);">40%</span>
+                    </div>
+                    <div class="hud-bar-control" id="hud-page-controls" style="display:none;">
+                        <button class="hud-mini-btn" id="btn-pdf-prev" data-tooltip-title="الصفحة السابقة" data-tooltip="الانتقال إلى المخطط أو الطابق السابق في ملف الـ PDF.">◀</button>
+                        <span id="pdf-page-indicator" style="font-size:11px; font-weight:bold; color:var(--accent-cyan); min-width:65px; text-align:center;">صفحة 1 / 1</span>
+                        <button class="hud-mini-btn" id="btn-pdf-next" data-tooltip-title="الصفحة التالية" data-tooltip="الانتقال إلى المخطط أو الطابق التالي في ملف الـ PDF.">▶</button>
+                    </div>
+                    <button class="hud-toggle-btn" id="btn-toggle-iot-vis" style="background:rgba(0,210,255,0.15); border-color:var(--accent-cyan);"
+                            data-tooltip-title="إظهار / إخفاء مستشعرات الـ IoT في المشهد 3D"
+                            data-tooltip="التبديل بين إظهار أو إخفاء مجسمات حساسات الحركة PIR وعدادات الأبواب ثلاثية الأبعاد فوق الفضاءات.">📡 إخفاء الحساسات</button>
+                    <button class="hud-toggle-btn" id="btn-toggle-labels-vis"
+                            data-tooltip-title="إظهار / إخفاء عناوين وشارات الفضاءات"
+                            data-tooltip="التبديل بين إظهار أو إخفاء الشارات وعناوين الغرف المعمارية وبيانات إشغالها في المشهد 3D.">🏷️ إخفاء العناوين</button>
+                    <button class="hud-toggle-btn" id="btn-toggle-flow-vis"
+                            data-tooltip-title="إظهار / إخفاء تدفق الحركة (Spatial Flow)"
+                            data-tooltip="التبديل بين إظهار أو إخفاء جسيمات التدفق الحركي المعماري عبر شبكة الممرات والأبواب والقواطع التكيفية.">⚡ إخفاء تدفق الحركة</button>
+                    <button class="hud-toggle-btn" id="btn-toggle-walls-vis"
+                            data-tooltip-title="إظهار / إخفاء الجدران والفتحات"
+                            data-tooltip="التبديل بين إظهار الجدران المعمارية ثلاثية الأبعاد بفتحات الأبواب والشبابيك الحقيقية أو إخفائها.">🧱 إخفاء الجدران</button>
+                    <button class="hud-toggle-btn" id="btn-toggle-blueprint-vis"
+                            data-tooltip-title="إخفاء / إظهار المسقط"
+                            data-tooltip="التبديل بين إظهار المسقط المعماري الحقيقي أو الاكتفاء بالكتل ثلاثية الأبعاد فقط.">👁️ إخفاء المسقط</button>
+                    <button class="hud-toggle-btn" id="btn-open-tracer-mode" style="background:rgba(0,210,255,0.22); border-color:var(--accent-cyan); color:#38bdf8;"
+                            data-tooltip-title="أداة التحديد المعماري التفاعلي"
+                            data-tooltip="تفعيل لوحة أدوات الرسم المباشر للنقر وبناء الجدران والأبواب والفتحات والسلالم فوق المسقط.">✏️ تحديد معالم المخطط</button>
                 </div>
-                <div class="hud-bar-control" id="hud-zones-opacity-ctrl" style="display:none;">
-                    <label>شفافية الكتل 3D:</label>
-                    <input type="range" id="slider-zones-opacity" min="0" max="100" value="40"
-                           data-tooltip-title="شفافية كتل الفضاءات الحرارية"
-                           data-tooltip="تقليل شفافية الفضاءات ثلاثية الأبعاد لإظهار خطوط المخطط المعماري بالأسفل بوضوح فائق.">
-                    <span id="label-zones-opacity" style="font-size:11px; min-width:28px; color:var(--accent-cyan);">40%</span>
-                </div>
-                <div class="hud-bar-control" id="hud-page-controls" style="display:none;">
-                    <button class="hud-mini-btn" id="btn-pdf-prev" data-tooltip-title="الصفحة السابقة" data-tooltip="الانتقال إلى المخطط أو الطابق السابق في ملف الـ PDF.">◀</button>
-                    <span id="pdf-page-indicator" style="font-size:11px; font-weight:bold; color:var(--accent-cyan); min-width:65px; text-align:center;">صفحة 1 / 1</span>
-                    <button class="hud-mini-btn" id="btn-pdf-next" data-tooltip-title="الصفحة التالية" data-tooltip="الانتقال إلى المخطط أو الطابق التالي في ملف الـ PDF.">▶</button>
-                </div>
-                <button class="hud-toggle-btn" id="btn-toggle-iot-vis" style="background:rgba(0,210,255,0.15); border-color:var(--accent-cyan);"
-                        data-tooltip-title="إظهار / إخفاء مستشعرات الـ IoT في المشهد 3D"
-                        data-tooltip="التبديل بين إظهار أو إخفاء مجسمات حساسات الحركة PIR وعدادات الأبواب ثلاثية الأبعاد فوق الفضاءات.">📡 إخفاء الحساسات</button>
-                <button class="hud-toggle-btn" id="btn-toggle-labels-vis"
-                        data-tooltip-title="إظهار / إخفاء عناوين وشارات الفضاءات"
-                        data-tooltip="التبديل بين إظهار أو إخفاء الشارات وعناوين الغرف المعمارية وبيانات إشغالها في المشهد 3D.">🏷️ إخفاء العناوين</button>
-                <button class="hud-toggle-btn" id="btn-toggle-flow-vis"
-                        data-tooltip-title="إظهار / إخفاء تدفق الحركة (Spatial Flow)"
-                        data-tooltip="التبديل بين إظهار أو إخفاء جسيمات التدفق الحركي المعماري عبر شبكة الممرات والأبواب والقواطع التكيفية.">⚡ إخفاء تدفق الحركة</button>
-                <button class="hud-toggle-btn" id="btn-toggle-walls-vis"
-                        data-tooltip-title="إظهار / إخفاء الجدران والفتحات"
-                        data-tooltip="التبديل بين إظهار الجدران المعمارية ثلاثية الأبعاد بفتحات الأبواب والشبابيك الحقيقية أو إخفائها.">🧱 إخفاء الجدران</button>
-                <button class="hud-toggle-btn" id="btn-toggle-blueprint-vis"
-                        data-tooltip-title="إخفاء / إظهار المسقط"
-                        data-tooltip="التبديل بين إظهار المسقط المعماري الحقيقي أو الاكتفاء بالكتل ثلاثية الأبعاد فقط.">👁️ إخفاء المسقط</button>
-                <button class="hud-toggle-btn" id="btn-open-tracer-mode" style="background:rgba(0,210,255,0.2); border-color:var(--accent-cyan);"
-                        data-tooltip-title="أداة التحديد المعماري التفاعلي"
-                        data-tooltip="تفعيل الرسم التفاعلي المباشر للنقر وتحديد الجدران والأبواب والفتحات فوق المسقط وتجسيمها فورياً.">✏️ تحديد معالم المخطط</button>
             </div>
 
             <!-- Floating Architectural Blueprint Tracer Bar (Interactive Click-to-Draw) -->
@@ -313,8 +337,10 @@
             <div class="storey-control-bar" id="storey-control-bar" style="display:none;"
                  data-tooltip-title="تحكم في طوابق المبنى (BIM Multi-Storey)"
                  data-tooltip="تصفية عرض الطوابق وفصلها بصريًا عند استيراد ملف IFC متعدد الطوابق. اختر طابقًا لعرضه منفردًا أو اعرض الكل معًا، واستخدم زر الفصل للتوضيح المجسم.">
-                <div class="storey-bar-title">🏢 طوابق المبنى</div>
-                <div id="storey-btn-container" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                <div class="storey-bar-title" style="white-space:nowrap;">🏢 الطوابق</div>
+                <button class="storey-scroll-btn" id="btn-storey-scroll-left" title="تمرير لليسار" type="button">◀</button>
+                <div id="storey-btn-container" class="storey-scroll-track"></div>
+                <button class="storey-scroll-btn" id="btn-storey-scroll-right" title="تمرير لليمين" type="button">▶</button>
                 <button class="exploded-view-btn" id="btn-exploded-view"
                         data-tooltip-title="فصل الطوابق (Exploded View)"
                         data-tooltip="تباعد الطوابق رأسيًا لعرضها مجسمة بشكل منفصل وواضح — مفيد لتفحص كل طابق على حدة.">💥 فصل الطوابق</button>

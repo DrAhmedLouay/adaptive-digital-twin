@@ -126,36 +126,72 @@ header {
   display: block;
 }
 
-/* Floating HUD on 3D Viewport */
+/* Floating HUD on 3D Viewport — Ultra-Compact & Collapsible */
 .viewport-hud {
   position: absolute;
-  top: 16px;
-  left: 20px;
+  top: 12px;
+  left: 16px;
   display: flex;
-  gap: 12px;
-  z-index: 10;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 12;
   pointer-events: none;
+}
+
+.hud-toggle-pill {
+  pointer-events: auto;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+.hud-toggle-pill:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+}
+
+.hud-cards-container {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 680px;
+  transition: all 0.25s ease;
+}
+.hud-cards-container.collapsed {
+  display: none !important;
 }
 
 .hud-card {
   pointer-events: auto;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  padding: 12px 18px;
-  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 6px 10px;
+  border-radius: 8px;
   backdrop-filter: blur(8px);
-  min-width: 140px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  min-width: 90px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .hud-card .label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
 }
 
 .hud-card .value {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: bold;
   color: var(--text-main);
 }
@@ -165,54 +201,109 @@ header {
 .hud-card.accent-amber .value { color: var(--accent-amber); }
 .hud-card.accent-red .value { color: var(--accent-red); }
 
-/* Viewport Controls (Camera, Legend) */
-.viewport-controls {
+/* Viewport 3D Smooth Navigation & Camera Controls Dock (Gizmo) */
+.viewport-nav-gizmo {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 12px;
+  padding: 6px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
   display: flex;
-  gap: 8px;
-  z-index: 10;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 12;
 }
 
-.control-btn {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  color: var(--text-main);
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 12px;
+.nav-gizmo-row {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.nav-gizmo-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  font-size: 11px;
   cursor: pointer;
-  backdrop-filter: blur(8px);
-  transition: all 0.2s ease;
-}
-
-.control-btn:hover {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
-}
-
-/* Blueprint Overlay HUD Toolbar */
-.blueprint-hud-bar {
-  position: absolute;
-  top: 75px;
-  left: 20px;
-  background: rgba(15, 23, 36, 0.92);
-  border: 1px solid rgba(0, 210, 255, 0.4);
-  padding: 8px 14px;
-  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  backdrop-filter: blur(12px);
-  z-index: 10;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  animation: fadeInDown 0.3s ease-out;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.nav-gizmo-btn:hover {
+  background: #38bdf8;
+  color: #0f172a;
+  border-color: #38bdf8;
+  transform: scale(1.08);
+}
+.nav-gizmo-btn.primary {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
 
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Blueprint Overlay HUD Toolbar — Docked Top-Right & Collapsible */
+.blueprint-hud-bar {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  left: auto;
+  background: rgba(15, 23, 36, 0.92);
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  padding: 6px 12px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  backdrop-filter: blur(12px);
+  z-index: 12;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: fadeInDown 0.3s ease-out;
+  max-width: calc(100vw - 420px);
+}
+
+.hud-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.hud-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hud-bar-content.collapsed {
+  display: none !important;
+}
+
+.hud-toggle-pill-sm {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.hud-toggle-pill-sm:hover {
+  background: var(--accent-cyan);
+  color: #0f172a;
 }
 
 .hud-bar-title {
@@ -287,24 +378,64 @@ header {
   box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
 }
 
-/* Storey & Multi-Level Massing Control Bar */
+/* Storey & Multi-Level Massing Control Bar — Docked Bottom Center with Horizontal Scroll */
 .storey-control-bar {
   position: absolute;
-  top: 130px;
-  left: 20px;
-  background: rgba(13, 20, 32, 0.94);
-  border: 1px solid rgba(110, 142, 251, 0.45);
-  padding: 8px 14px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: auto;
+  background: rgba(13, 20, 32, 0.95);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  padding: 6px 12px;
   border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   backdrop-filter: blur(14px);
-  z-index: 10;
+  z-index: 12;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
-  animation: fadeInDown 0.3s ease-out;
-  flex-wrap: wrap;
-  max-width: calc(100vw - 420px);
+  animation: fadeInUp 0.3s ease-out;
+  flex-wrap: nowrap;
+  max-width: min(840px, calc(100vw - 360px));
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.storey-scroll-track {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  max-width: 460px;
+}
+.storey-scroll-track::-webkit-scrollbar {
+  display: none;
+}
+
+.storey-scroll-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.storey-scroll-btn:hover {
+  background: #a855f7;
+  border-color: #a855f7;
 }
 
 .storey-bar-title {
@@ -962,20 +1093,22 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   cursor: pointer;
 }
 
-/* Floating Architectural Blueprint Tracer Bar */
+/* Floating Architectural Blueprint Tracer Palette — Docked Top-Right */
 .blueprint-tracer-bar {
   position: absolute;
-  top: 135px;
-  left: 20px;
-  background: rgba(14, 20, 30, 0.94);
+  top: 54px;
+  right: 16px;
+  left: auto;
+  max-width: 520px;
+  background: rgba(14, 20, 30, 0.96);
   border: 1px solid var(--accent-cyan);
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-radius: 12px;
-  display: flex;
+  display: none;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   backdrop-filter: blur(14px);
-  z-index: 15;
+  z-index: 20;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 210, 255, 0.2);
   animation: fadeInDown 0.25s ease-out;
   direction: rtl;

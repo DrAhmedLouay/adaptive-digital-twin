@@ -115,7 +115,10 @@ class TwinApp {
                 btn.className = 'storey-btn';
                 btn.dataset.storeyId = storeyId;
                 const elev = (storey.elevation ?? 0).toFixed(1);
-                btn.textContent = `${storey.name_ar || storey.name || storeyId}  (+${elev}m)`;
+                let label = storey.name_ar || storey.name || storeyId;
+                label = label.replace(/^طابق\s*معماري:\s*/i, '').trim();
+                if (!label) label = storey.name || storeyId;
+                btn.textContent = `${label} (${elev >= 0 ? '+' : ''}${elev}m)`;
                 btn.title = `طابق: ${storey.name || storeyId} — ارتفاع: ${elev}م`;
                 btn.addEventListener('click', () => {
                     this.viewer.setStoreyFilter(storeyId);
@@ -124,6 +127,22 @@ class TwinApp {
                 });
                 container.appendChild(btn);
             });
+
+        // أزرار التمرير الأفقي لشريط الطوابق
+        const btnScrollLeft = document.getElementById('btn-storey-scroll-left');
+        const btnScrollRight = document.getElementById('btn-storey-scroll-right');
+        if (btnScrollLeft && !btnScrollLeft._bound) {
+            btnScrollLeft._bound = true;
+            btnScrollLeft.addEventListener('click', () => {
+                container.scrollBy({ left: -140, behavior: 'smooth' });
+            });
+        }
+        if (btnScrollRight && !btnScrollRight._bound) {
+            btnScrollRight._bound = true;
+            btnScrollRight.addEventListener('click', () => {
+                container.scrollBy({ left: 140, behavior: 'smooth' });
+            });
+        }
 
         // زر الفصل (Exploded View)
         if (btnExplod) {
@@ -194,7 +213,7 @@ class TwinApp {
             });
         }
 
-        // ج. أزرار التحكم في الكاميرا
+        // ج. أزرار التحكم في الكاميرا وأداة الملاحة ثلاثية الأبعاد (Navigation Gizmo)
         const btnTopView = document.getElementById('btn-top-view');
         if (btnTopView) {
             btnTopView.addEventListener('click', () => this.viewer.toggleCameraView());
@@ -203,6 +222,41 @@ class TwinApp {
         const btnResetView = document.getElementById('btn-reset-view');
         if (btnResetView) {
             btnResetView.addEventListener('click', () => this.viewer.resetCamera());
+        }
+
+        const bindGizmoBtn = (id, action) => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', action);
+        };
+        bindGizmoBtn('btn-nav-orbit-left', () => this.viewer.orbitCamera(15, 0));
+        bindGizmoBtn('btn-nav-orbit-right', () => this.viewer.orbitCamera(-15, 0));
+        bindGizmoBtn('btn-nav-tilt-up', () => this.viewer.orbitCamera(0, 10));
+        bindGizmoBtn('btn-nav-tilt-down', () => this.viewer.orbitCamera(0, -10));
+        bindGizmoBtn('btn-nav-pan-left', () => this.viewer.panCamera(-10, 0));
+        bindGizmoBtn('btn-nav-pan-right', () => this.viewer.panCamera(10, 0));
+        bindGizmoBtn('btn-nav-zoom-in', () => this.viewer.zoomCamera(1.25));
+        bindGizmoBtn('btn-nav-zoom-out', () => this.viewer.zoomCamera(0.8));
+        bindGizmoBtn('btn-nav-fit', () => this.viewer.fitCameraToBuilding());
+
+        // أزرار طي وتوسيع لوحات العرض (HUD & Blueprint Overlay) لتوفير أقصى مساحة رؤية
+        const btnToggleHud = document.getElementById('btn-toggle-hud');
+        const hudCards = document.getElementById('hud-cards-container');
+        const hudArrow = document.getElementById('hud-collapse-arrow');
+        if (btnToggleHud && hudCards) {
+            btnToggleHud.addEventListener('click', () => {
+                const isCollapsed = hudCards.classList.toggle('collapsed');
+                if (hudArrow) hudArrow.textContent = isCollapsed ? '⏶' : '⏷';
+            });
+        }
+
+        const btnToggleBpHud = document.getElementById('btn-toggle-blueprint-hud');
+        const bpHudContent = document.getElementById('blueprint-hud-content');
+        const bpArrow = document.getElementById('bp-collapse-arrow');
+        if (btnToggleBpHud && bpHudContent) {
+            btnToggleBpHud.addEventListener('click', () => {
+                const isCollapsed = bpHudContent.classList.toggle('collapsed');
+                if (bpArrow) bpArrow.textContent = isCollapsed ? '⏶' : '⏷';
+            });
         }
 
         // د. زر تصدير البيانات للرسالة الأكاديمية (JSON & CSV)

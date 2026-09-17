@@ -90,17 +90,26 @@ class Twin3DViewer {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.container.appendChild(this.renderer.domElement);
 
-        // 4. OrbitControls — مع معالجة حالة فشل تحميل المكتبة من CDN
+        // 4. OrbitControls — تحكم وتدوير وإزاحة وتقريب فائق السلاسة (Smooth CAD/BIM Orbit Controls)
         try {
             const ControlsClass = (THREE.OrbitControls) || (window.OrbitControls);
             if (ControlsClass) {
                 this.controls = new ControlsClass(this.camera, this.renderer.domElement);
                 this.controls.enableDamping = true;
-                this.controls.dampingFactor = 0.05;
-                this.controls.maxPolarAngle = Math.PI / 2.05;
-                this.controls.minDistance = 2.0;
-                this.controls.maxDistance = 1000.0;
+                this.controls.dampingFactor = 0.08;
+                this.controls.screenSpacePanning = true;
+                this.controls.rotateSpeed = 0.85;
+                this.controls.zoomSpeed = 1.2;
+                this.controls.panSpeed = 1.0;
+                this.controls.minDistance = 0.5;
+                this.controls.maxDistance = 3500.0;
+                this.controls.maxPolarAngle = Math.PI - 0.02; // حرية كاملة في تدوير ورؤية المبنى من كافة الزوايا
                 this.controls.target.set(0, 0, 0);
+                this.controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.ROTATE,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.PAN
+                };
             } else {
                 console.warn("OrbitControls not found — camera controls disabled.");
                 this.controls = { update: () => {}, enableDamping: false };
@@ -113,9 +122,15 @@ class Twin3DViewer {
         // 5. Lighting
         this.setupLighting();
 
-        // 6. Architectural Grid — شبكة معمارية ممتدة (180م) تغطي الرؤية الشاملة للمسقط
-        const grid = new THREE.GridHelper(180, 60, 0x1f3048, 0x141f2e);
+        // 6. Architectural Grid — شبكة معمارية ثلاثية الأبعاد بيضاء ناصعة وأنيقة (Pure White 3D Grid)
+        const grid = new THREE.GridHelper(260, 80, 0xffffff, 0xd8d8d8);
         grid.position.y = -0.05;
+        if (grid.material) {
+            grid.material.transparent = true;
+            grid.material.opacity = 0.6; // لون أبيض ناصع وواضح جداً ومريح للعين
+            grid.material.depthWrite = false;
+        }
+        this.gridHelper = grid;
         this.scene.add(grid);
 
         // محاور الشبكة المحورية للشاشة (X: أحمر، Y: أخضر، Z: أزرق) لإبراز نقطة الأصل (0, 0, 0)
@@ -1412,6 +1427,51 @@ class Twin3DViewer {
         this.setCameraView(false);
     }
 
+    // تدوير الكاميرا بسلاسة تامة أفقياً ورأسياً (Smooth Orbit)
+    orbitCamera(deltaAzimuthDeg = 15, deltaPolarDeg = 0) {
+        if (!this.controls || !this.camera) return;
+        const dTheta = (deltaAzimuthDeg * Math.PI) / 180;
+        const dPhi = (deltaPolarDeg * Math.PI) / 180;
+        
+        const offset = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
+        const spherical = new THREE.Spherical().setFromVector3(offset);
+        spherical.theta += dTheta;
+        spherical.phi = Math.max(0.08, Math.min(Math.PI - 0.08, spherical.phi + dPhi));
+        offset.setFromSpherical(spherical);
+        this.camera.position.copy(this.controls.target).add(offset);
+        this.controls.update();
+    }
+
+    // تقريب وتبعيد الكاميرا بسلاسة تامة (Smooth Zoom)
+    zoomCamera(factor = 0.8) {
+        if (!this.controls || !this.camera) return;
+        const offset = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
+        const newLen = offset.length() * factor;
+        const minD = this.controls.minDistance || 0.5;
+        const maxD = this.controls.maxDistance || 3500;
+        if (newLen >= minD && newLen <= maxD) {
+            offset.multiplyScalar(factor);
+            this.camera.position.copy(this.controls.target).add(offset);
+            this.controls.update();
+        }
+    }
+
+    // إزاحة وتحريك الكاميرا في فضاء الشاشة (Smooth Screen-space Pan)
+    panCamera(deltaX = 0, deltaY = 0) {
+        if (!this.controls || !this.camera) return;
+        const eye = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
+        const right = new THREE.Vector3().crossVectors(this.camera.up, eye).normalize();
+        const up = new THREE.Vector3().copy(this.camera.up).normalize();
+
+        const move = new THREE.Vector3()
+            .addScaledVector(right, deltaX)
+            .addScaledVector(up, deltaY);
+
+        this.camera.position.add(move);
+        this.controls.target.add(move);
+        this.controls.update();
+    }
+
     frameBuildingInView(modelData = null) {
         // 1. إعادة ضبط وتثبيت نقطة ارتكاز الكاميرا في منتصف الشبكة المحورية (0, 0, 0)
         if (this.controls && this.controls.target) {
@@ -2456,6 +2516,69 @@ class Twin3DViewer {
         }
     }
 
+    _createMergedBoxesGeometry(boxList) {
+        const count = boxList.length;
+        const vertexCount = count * 24;
+        const indexCount = count * 36;
+
+        const positions = new Float32Array(vertexCount * 3);
+        const normals = new Float32Array(vertexCount * 3);
+        const uvs = new Float32Array(vertexCount * 2);
+        const indices = (vertexCount > 65535) ? new Uint32Array(indexCount) : new Uint16Array(indexCount);
+
+        const dummy = new THREE.Object3D();
+        const baseBox = new THREE.BoxGeometry(1, 1, 1);
+        const bPos = baseBox.attributes.position.array;
+        const bNorm = baseBox.attributes.normal.array;
+        const bUv = baseBox.attributes.uv.array;
+        const bIdx = baseBox.index.array;
+
+        for (let i = 0; i < count; i++) {
+            const b = boxList[i];
+            dummy.position.set(b.x, b.y, b.z);
+            dummy.rotation.set(0, b.rotY, 0);
+            dummy.scale.set(b.w, b.h, b.d);
+            dummy.updateMatrix();
+            const m = dummy.matrix.elements;
+
+            const vOff = i * 24;
+            const iOff = i * 36;
+
+            for (let v = 0; v < 24; v++) {
+                const vx = bPos[v * 3];
+                const vy = bPos[v * 3 + 1];
+                const vz = bPos[v * 3 + 2];
+
+                positions[(vOff + v) * 3] = vx * m[0] + vy * m[4] + vz * m[8] + m[12];
+                positions[(vOff + v) * 3 + 1] = vx * m[1] + vy * m[5] + vz * m[9] + m[13];
+                positions[(vOff + v) * 3 + 2] = vx * m[2] + vy * m[6] + vz * m[10] + m[14];
+
+                const nx = bNorm[v * 3];
+                const ny = bNorm[v * 3 + 1];
+                const nz = bNorm[v * 3 + 2];
+                normals[(vOff + v) * 3] = nx * m[0] + ny * m[4] + nz * m[8];
+                normals[(vOff + v) * 3 + 1] = nx * m[1] + ny * m[5] + nz * m[9];
+                normals[(vOff + v) * 3 + 2] = nx * m[2] + ny * m[6] + nz * m[10];
+
+                uvs[(vOff + v) * 2] = bUv[v * 2];
+                uvs[(vOff + v) * 2 + 1] = bUv[v * 2 + 1];
+            }
+
+            for (let idx = 0; idx < 36; idx++) {
+                indices[iOff + idx] = vOff + bIdx[idx];
+            }
+        }
+
+        baseBox.dispose();
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+        geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        geo.setIndex(new THREE.BufferAttribute(indices, 1));
+        return geo;
+    }
+
     buildWallsAndOpenings(walls, openings, spaces) {
         // تنظيف وحذف أي كائنات جدران سابقة لمنع التراكم والتداخل عند التعديل والحذف
         if (this.wallMeshes) {
@@ -2591,6 +2714,73 @@ class Twin3DViewer {
             transparent: true,
             opacity: 0.5
         });
+
+        const totalWallCount = Object.keys(walls).length;
+        const isHugeModel = (totalWallCount > 250);
+
+        // تعطيل الظلال الثقيلة للموديلات المعمارية الضخمة لضمان تدوير وتحريك فائق السلاسة (60 FPS)
+        if (isHugeModel && this.renderer) {
+            this.renderer.shadowMap.enabled = false;
+        }
+
+        if (isHugeModel) {
+            // معالجة فائقة السرعة للموديلات المعمارية الضخمة (14,000+ جدار):
+            // دمج جدران كل طابق في مجسم BufferGeometry واحد لتقليص أوامر الرسم والـ Draw Calls بنسبة 99.9%
+            const storeyWallBoxes = {};
+            for (const [wId, wall] of Object.entries(walls)) {
+                if (!wall.start || !wall.end) continue;
+                const stId = wall.storey_id || 'st_g';
+                if (!storeyWallBoxes[stId]) storeyWallBoxes[stId] = [];
+
+                const x1 = wall.start[0], z1 = wall.start[1];
+                const x2 = wall.end[0], z2 = wall.end[1];
+                const dx = x2 - x1, dz = z2 - z1;
+                const length = Math.hypot(dx, dz);
+                if (length < 0.05) continue;
+
+                const angle = Math.atan2(dz, dx);
+                const wallH = wall.height || 2.8;
+                const wallT = wall.thickness || 0.25;
+                const baseY = wall.base_elevation || wall.elevation || 0;
+
+                const midX = (x1 + x2) / 2;
+                const midZ = (z1 + z2) / 2;
+                const midY = baseY + wallH / 2;
+
+                storeyWallBoxes[stId].push({
+                    x: midX,
+                    y: midY,
+                    z: midZ,
+                    rotY: -angle,
+                    w: length,
+                    h: wallH,
+                    d: wallT,
+                    wallId: wId
+                });
+            }
+
+            for (const [stId, boxList] of Object.entries(storeyWallBoxes)) {
+                if (boxList.length === 0) continue;
+                const mergedGeo = this._createMergedBoxesGeometry(boxList);
+                const batchMesh = new THREE.Mesh(mergedGeo, wallMaterial);
+                batchMesh.userData = {
+                    type: 'wall_batch',
+                    storeyId: stId,
+                    wallIds: boxList.map(b => b.wallId),
+                    boxList: boxList
+                };
+                batchMesh.visible = this.wallsVisible;
+                const parent = (this.storeyGroups && this.storeyGroups[stId]) || this.buildingGroup;
+                parent.add(batchMesh);
+                this.wallMeshes[`batch_${stId}`] = batchMesh;
+            }
+
+            // تحديث التدفق الحركي والإنهاء الفوري بدون أي تأخير
+            if (typeof this.setupCirculationParticles === 'function') {
+                this.setupCirculationParticles(this.buildingData);
+            }
+            return;
+        }
 
         for (const [wId, wall] of Object.entries(walls)) {
             const x1 = wall.start[0], z1 = wall.start[1];
@@ -2877,85 +3067,87 @@ class Twin3DViewer {
             this.wallMeshes[wId] = wallGroup;
         }
 
-        // 4. توليد وصلات وأعمدة ربط التقاطعات والزوايا النظيفة (Clean Corner Miter & Intersection Joint Caps)
-        const cornerMap = new Map();
-        for (const [wId, wall] of Object.entries(walls)) {
-            const s = wall.start, e = wall.end;
-            const keyS = `${Math.round(s[0] * 5) / 5},${Math.round(s[1] * 5) / 5}`;
-            const keyE = `${Math.round(e[0] * 5) / 5},${Math.round(e[1] * 5) / 5}`;
-            cornerMap.set(keyS, (cornerMap.get(keyS) || 0) + 1);
-            cornerMap.set(keyE, (cornerMap.get(keyE) || 0) + 1);
-        }
-
-        const renderedJoints = new Set();
-        for (const [wId, wall] of Object.entries(walls)) {
-            const wallH = wall.height || 2.8;
-            const wallT = wall.thickness || 0.25;
-            const baseY = wall.base_elevation || wall.elevation || 0;
-            const s = wall.start, e = wall.end;
-
-            // أ. وصلات الزوايا بين نهايات الجدران (Corner Miters)
-            for (const pt of [s, e]) {
-                const key = `${Math.round(pt[0] * 5) / 5},${Math.round(pt[1] * 5) / 5}`;
-                if ((cornerMap.get(key) || 0) >= 2 && !renderedJoints.has(key)) {
-                    renderedJoints.add(key);
-                    const jointRadius = Math.max(0.13, wallT * 0.52);
-                    const cornerGeo = new THREE.CylinderGeometry(jointRadius, jointRadius, wallH, 18);
-                    const cornerMesh = new THREE.Mesh(cornerGeo, wallMaterial);
-                    cornerMesh.position.set(pt[0], baseY + wallH / 2, pt[1]);
-                    cornerMesh.castShadow = true;
-                    cornerMesh.receiveShadow = true;
-                    cornerMesh.userData = { type: 'wall_joint', wallId: wId, storeyId: wall.storey_id, baseY: baseY + wallH / 2 };
-
-                    const cEdges = new THREE.EdgesGeometry(cornerGeo);
-                    const cLine = new THREE.LineSegments(cEdges, new THREE.LineBasicMaterial({
-                        color: 0x2e4a70,
-                        transparent: true,
-                        opacity: 0.6
-                    }));
-                    cornerMesh.add(cLine);
-                    const jointParent = (wall.storey_id && this.storeyGroups[wall.storey_id]) || this.jointCapsGroup;
-                    jointParent.add(cornerMesh);
-                }
+        // 4. توليد وصلات وأعمدة ربط التقاطعات والزوايا النظيفة (فقط للمخططات الصغيرة والمتوسطة لمنع التعليق)
+        if (!isHugeModel) {
+            const cornerMap = new Map();
+            for (const [wId, wall] of Object.entries(walls)) {
+                const s = wall.start, e = wall.end;
+                const keyS = `${Math.round(s[0] * 5) / 5},${Math.round(s[1] * 5) / 5}`;
+                const keyE = `${Math.round(e[0] * 5) / 5},${Math.round(e[1] * 5) / 5}`;
+                cornerMap.set(keyS, (cornerMap.get(keyS) || 0) + 1);
+                cornerMap.set(keyE, (cornerMap.get(keyE) || 0) + 1);
             }
 
-            // ب. وصلات التقاطعات المتعامدة والمتقاطعة (T-Junctions & Intersections)
-            const ptsA = [wall.start, wall.end];
-            for (const [idB, wB] of Object.entries(walls)) {
-                if (wId === idB) continue;
-                const x1 = wB.start[0], z1 = wB.start[1];
-                const x2 = wB.end[0], z2 = wB.end[1];
-                const dx = x2 - x1, dz = z2 - z1;
-                const lenSq = dx * dx + dz * dz;
-                if (lenSq < 0.2) continue;
+            const renderedJoints = new Set();
+            for (const [wId, wall] of Object.entries(walls)) {
+                const wallH = wall.height || 2.8;
+                const wallT = wall.thickness || 0.25;
+                const baseY = wall.base_elevation || wall.elevation || 0;
+                const s = wall.start, e = wall.end;
 
-                for (const pt of ptsA) {
-                    const u = ((pt[0] - x1) * dx + (pt[1] - z1) * dz) / lenSq;
-                    if (u > 0.05 && u < 0.95) {
-                        const projX = x1 + u * dx;
-                        const projZ = z1 + u * dz;
-                        const dist = Math.hypot(pt[0] - projX, pt[1] - projZ);
-                        const key = `t_${Math.round(projX * 5) / 5},${Math.round(projZ * 5) / 5}`;
+                // أ. وصلات الزوايا بين نهايات الجدران (Corner Miters)
+                for (const pt of [s, e]) {
+                    const key = `${Math.round(pt[0] * 5) / 5},${Math.round(pt[1] * 5) / 5}`;
+                    if ((cornerMap.get(key) || 0) >= 2 && !renderedJoints.has(key)) {
+                        renderedJoints.add(key);
+                        const jointRadius = Math.max(0.13, wallT * 0.52);
+                        const cornerGeo = new THREE.CylinderGeometry(jointRadius, jointRadius, wallH, 18);
+                        const cornerMesh = new THREE.Mesh(cornerGeo, wallMaterial);
+                        cornerMesh.position.set(pt[0], baseY + wallH / 2, pt[1]);
+                        cornerMesh.castShadow = true;
+                        cornerMesh.receiveShadow = true;
+                        cornerMesh.userData = { type: 'wall_joint', wallId: wId, storeyId: wall.storey_id, baseY: baseY + wallH / 2 };
 
-                        if (dist <= wallT * 0.85 && !renderedJoints.has(key)) {
-                            renderedJoints.add(key);
-                            const tRadius = Math.max(0.14, Math.max(wallT, wB.thickness || 0.25) * 0.52);
-                            const tGeo = new THREE.CylinderGeometry(tRadius, tRadius, wallH, 18);
-                            const tMesh = new THREE.Mesh(tGeo, wallMaterial);
-                            tMesh.position.set(projX, baseY + wallH / 2, projZ);
-                            tMesh.castShadow = true;
-                            tMesh.receiveShadow = true;
-                            tMesh.userData = { type: 'wall_joint', wallId: wId, storeyId: wall.storey_id, baseY: baseY + wallH / 2 };
+                        const cEdges = new THREE.EdgesGeometry(cornerGeo);
+                        const cLine = new THREE.LineSegments(cEdges, new THREE.LineBasicMaterial({
+                            color: 0x2e4a70,
+                            transparent: true,
+                            opacity: 0.6
+                        }));
+                        cornerMesh.add(cLine);
+                        const jointParent = (wall.storey_id && this.storeyGroups[wall.storey_id]) || this.jointCapsGroup;
+                        jointParent.add(cornerMesh);
+                    }
+                }
 
-                            const tEdges = new THREE.EdgesGeometry(tGeo);
-                            const tLine = new THREE.LineSegments(tEdges, new THREE.LineBasicMaterial({
-                                color: 0x2e4a70,
-                                transparent: true,
-                                opacity: 0.6
-                            }));
-                            tMesh.add(tLine);
-                            const jointParent = (wall.storey_id && this.storeyGroups[wall.storey_id]) || this.jointCapsGroup;
-                            jointParent.add(tMesh);
+                // ب. وصلات التقاطعات المتعامدة والمتقاطعة (T-Junctions & Intersections)
+                const ptsA = [wall.start, wall.end];
+                for (const [idB, wB] of Object.entries(walls)) {
+                    if (wId === idB) continue;
+                    const x1 = wB.start[0], z1 = wB.start[1];
+                    const x2 = wB.end[0], z2 = wB.end[1];
+                    const dx = x2 - x1, dz = z2 - z1;
+                    const lenSq = dx * dx + dz * dz;
+                    if (lenSq < 0.2) continue;
+
+                    for (const pt of ptsA) {
+                        const u = ((pt[0] - x1) * dx + (pt[1] - z1) * dz) / lenSq;
+                        if (u > 0.05 && u < 0.95) {
+                            const projX = x1 + u * dx;
+                            const projZ = z1 + u * dz;
+                            const dist = Math.hypot(pt[0] - projX, pt[1] - projZ);
+                            const key = `t_${Math.round(projX * 5) / 5},${Math.round(projZ * 5) / 5}`;
+
+                            if (dist <= wallT * 0.85 && !renderedJoints.has(key)) {
+                                renderedJoints.add(key);
+                                const tRadius = Math.max(0.14, Math.max(wallT, wB.thickness || 0.25) * 0.52);
+                                const tGeo = new THREE.CylinderGeometry(tRadius, tRadius, wallH, 18);
+                                const tMesh = new THREE.Mesh(tGeo, wallMaterial);
+                                tMesh.position.set(projX, baseY + wallH / 2, projZ);
+                                tMesh.castShadow = true;
+                                tMesh.receiveShadow = true;
+                                tMesh.userData = { type: 'wall_joint', wallId: wId, storeyId: wall.storey_id, baseY: baseY + wallH / 2 };
+
+                                const tEdges = new THREE.EdgesGeometry(tGeo);
+                                const tLine = new THREE.LineSegments(tEdges, new THREE.LineBasicMaterial({
+                                    color: 0x2e4a70,
+                                    transparent: true,
+                                    opacity: 0.6
+                                }));
+                                tMesh.add(tLine);
+                                const jointParent = (wall.storey_id && this.storeyGroups[wall.storey_id]) || this.jointCapsGroup;
+                                jointParent.add(tMesh);
+                            }
                         }
                     }
                 }
@@ -3364,6 +3556,21 @@ class Twin3DViewer {
                 if (hit.object.isLine || hit.object.isSprite || hit.object === this.blueprintMesh) continue;
                 if (hit.object === this.selectionHighlight) continue;
 
+                // دعم المجسمات المجمعة للجدران الضخمة (wall_batch)
+                if (hit.object.userData && hit.object.userData.type === 'wall_batch') {
+                    const boxIdx = Math.floor(hit.faceIndex / 12);
+                    const wallId = hit.object.userData.wallIds[boxIdx];
+                    const boxData = hit.object.userData.boxList[boxIdx];
+                    const uData = {
+                        type: 'wall',
+                        wallId: wallId,
+                        storeyId: hit.object.userData.storeyId,
+                        boxData: boxData
+                    };
+                    selectedHit = { mesh: hit.object, targetObj: hit.object, userData: uData, point: hit.point, boxData: boxData };
+                    break;
+                }
+
                 let curr = hit.object;
                 let uData = null;
                 while (curr && curr !== this.buildingGroup) {
@@ -3393,18 +3600,9 @@ class Twin3DViewer {
         const obj = hit.targetObj || hit.mesh;
         this.selectedElement = hit;
 
-        try {
-            const box = new THREE.Box3().setFromObject(obj);
-            const boxSize = new THREE.Vector3();
-            box.getSize(boxSize);
-            const boxCenter = new THREE.Vector3();
-            box.getCenter(boxCenter);
-
-            const highlightGeo = new THREE.BoxGeometry(
-                Math.max(0.2, boxSize.x + 0.12),
-                Math.max(0.2, boxSize.y + 0.12),
-                Math.max(0.2, boxSize.z + 0.12)
-            );
+        if (hit.boxData) {
+            const b = hit.boxData;
+            const highlightGeo = new THREE.BoxGeometry(b.w + 0.1, b.h + 0.1, b.d + 0.1);
             const highlightMat = new THREE.MeshBasicMaterial({
                 color: 0x38bdf8,
                 wireframe: true,
@@ -3412,10 +3610,34 @@ class Twin3DViewer {
                 opacity: 0.95
             });
             this.selectionHighlight = new THREE.Mesh(highlightGeo, highlightMat);
-            this.selectionHighlight.position.copy(boxCenter);
+            this.selectionHighlight.position.set(b.x, b.y, b.z);
+            this.selectionHighlight.rotation.set(0, b.rotY, 0);
             this.scene.add(this.selectionHighlight);
-        } catch (e) {
-            console.warn("Could not generate selection highlight box:", e);
+        } else {
+            try {
+                const box = new THREE.Box3().setFromObject(obj);
+                const boxSize = new THREE.Vector3();
+                box.getSize(boxSize);
+                const boxCenter = new THREE.Vector3();
+                box.getCenter(boxCenter);
+
+                const highlightGeo = new THREE.BoxGeometry(
+                    Math.max(0.2, boxSize.x + 0.12),
+                    Math.max(0.2, boxSize.y + 0.12),
+                    Math.max(0.2, boxSize.z + 0.12)
+                );
+                const highlightMat = new THREE.MeshBasicMaterial({
+                    color: 0x38bdf8,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.95
+                });
+                this.selectionHighlight = new THREE.Mesh(highlightGeo, highlightMat);
+                this.selectionHighlight.position.copy(boxCenter);
+                this.scene.add(this.selectionHighlight);
+            } catch (e) {
+                console.warn("Could not generate selection highlight box:", e);
+            }
         }
 
         const details = this.getElementBimDetails(hit.userData, hit.targetObj || hit.mesh);
