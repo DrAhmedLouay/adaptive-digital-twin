@@ -9,12 +9,12 @@
     <script>
         // كسر التخزين المؤقت تلقائياً وإعادة التحميل القسري لأحدث كود مباشرة
         (function() {
-            var CURRENT_VER = '2.3.2';
+            var CURRENT_VER = '2.3.3';
             var stored = localStorage.getItem('adaptive_twin_ver');
             var urlParams = new URLSearchParams(window.location.search);
-            if (stored !== CURRENT_VER && !urlParams.has('v232')) {
+            if (stored !== CURRENT_VER && !urlParams.has('v233')) {
                 localStorage.setItem('adaptive_twin_ver', CURRENT_VER);
-                urlParams.set('v232', Date.now());
+                urlParams.set('v233', Date.now());
                 window.location.replace(window.location.pathname + '?' + urlParams.toString());
             }
         })();
@@ -24,7 +24,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.3.2">
+    <link rel="stylesheet" href="css/styles.css?v=2.3.3">
 </head>
 <body>
 
@@ -221,6 +221,12 @@
                     <button class="hud-toggle-btn" id="btn-toggle-flow-vis"
                             data-tooltip-title="إظهار / إخفاء تدفق الحركة (Spatial Flow)"
                             data-tooltip="التبديل بين إظهار أو إخفاء جسيمات التدفق الحركي المعماري عبر شبكة الممرات والأبواب والقواطع التكيفية.">⚡ إخفاء تدفق الحركة</button>
+                    <button class="hud-toggle-btn" id="btn-toggle-flow-theme"
+                            data-tooltip-title="تخصيص وتمييز لون التدفق الحركي"
+                            data-tooltip="التبديل الفوري بين ألوان التدفق الحركي المعماري عالية التباين على الخلفية البيضاء (أزرق ملكي كحلي، بنفسجي إشعاعي، قرمزي ديناميكي، أخضر زمردي، كهرماني).">
+                        <span id="flow-color-dot" style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#1d4ed8; box-shadow:0 0 6px #1d4ed8; margin-left:4px; vertical-align:middle;"></span>
+                        <span id="flow-color-label">لون التدفق: أزرق ملكي</span>
+                    </button>
                     <button class="hud-toggle-btn" id="btn-toggle-walls-vis"
                             data-tooltip-title="إظهار / إخفاء الجدران والفتحات"
                             data-tooltip="التبديل بين إظهار الجدران المعمارية ثلاثية الأبعاد بفتحات الأبواب والشبابيك الحقيقية أو إخفائها.">🧱 إخفاء الجدران</button>
@@ -967,12 +973,12 @@
     </script>
 
     <!-- Application Scripts -->
-    <script src="js/default_model.js?v=2.3.2"></script>
-    <script src="js/viewer3d.js?v=2.3.2"></script>
-    <script src="js/analytics.js?v=2.3.2"></script>
-    <script src="js/ifc_step_parser.js?v=2.3.2"></script>
-    <script src="js/plan_manager.js?v=2.3.2"></script>
-    <script src="js/tooltip.js?v=2.3.2"></script>
-    <script src="js/app.js?v=2.3.2"></script>
+    <script src="js/default_model.js?v=2.3.3"></script>
+    <script src="js/viewer3d.js?v=2.3.3"></script>
+    <script src="js/analytics.js?v=2.3.3"></script>
+    <script src="js/ifc_step_parser.js?v=2.3.3"></script>
+    <script src="js/plan_manager.js?v=2.3.3"></script>
+    <script src="js/tooltip.js?v=2.3.3"></script>
+    <script src="js/app.js?v=2.3.3"></script>
 </body>
 </html>

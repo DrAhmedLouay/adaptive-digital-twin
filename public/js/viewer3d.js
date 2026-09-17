@@ -53,12 +53,88 @@ class Twin3DViewer {
         this.flowVisible = true;
         this.clock = new THREE.Clock();
         this.circulationRoutes = [];
+        this.circulationRoutesGroup = null;
         this.particleAgents = [];
         this.particleTexture = null;
         this.corridorFlowState = {};
+        this.flowColorTheme = localStorage.getItem('adaptive_twin_flow_theme') || 'royal_blue';
         
         this.init();
     }
+
+    // منظومة ألوان التدفق الحركي المعماري عالية التباين على الخلفية البيضاء
+    static FLOW_THEMES = {
+        'royal_blue': {
+            id: 'royal_blue',
+            name_ar: 'أزرق ملكي كحلي',
+            hexStr: '#1d4ed8',
+            primary: 0x1d4ed8,    // أزرق ملكي عميق وكحلي عالي التباين (8.5:1) ناصع الوضوح على الأبيض
+            spine: 0x1e40af,      // كحلي داكن لشريان الحركة الرئيسي
+            stair: 0xb45309,      // برونزي كهرماني لحركة السلالم
+            staff: 0x0f766e,      // تيل داكن لكوادر المكاتب
+            adaptive: 0x6d28d9,   // أرجواني عميق للمسارات التكيفية
+            bypass: 0x047857,     // زمردي غني لمسارات التفريغ
+            congested: 0xb91c1c,  // أحمر قرمزي داكن للتكدس الحرج
+            streamline: 0x2563eb,
+            streamlineOpacity: 0.55
+        },
+        'radiant_violet': {
+            id: 'radiant_violet',
+            name_ar: 'بنفسجي إشعاعي',
+            hexStr: '#7c3aed',
+            primary: 0x7c3aed,
+            spine: 0x5b21b6,
+            stair: 0xd97706,
+            staff: 0x0d9488,
+            adaptive: 0x9333ea,
+            bypass: 0x059669,
+            congested: 0xdc2626,
+            streamline: 0x8b5cf6,
+            streamlineOpacity: 0.55
+        },
+        'vibrant_crimson': {
+            id: 'vibrant_crimson',
+            name_ar: 'قرمزي ديناميكي',
+            hexStr: '#dc2626',
+            primary: 0xdc2626,
+            spine: 0x991b1b,
+            stair: 0xb45309,
+            staff: 0x047857,
+            adaptive: 0x7c3aed,
+            bypass: 0x15803d,
+            congested: 0x7f1d1d,
+            streamline: 0xef4444,
+            streamlineOpacity: 0.55
+        },
+        'emerald_green': {
+            id: 'emerald_green',
+            name_ar: 'أخضر زمردي',
+            hexStr: '#059669',
+            primary: 0x059669,
+            spine: 0x065f46,
+            stair: 0xd97706,
+            staff: 0x0284c7,
+            adaptive: 0x7c3aed,
+            bypass: 0x10b981,
+            congested: 0xdc2626,
+            streamline: 0x10b981,
+            streamlineOpacity: 0.55
+        },
+        'architectural_amber': {
+            id: 'architectural_amber',
+            name_ar: 'كهرماني معماري',
+            hexStr: '#d97706',
+            primary: 0xd97706,
+            spine: 0x92400e,
+            stair: 0x2563eb,
+            staff: 0x0f766e,
+            adaptive: 0x7c3aed,
+            bypass: 0x059669,
+            congested: 0xdc2626,
+            streamline: 0xf59e0b,
+            streamlineOpacity: 0.55
+        }
+    };
 
     get currentModel() {
         return this.buildingData;
@@ -144,6 +220,7 @@ class Twin3DViewer {
 
         // 7. Circulation Flow Particles
         this.setupCirculationParticles();
+        this.updateFlowThemeUI();
 
         // 8. Resize Listener
         window.addEventListener('resize', () => this.onWindowResize());
@@ -527,16 +604,45 @@ class Twin3DViewer {
 
     createParticleTexture() {
         const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
+        canvas.width = 128;
+        canvas.height = 128;
         const ctx = canvas.getContext('2d');
-        const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-        grad.addColorStop(0.2, 'rgba(0, 210, 255, 0.95)');
-        grad.addColorStop(0.55, 'rgba(0, 140, 255, 0.45)');
-        grad.addColorStop(1, 'rgba(0, 40, 120, 0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 64, 64);
+        const cx = 64, cy = 64;
+
+        // 1. تفريغ الخلفية لتكون شفافة بالكامل
+        ctx.clearRect(0, 0, 128, 128);
+
+        // 2. ظل ناعم داكن محيطي (High-Contrast Ambient Drop Shadow) لإبراز الجسيم على أي خلفية بيضاء
+        const shadowGrad = ctx.createRadialGradient(cx, cy, 36, cx, cy, 62);
+        shadowGrad.addColorStop(0, 'rgba(15, 23, 42, 0.45)');
+        shadowGrad.addColorStop(0.65, 'rgba(15, 23, 42, 0.18)');
+        shadowGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+        ctx.fillStyle = shadowGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 62, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3. إطار خارجي داكن محدد لحواف الجسيم (Dark Crisp Contrast Rim)
+        const rimGrad = ctx.createRadialGradient(cx, cy, 28, cx, cy, 44);
+        rimGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+        rimGrad.addColorStop(0.70, 'rgba(240, 245, 255, 0.98)');
+        rimGrad.addColorStop(0.88, 'rgba(30, 41, 59, 0.85)');
+        rimGrad.addColorStop(1, 'rgba(15, 23, 42, 0.95)');
+        ctx.fillStyle = rimGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 44, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 4. قلب الجسيم المشع النقي (Luminous Core Mask for Vertex Colors)
+        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 34);
+        coreGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+        coreGrad.addColorStop(0.75, 'rgba(255, 255, 255, 0.98)');
+        coreGrad.addColorStop(1, 'rgba(245, 248, 255, 0.92)');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+        ctx.fill();
+
         const texture = new THREE.CanvasTexture(canvas);
         texture.needsUpdate = true;
         return texture;
@@ -548,6 +654,16 @@ class Twin3DViewer {
             if (this.particleSystem.material) this.particleSystem.material.dispose();
             this.scene.remove(this.particleSystem);
             this.particleSystem = null;
+        }
+        if (this.circulationRoutesGroup) {
+            while (this.circulationRoutesGroup.children.length > 0) {
+                const child = this.circulationRoutesGroup.children[0];
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+                this.circulationRoutesGroup.remove(child);
+            }
+            this.scene.remove(this.circulationRoutesGroup);
+            this.circulationRoutesGroup = null;
         }
         this.particleAgents = [];
         this.circulationRoutes = [];
@@ -1236,6 +1352,16 @@ class Twin3DViewer {
         this.circulationRoutes = this.buildCirculationNetwork(data);
         if (!this.circulationRoutes || this.circulationRoutes.length === 0) return;
 
+        const themeConfig = Viewer3D.FLOW_THEMES[this.flowColorTheme] || Viewer3D.FLOW_THEMES['royal_blue'];
+
+        // 1. بناء أشرطة ومسارات التدفق المعمارية على الأرضية (Flow Streamlines)
+        if (!this.circulationRoutesGroup) {
+            this.circulationRoutesGroup = new THREE.Group();
+            this.scene.add(this.circulationRoutesGroup);
+        }
+        this.rebuildCirculationStreamlines(themeConfig);
+
+        // 2. بناء وتوزيع جسيمات التدفق الحركي عالية التباين على المسارات
         const particleCount = 200;
         this.particleAgents = [];
 
@@ -1254,11 +1380,12 @@ class Twin3DViewer {
             const dir = 1; // تدفق أمامي مستمر يحاكي حركة المشاة الواقعية
             const laneOffset = ((i % 5) - 2) * 0.12;
 
-            let baseColor = 0x00d2ff;
-            if (assignedRoute.category === 'staff') baseColor = 0x2ecc71;
-            else if (assignedRoute.category === 'adaptive') baseColor = 0xa55eea;
-            else if (assignedRoute.category === 'bypass') baseColor = 0x00e676;
-            else if (assignedRoute.category === 'stair') baseColor = 0x00d2ff;
+            let baseColor = themeConfig.primary;
+            if (assignedRoute.category === 'staff') baseColor = themeConfig.staff;
+            else if (assignedRoute.category === 'adaptive') baseColor = themeConfig.adaptive;
+            else if (assignedRoute.category === 'bypass') baseColor = themeConfig.bypass;
+            else if (assignedRoute.category === 'stair') baseColor = themeConfig.stair;
+            else if (assignedRoute.category === 'spine') baseColor = themeConfig.spine;
 
             const agent = {
                 routeIndex: actualRouteIndex,
@@ -1289,18 +1416,117 @@ class Twin3DViewer {
         }
 
         const mat = new THREE.PointsMaterial({
-            size: 1.15,
+            size: 1.95,
             map: this.particleTexture,
             vertexColors: true,
             transparent: true,
-            opacity: 0.92,
-            blending: THREE.AdditiveBlending,
+            opacity: 0.98,
+            blending: THREE.NormalBlending,
+            depthTest: true,
             depthWrite: false
         });
 
         this.particleSystem = new THREE.Points(geometry, mat);
         this.particleSystem.visible = (this.flowVisible !== false);
         this.scene.add(this.particleSystem);
+    }
+
+    // إعادة رسم أشرطة وخطوط التدفق الحركي على أرضية الممرات
+    rebuildCirculationStreamlines(theme) {
+        if (!this.circulationRoutesGroup) return;
+
+        while (this.circulationRoutesGroup.children.length > 0) {
+            const child = this.circulationRoutesGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+            this.circulationRoutesGroup.remove(child);
+        }
+
+        if (!this.circulationRoutes || this.circulationRoutes.length === 0) return;
+
+        const themeConfig = theme || Viewer3D.FLOW_THEMES[this.flowColorTheme] || Viewer3D.FLOW_THEMES['royal_blue'];
+
+        for (const route of this.circulationRoutes) {
+            if (!route.points || route.points.length < 2) continue;
+
+            const pts = route.points.map(p => new THREE.Vector3(p.x, 0.14, p.z));
+            const curveGeo = new THREE.BufferGeometry().setFromPoints(pts);
+
+            let routeColor = themeConfig.streamline;
+            if (route.category === 'stair') routeColor = themeConfig.stair;
+            else if (route.category === 'staff') routeColor = themeConfig.staff;
+            else if (route.category === 'bypass') routeColor = themeConfig.bypass;
+            else if (route.category === 'adaptive') routeColor = themeConfig.adaptive;
+            else if (route.category === 'spine') routeColor = themeConfig.spine;
+
+            const lineMat = new THREE.LineBasicMaterial({
+                color: routeColor,
+                transparent: true,
+                opacity: 0.50,
+                depthWrite: false
+            });
+
+            const lineMesh = new THREE.Line(curveGeo, lineMat);
+            lineMesh.userData = { routeId: route.id, category: route.category, isRouteStreamline: true };
+            this.circulationRoutesGroup.add(lineMesh);
+        }
+
+        this.circulationRoutesGroup.visible = (this.flowVisible !== false);
+    }
+
+    // تغيير ثيم لون التدفق الحركي وتحديث كافة الجسيمات والمسارات لحظياً
+    setFlowTheme(themeId) {
+        if (!Viewer3D.FLOW_THEMES[themeId]) return;
+        this.flowColorTheme = themeId;
+        localStorage.setItem('adaptive_twin_flow_theme', themeId);
+        const themeConfig = Viewer3D.FLOW_THEMES[themeId];
+
+        // 1. إعادة تلوين الجسيمات فورياً
+        if (this.particleAgents && this.circulationRoutes) {
+            for (const agent of this.particleAgents) {
+                const route = this.circulationRoutes[agent.routeIndex];
+                if (!route) continue;
+                if (route.category === 'staff') agent.currentColor.setHex(themeConfig.staff);
+                else if (route.category === 'adaptive') agent.currentColor.setHex(themeConfig.adaptive);
+                else if (route.category === 'bypass') agent.currentColor.setHex(themeConfig.bypass);
+                else if (route.category === 'stair') agent.currentColor.setHex(themeConfig.stair);
+                else if (route.category === 'spine') agent.currentColor.setHex(themeConfig.spine);
+                else agent.currentColor.setHex(themeConfig.primary);
+            }
+            if (this.particleSystem?.geometry?.attributes?.color) {
+                this.particleSystem.geometry.attributes.color.needsUpdate = true;
+            }
+        }
+
+        // 2. إعادة رسم أشرطة المسارات بالأرضية
+        this.rebuildCirculationStreamlines(themeConfig);
+        this.updateFlowThemeUI(themeConfig);
+
+        return themeConfig;
+    }
+
+    // التنقل التتابعي بين ألوان التدفق عند النقر على الزر
+    cycleFlowTheme() {
+        const themeKeys = Object.keys(Viewer3D.FLOW_THEMES);
+        let currentIndex = themeKeys.indexOf(this.flowColorTheme);
+        if (currentIndex === -1) currentIndex = 0;
+        const nextIndex = (currentIndex + 1) % themeKeys.length;
+        const nextThemeKey = themeKeys[nextIndex];
+        return this.setFlowTheme(nextThemeKey);
+    }
+
+    // تحديث الشارة والنقطة اللونية لزر التدفق في واجهة المستخدم
+    updateFlowThemeUI(theme) {
+        const themeConfig = theme || Viewer3D.FLOW_THEMES[this.flowColorTheme] || Viewer3D.FLOW_THEMES['royal_blue'];
+        const dot = document.getElementById('flow-color-dot');
+        const label = document.getElementById('flow-color-label');
+        if (dot) {
+            dot.style.background = themeConfig.hexStr;
+            dot.style.boxShadow = `0 0 8px ${themeConfig.hexStr}`;
+        }
+        if (label) {
+            label.textContent = `لون التدفق: ${themeConfig.name_ar}`;
+        }
     }
 
     updateRealtimeState(state) {
@@ -1353,6 +1579,7 @@ class Twin3DViewer {
 
             const centralFlow = flows['corridor_central'] || 30;
             const isCongested = (centralFlow > 52);
+            const themeConfig = Viewer3D.FLOW_THEMES[this.flowColorTheme] || Viewer3D.FLOW_THEMES['royal_blue'];
 
             for (let i = 0; i < this.particleAgents.length; i++) {
                 const agent = this.particleAgents[i];
@@ -1371,35 +1598,46 @@ class Twin3DViewer {
                 if (route) {
                     if (route.category === 'bypass' || route.isBypass) {
                         if (isCongested) {
-                            agent.currentColor.setHex(0x00e676); // أخضر فسفوري متوهج لتصريف الازدحام
+                            agent.currentColor.setHex(0x059669); // زمردي عميق متمايز لتصريف الازدحام
                             agent.speedMultiplier = 1.65;
                         } else {
-                            agent.currentColor.setHex(0x2ecc71);
+                            agent.currentColor.setHex(themeConfig.bypass);
                             agent.speedMultiplier = 1.0;
                         }
                     } else if (route.category === 'adaptive' || route.partitionId) {
-                        agent.currentColor.setHex(0xa55eea); // بنفسجي إشعاعي مميز للمسار التكيفي للقاطع
+                        agent.currentColor.setHex(themeConfig.adaptive); // بنفسجي معماري تكيفي
                         agent.speedMultiplier = 1.4;
                     } else if (route.category === 'staff') {
-                        agent.currentColor.setHex(0x26de81); // أخضر حيوي لكوادر المكاتب ومرفق الاستراحة
+                        agent.currentColor.setHex(themeConfig.staff); // تيل داكن للكوادر
                         agent.speedMultiplier = 1.05;
                     } else if (route.category === 'stair') {
-                        agent.currentColor.setHex(0x00d2ff); // سماوي ساطع للحركة العمودية
+                        agent.currentColor.setHex(themeConfig.stair); // كهرماني عميق للحركة العمودية
                         agent.speedMultiplier = 0.65; // تباطؤ طبيعي لسرعة صعود ونزول الدرج علمياً
                     } else if (route.category === 'spine') {
                         if (isCongested) {
-                            agent.currentColor.setHex(centralFlow > 65 ? 0xeb3b5a : 0xfa8231);
+                            agent.currentColor.setHex(themeConfig.congested); // قرمزي داكن للتكدس الحرج
                             agent.speedMultiplier = 0.72; // تباطؤ الاحتكاك والازدحام
                         } else {
-                            agent.currentColor.setHex(0x00d2ff);
+                            agent.currentColor.setHex(themeConfig.spine);
                             agent.speedMultiplier = 1.1;
                         }
                     } else {
                         // زوار ومراجعون
-                        agent.currentColor.setHex(0x00d2ff); // فيروزي كهربائي للمراجعين والجمهور
+                        agent.currentColor.setHex(themeConfig.primary); // اللون الأساسي المختار
                         agent.speedMultiplier = 1.0;
                     }
                 }
+            }
+
+            // تحديث لون شريط الممر عند التكدس
+            if (this.circulationRoutesGroup && this.circulationRoutesGroup.children.length > 0) {
+                this.circulationRoutesGroup.children.forEach(lineMesh => {
+                    if (lineMesh.userData?.category === 'spine' || lineMesh.userData?.routeId?.includes('corridor')) {
+                        if (lineMesh.material) {
+                            lineMesh.material.color.setHex(isCongested ? themeConfig.congested : themeConfig.spine);
+                        }
+                    }
+                });
             }
         }
     }
@@ -1720,7 +1958,19 @@ class Twin3DViewer {
                 if (this.particleSystem) {
                     this.particleSystem.visible = this.flowVisible;
                 }
+                if (this.circulationRoutesGroup) {
+                    this.circulationRoutesGroup.visible = this.flowVisible;
+                }
                 toggleFlowBtn.textContent = this.flowVisible ? '⚡ إخفاء تدفق الحركة' : '⚡ إظهار تدفق الحركة';
+            });
+        }
+
+        // 5.ب زر تخصيص لون التدفق الحركي على الخلفية البيضاء
+        const toggleFlowThemeBtn = document.getElementById('btn-toggle-flow-theme');
+        if (toggleFlowThemeBtn) {
+            this.updateFlowThemeUI();
+            toggleFlowThemeBtn.addEventListener('click', () => {
+                this.cycleFlowTheme();
             });
         }
 
