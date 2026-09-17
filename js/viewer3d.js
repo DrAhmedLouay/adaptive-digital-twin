@@ -5,6 +5,39 @@
  * animated movable partitions, and circulation flow particles.
  */
 
+// Cross-browser polyfill for CanvasRenderingContext2D.prototype.roundRect
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, radii) {
+        if (!radii) radii = 0;
+        if (typeof radii === 'number') {
+            radii = [radii, radii, radii, radii];
+        } else if (Array.isArray(radii)) {
+            if (radii.length === 1) radii = [radii[0], radii[0], radii[0], radii[0]];
+            else if (radii.length === 2) radii = [radii[0], radii[1], radii[0], radii[1]];
+            else if (radii.length === 3) radii = [radii[0], radii[1], radii[2], radii[1]];
+            else if (radii.length >= 4) radii = radii.slice(0, 4);
+        } else {
+            radii = [0, 0, 0, 0];
+        }
+        var tl = Math.min(radii[0] || 0, w / 2, h / 2);
+        var tr = Math.min(radii[1] || 0, w / 2, h / 2);
+        var br = Math.min(radii[2] || 0, w / 2, h / 2);
+        var bl = Math.min(radii[3] || 0, w / 2, h / 2);
+        this.beginPath();
+        this.moveTo(x + tl, y);
+        this.lineTo(x + w - tr, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + tr);
+        this.lineTo(x + w, y + h - br);
+        this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+        this.lineTo(x + bl, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - bl);
+        this.lineTo(x, y + tl);
+        this.quadraticCurveTo(x, y, x + tl, y);
+        this.closePath();
+        return this;
+    };
+}
+
 class Twin3DViewer {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
@@ -148,6 +181,21 @@ class Twin3DViewer {
     }
 
     init() {
+        if (!this.container) {
+            console.error("Twin3DViewer: container element not found!");
+            return;
+        }
+
+        if (typeof THREE === 'undefined') {
+            console.error("Twin3DViewer: Three.js library not loaded or blocked.");
+            const banner = document.getElementById('js-error-banner');
+            if (banner) {
+                banner.textContent = "⚠️ تعذر تحميل مكتبة Three.js ثلاثية الأبعاد (يرجى التحقق من اتصالك بالإنترنت)";
+                banner.style.display = 'block';
+            }
+            return;
+        }
+
         const width = this.container.clientWidth || window.innerWidth - 380;
         const height = this.container.clientHeight || window.innerHeight - 60;
 
@@ -564,7 +612,11 @@ class Twin3DViewer {
         const ctx = canvas.getContext('2d');
         
         ctx.fillStyle = 'rgba(15, 23, 36, 0.9)';
-        ctx.roundRect(10, 10, 236, 108, 12);
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(10, 10, 236, 108, 12);
+        } else {
+            ctx.rect(10, 10, 236, 108);
+        }
         ctx.fill();
         ctx.strokeStyle = '#00d2ff';
         ctx.lineWidth = 3;
@@ -602,7 +654,11 @@ class Twin3DViewer {
 
         ctx.clearRect(0, 0, 256, 128);
         ctx.fillStyle = 'rgba(15, 23, 36, 0.9)';
-        ctx.roundRect(10, 10, 236, 108, 12);
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(10, 10, 236, 108, 12);
+        } else {
+            ctx.rect(10, 10, 236, 108);
+        }
         ctx.fill();
 
         let strokeColor = '#00d2ff';
@@ -1954,8 +2010,12 @@ class Twin3DViewer {
             }
         }
 
-        this.controls.update();
-        this.renderer.render(this.scene, this.camera);
+        if (this.controls && typeof this.controls.update === 'function') {
+            this.controls.update();
+        }
+        if (this.renderer && this.scene && this.camera) {
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     setupBlueprintHudEvents() {
@@ -2622,7 +2682,11 @@ class Twin3DViewer {
         }
 
         ctx.fillStyle = 'rgba(15, 23, 36, 0.94)';
-        ctx.roundRect(8, 8, 264, 120, 14);
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(8, 8, 264, 120, 14);
+        } else {
+            ctx.rect(8, 8, 264, 120);
+        }
         ctx.fill();
         ctx.strokeStyle = borderColor;
         ctx.lineWidth = 3;

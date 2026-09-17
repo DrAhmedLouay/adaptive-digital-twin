@@ -7,24 +7,61 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-        // كسر التخزين المؤقت تلقائياً وإعادة التحميل القسري لأحدث كود مباشرة
+        // كسر التخزين المؤقت تلقائياً وإعادة التحميل لأحدث كود بأمان مع تفادي التكرار وأخطاء التخزين
         (function() {
-            var CURRENT_VER = '2.3.6';
-            var stored = localStorage.getItem('adaptive_twin_ver');
-            var urlParams = new URLSearchParams(window.location.search);
-            if (stored !== CURRENT_VER && !urlParams.has('v236')) {
-                localStorage.setItem('adaptive_twin_ver', CURRENT_VER);
-                urlParams.set('v236', Date.now());
-                window.location.replace(window.location.pathname + '?' + urlParams.toString());
+            try {
+                var CURRENT_VER = '2.3.7';
+                var stored = null;
+                try { stored = localStorage.getItem('adaptive_twin_ver'); } catch(e) {}
+                var urlParams = new URLSearchParams(window.location.search);
+                if (stored !== CURRENT_VER && !urlParams.has('v237')) {
+                    try { localStorage.setItem('adaptive_twin_ver', CURRENT_VER); } catch(e) {}
+                    urlParams.set('v237', Date.now());
+                    window.location.replace(window.location.pathname + '?' + urlParams.toString());
+                }
+            } catch(e) {
+                console.warn("Cache buster skipped:", e);
             }
         })();
+    </script>
+    <!-- ملتقط أخطاء النظام والاستثناءات غير المعالجة الشامل (Early Error & Unhandled Rejection Catcher) -->
+    <script>
+        window.__fatalErrors = [];
+        function reportFatalError(info) {
+            window.__fatalErrors.push(info);
+            console.error("TwinSystemError:", info);
+            var banner = document.getElementById('js-error-banner');
+            if (banner) {
+                banner.textContent = info;
+                banner.style.display = 'block';
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    var b = document.getElementById('js-error-banner');
+                    if (b) {
+                        b.textContent = info;
+                        b.style.display = 'block';
+                    }
+                });
+            }
+        }
+        window.onerror = function(msg, src, line, col, err) {
+            var file = src ? src.split('/').pop().split('?')[0] : 'نظام';
+            var info = `⚠️ خطأ في تشغيل المنصة: ${msg} (في ${file} السطر ${line})`;
+            reportFatalError(info);
+            return false;
+        };
+        window.onunhandledrejection = function(e) {
+            var reason = e.reason ? (e.reason.message || e.reason) : 'خطأ غير معالج';
+            var info = `⚠️ استثناء غير معالج: ${reason}`;
+            reportFatalError(info);
+        };
     </script>
     <title>AdaptiveTwin - التوأم الرقمي التكيفي للمباني الإدارية</title>
     <!-- Google Fonts for Architecture Dashboard -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.3.6">
+    <link rel="stylesheet" href="css/styles.css?v=2.3.7">
 </head>
 <body>
 
@@ -961,28 +998,13 @@
     <!-- PDF.js CDN for High-Resolution Vector/Raster Architectural Floor Plan Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
-    <!-- Global Error Catcher: يلتقط أي أخطاء JS ويُظهرها فوراً للمستخدم -->
-    <script>
-        window.__fatalErrors = [];
-        window.onerror = function(msg, src, line, col, err) {
-            const banner = document.getElementById('js-error-banner');
-            const info = `⚠️ خطأ في النظام: ${msg} (السطر ${line} في ${src ? src.split('/').pop() : 'غير معروف'})`;
-            window.__fatalErrors.push(info);
-            if (banner) {
-                banner.textContent = info;
-                banner.style.display = 'block';
-            }
-            return false; // allow default handling too
-        };
-    </script>
-
-    <!-- Application Scripts -->
-    <script src="js/default_model.js?v=2.3.6"></script>
-    <script src="js/viewer3d.js?v=2.3.6"></script>
-    <script src="js/analytics.js?v=2.3.6"></script>
-    <script src="js/ifc_step_parser.js?v=2.3.6"></script>
-    <script src="js/plan_manager.js?v=2.3.6"></script>
-    <script src="js/tooltip.js?v=2.3.6"></script>
-    <script src="js/app.js?v=2.3.6"></script>
+    <!-- Application Scripts (v2.3.7) -->
+    <script src="js/default_model.js?v=2.3.7"></script>
+    <script src="js/viewer3d.js?v=2.3.7"></script>
+    <script src="js/analytics.js?v=2.3.7"></script>
+    <script src="js/ifc_step_parser.js?v=2.3.7"></script>
+    <script src="js/plan_manager.js?v=2.3.7"></script>
+    <script src="js/tooltip.js?v=2.3.7"></script>
+    <script src="js/app.js?v=2.3.7"></script>
 </body>
 </html>

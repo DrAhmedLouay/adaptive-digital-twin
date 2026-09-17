@@ -20,30 +20,80 @@ class TwinApp {
     async init() {
         console.log("Initializing Adaptive Digital Twin Dashboard...");
         
-        // 1. تهيئة المحركات
-        this.viewer = new Twin3DViewer('viewport-container');
-        this.analytics = new TwinAnalytics();
-        this.planManager = new PlanManager(this);
+        // 1. تهيئة المحركات مع العزل والحماية (Fault-tolerant Multi-Stage Initialization)
+        try {
+            this.viewer = new Twin3DViewer('viewport-container');
+        } catch (err) {
+            console.error("Critical error in Twin3DViewer init:", err);
+            const banner = document.getElementById('js-error-banner');
+            if (banner) {
+                banner.textContent = `⚠️ تعذر تشغيل محرك 3D: ${err.message}`;
+                banner.style.display = 'block';
+            }
+        }
+
+        try {
+            this.analytics = new TwinAnalytics();
+        } catch (err) {
+            console.error("Error in TwinAnalytics init:", err);
+        }
+
+        try {
+            this.planManager = new PlanManager(this);
+        } catch (err) {
+            console.error("Error in PlanManager init:", err);
+        }
 
         // تغليف loadBuildingModel لتحديث شريط الطوابق وعارض IFC تلقائيًا عند كل استدعاء
-        const _origLoad = this.viewer.loadBuildingModel.bind(this.viewer);
-        this.viewer.loadBuildingModel = (modelData) => {
-            _origLoad(modelData);
-            this.updateStoreyBar(modelData);
-            if (this.refreshIfcViewerUI) {
-                this.refreshIfcViewerUI();
-            }
-        };
+        if (this.viewer && typeof this.viewer.loadBuildingModel === 'function') {
+            const _origLoad = this.viewer.loadBuildingModel.bind(this.viewer);
+            this.viewer.loadBuildingModel = (modelData) => {
+                try {
+                    _origLoad(modelData);
+                } catch (e) {
+                    console.error("Error inside viewer.loadBuildingModel:", e);
+                }
+                try {
+                    this.updateStoreyBar(modelData);
+                } catch (e) {
+                    console.warn("Error updating storey bar:", e);
+                }
+                if (this.refreshIfcViewerUI) {
+                    try {
+                        this.refreshIfcViewerUI();
+                    } catch (e) {
+                        console.warn("Error refreshing IFC viewer UI:", e);
+                    }
+                }
+            };
+        }
 
         // 2. جلب وتوليد النموذج المعماري ثلاثي الأبعاد
-        await this.loadSpatialModel();
+        try {
+            await this.loadSpatialModel();
+        } catch (err) {
+            console.error("Error in loadSpatialModel:", err);
+        }
 
-        // 3. ربط أحداث واجهة المستخدم
-        this.setupEventListeners();
-        this.setupIfcViewer();
+        // 3. ربط أحداث واجهة المستخدم (حاسم جداً: يُنفّذ دائماً حتى لو تعثر تحميل النموذج)
+        try {
+            this.setupEventListeners();
+        } catch (err) {
+            console.error("Error in setupEventListeners:", err);
+        }
+
+        try {
+            this.setupIfcViewer();
+        } catch (err) {
+            console.error("Error in setupIfcViewer:", err);
+        }
 
         // 4. بدء دفق التزامن اللحظي
-        this.startTelemetryLoop();
+        try {
+            this.startTelemetryLoop();
+        } catch (err) {
+            console.error("Error starting telemetry loop:", err);
+        }
     }
 
     async loadSpatialModel() {
@@ -866,8 +916,17 @@ class TwinApp {
 // بدء التشغيل المرن عند تحميل الصفحة (سواء اكتمل التحميل مسبقاً أو قيد التحميل)
 function startTwinApp() {
     if (!window.twinApp) {
-        window.twinApp = new TwinApp();
-        window.app = window.twinApp;
+        try {
+            window.twinApp = new TwinApp();
+            window.app = window.twinApp;
+        } catch (err) {
+            console.error("Critical: Failed to instantiate TwinApp:", err);
+            const banner = document.getElementById('js-error-banner');
+            if (banner) {
+                banner.textContent = `⚠️ تعذر تشغيل منصة التوأم الرقمي: ${err.message || err}`;
+                banner.style.display = 'block';
+            }
+        }
     }
 }
 

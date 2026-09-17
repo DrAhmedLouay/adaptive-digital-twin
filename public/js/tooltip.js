@@ -10,6 +10,7 @@
 
     function createTooltipElement() {
         if (tooltipEl) return tooltipEl;
+        if (!document.body) return null;
         tooltipEl = document.createElement('div');
         tooltipEl.className = 'app-tooltip';
         tooltipEl.id = 'global-app-tooltip';
@@ -19,6 +20,10 @@
 
     function initTooltipListeners() {
         const el = createTooltipElement();
+        if (!el) {
+            window.addEventListener('load', initTooltipListeners, { once: true });
+            return;
+        }
 
         document.addEventListener('mouseover', (e) => {
             const target = e.target.closest('[data-tooltip]');
