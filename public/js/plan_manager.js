@@ -434,31 +434,66 @@ class PlanManager {
             return;
         }
 
-        if (dropzoneTitle) dropzoneTitle.textContent = "⏳ جاري قراءة وتحليل المخطط المعماري...";
+        if (dropzoneTitle) {
+            if (fileType === 'ifc') {
+                dropzoneTitle.textContent = "⏳ جاري قراءة وتحليل كتل الـ IFC المعمارية (Client BIM Parser)...";
+            } else if (fileType === 'dxf') {
+                dropzoneTitle.textContent = "⏳ جاري قراءة وتحليل مخطط AutoCAD DXF...";
+            } else {
+                dropzoneTitle.textContent = "⏳ جاري قراءة وتحليل المخطط المعماري...";
+            }
+        }
+
         const reader = new FileReader();
+        reader.onerror = (err) => {
+            console.error("FileReader error:", err);
+            alert("حدث خطأ أثناء قراءة الملف من جهازك.");
+            if (dropzoneTitle) dropzoneTitle.textContent = originalText;
+        };
+
         reader.onload = async (e) => {
             const content = e.target.result;
-            try {
-                const res = await fetch('/api/model/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: fileType, content: content })
-                });
-                const data = await res.json();
-                if (data.status === 'ok') {
-                    alert(`✓ ${data.message}`);
-                    this.app.viewer.loadBuildingModel(data.model);
-                    this.updateActiveBuildingTitle(data.model);
-                    this.closeModal();
-                } else {
-                    this.parseLocallyAndRender(fileType, content, file.name);
+            // منح المتصفح فرصة لتحديث رسالة التحميل في الواجهة قبل البدء في المعالجة
+            setTimeout(async () => {
+                try {
+                    const isStaticHost = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
+                    if (isStaticHost || fileType === 'ifc' || fileType === 'dxf') {
+                        // معالجة فورية داخل المتصفح بدون انتظار خادم أو رفع بيانات ضخمة عبر الإنترنت
+                        this.parseLocallyAndRender(fileType, content, file.name);
+                    } else {
+                        // محاولة الإرسال للخادم المحلي إذا كان يعمل
+                        let serverSuccess = false;
+                        try {
+                            const res = await fetch('/api/model/upload', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: fileType, content: content })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.status === 'ok' && data.model) {
+                                    alert(`✓ ${data.message}`);
+                                    this.app.viewer.loadBuildingModel(data.model);
+                                    this.updateActiveBuildingTitle(data.model);
+                                    this.closeModal();
+                                    serverSuccess = true;
+                                }
+                            }
+                        } catch (srvErr) {
+                            console.warn("Server upload fallback, parsing locally in browser:", srvErr);
+                        }
+
+                        if (!serverSuccess) {
+                            this.parseLocallyAndRender(fileType, content, file.name);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error processing imported file:", err);
+                    alert(`⚠️ حدث خطأ أثناء معالجة الملف: ${err.message}`);
+                } finally {
+                    if (dropzoneTitle) dropzoneTitle.textContent = originalText;
                 }
-            } catch (err) {
-                console.warn("Server upload fallback, parsing locally:", err);
-                this.parseLocallyAndRender(fileType, content, file.name);
-            } finally {
-                if (dropzoneTitle) dropzoneTitle.textContent = originalText;
-            }
+            }, 50);
         };
         reader.readAsText(file);
     }
@@ -897,34 +932,102 @@ class PlanManager {
     }
 
     parseLocallyAndRender(fileType, content, fileName) {
-        let customModel = {
-            "id": "user_imported_plan",
-            "name_ar": `مخطط مستورد: ${fileName}`,
-            "name_en": `Imported ${fileType.toUpperCase()} Plan`,
-            "building_type": fileType,
-            "spaces": {
-                "imp_1": {"id": "imp_1", "name_ar": "صالة الاستقبال والمدخل الرئيسي", "type": "public", "capacity": 20, "area_m2": 60, "bounds": {"x": -18, "z": -12, "width": 12, "depth": 8, "height": 3.5}, "color": "#00b894"},
-                "imp_2": {"id": "imp_2", "name_ar": "صالة انتظار المراجعين المركزية", "type": "public", "capacity": 28, "area_m2": 85, "bounds": {"x": -4, "z": -12, "width": 14, "depth": 8, "height": 3.5}, "color": "#e17055"},
-                "imp_3": {"id": "imp_3", "name_ar": "قاعة الخدمات والاجتماعات المرنة", "type": "flexible", "capacity": 22, "area_m2": 65, "bounds": {"x": 12, "z": -12, "width": 12, "depth": 8, "height": 3.5}, "color": "#0984e3"},
-                "imp_4": {"id": "imp_4", "name_ar": "ممر التدفق والتوزيع الرئيسي", "type": "circulation", "capacity": 45, "area_m2": 80, "bounds": {"x": -18, "z": -3, "width": 42, "depth": 4, "height": 3.5}, "color": "#636e72"},
-                "imp_5": {"id": "imp_5", "name_ar": "مكاتب العمل والموظفين", "type": "workspace", "capacity": 30, "area_m2": 110, "bounds": {"x": -18, "z": 2, "width": 24, "depth": 12, "height": 3.5}, "color": "#6c5ce7"}
-            },
-            "partitions": {
-                "p_imp_dyn": {"id": "p_imp_dyn", "name_ar": "قاطع مرن تكيفي للمخطط المستورد", "between": ["imp_2", "imp_3"], "status": "closed", "position": {"x": 10, "z": -12, "width": 0.25, "depth": 8, "height": 3.5}, "expansion_capacity": 20}
+        try {
+            let customModel = null;
+            if (fileType === 'ifc') {
+                if (window.IFCStepParser) {
+                    customModel = window.IFCStepParser.parse(content);
+                    if (customModel && (!customModel.name_ar || customModel.name_ar.includes('مشروع BIM'))) {
+                        customModel.name_ar = `نموذج BIM معماري: ${fileName}`;
+                    }
+                } else {
+                    throw new Error("محلل الـ IFC (IFCStepParser) غير متوفر في المتصفح.");
+                }
+            } else if (fileType === 'dxf') {
+                if (window.IFCStepParser && window.IFCStepParser.parseDXF) {
+                    customModel = window.IFCStepParser.parseDXF(content);
+                }
+            } else if (fileType === 'json') {
+                try {
+                    const parsed = JSON.parse(content);
+                    if (parsed && parsed.spaces) customModel = parsed;
+                } catch (e) {
+                    throw new Error("ملف الـ JSON غير صالح أو لا يحتوي على بنية فضاءات صحيحة.");
+                }
             }
-        };
 
-        if (fileType === 'json') {
-            try {
-                const parsed = JSON.parse(content);
-                if (parsed.spaces) customModel = parsed;
-            } catch(e) {}
+            if (!customModel) {
+                customModel = {
+                    "id": "user_imported_plan",
+                    "name_ar": `مخطط مستورد: ${fileName}`,
+                    "name_en": `Imported ${fileType.toUpperCase()} Plan`,
+                    "building_type": fileType,
+                    "spaces": {
+                        "imp_1": {"id": "imp_1", "name_ar": "صالة الاستقبال والمدخل الرئيسي", "type": "public", "capacity": 20, "area_m2": 60, "bounds": {"x": -18, "z": -12, "width": 12, "depth": 8, "height": 3.5}, "color": "#00b894"},
+                        "imp_2": {"id": "imp_2", "name_ar": "صالة انتظار المراجعين المركزية", "type": "public", "capacity": 28, "area_m2": 85, "bounds": {"x": -4, "z": -12, "width": 14, "depth": 8, "height": 3.5}, "color": "#e17055"},
+                        "imp_3": {"id": "imp_3", "name_ar": "قاعة الخدمات والاجتماعات المرنة", "type": "flexible", "capacity": 22, "area_m2": 65, "bounds": {"x": 12, "z": -12, "width": 12, "depth": 8, "height": 3.5}, "color": "#0984e3"},
+                        "imp_4": {"id": "imp_4", "name_ar": "ممر التدفق والتوزيع الرئيسي", "type": "circulation", "capacity": 45, "area_m2": 80, "bounds": {"x": -18, "z": -3, "width": 42, "depth": 4, "height": 3.5}, "color": "#636e72"},
+                        "imp_5": {"id": "imp_5", "name_ar": "مكاتب العمل والموظفين", "type": "workspace", "capacity": 30, "area_m2": 110, "bounds": {"x": -18, "z": 2, "width": 24, "depth": 12, "height": 3.5}, "color": "#6c5ce7"}
+                    },
+                    "partitions": {
+                        "p_imp_dyn": {"id": "p_imp_dyn", "name_ar": "قاطع مرن تكيفي للمخطط المستورد", "between": ["imp_2", "imp_3"], "status": "closed", "position": {"x": 10, "z": -12, "width": 0.25, "depth": 8, "height": 3.5}, "expansion_capacity": 20}
+                    }
+                };
+            }
+
+            // ضمان التوسيط الهندسي التام في منتصف الشبكة المحورية
+            if (window.IFCStepParser && window.IFCStepParser.centerModelDict) {
+                customModel = window.IFCStepParser.centerModelDict(customModel);
+            }
+
+            this.app.viewer.loadBuildingModel(customModel);
+            this.updateActiveBuildingTitle(customModel);
+
+            const nStoreys = Object.keys(customModel.storeys || {}).length;
+            const nWalls = Object.keys(customModel.walls || {}).length;
+            const nSlabs = Object.keys(customModel.slabs || {}).length;
+            const nSpaces = Object.keys(customModel.spaces || {}).length;
+            const nOpenings = Object.keys(customModel.openings || {}).length;
+            const nCols = Object.keys(customModel.columns || {}).length;
+            const nStairs = Object.keys(customModel.stairs || {}).length;
+
+            alert(`✓ تم استيراد وتحليل المخطط المعماري بنجاح: ${fileName}\n` +
+                  (nStoreys > 1 ? `• الطوابق المعمارية: ${nStoreys}\n` : '') +
+                  (nWalls > 0 ? `• الجدران والواجهات: ${nWalls}\n` : '') +
+                  (nSlabs > 0 ? `• البلاطات والأسقف: ${nSlabs}\n` : '') +
+                  (nSpaces > 0 ? `• الفضاءات والغرف: ${nSpaces}\n` : '') +
+                  (nOpenings > 0 ? `• الأبواب والنوافذ: ${nOpenings}\n` : '') +
+                  (nCols + nStairs > 0 ? `• الأعمدة والسلالم: ${nCols + nStairs}\n` : '') +
+                  `🎯 تم توسيط وتأطير المبنى تلقائياً في منتصف الشبكة المحورية للشاشة.`);
+
+            this.closeModal();
+
+            // مزامنة غير معطلة مع السيرفر إن كان متاحاً
+            if (!window.location.hostname.includes('github.io') && window.location.protocol.startsWith('http')) {
+                fetch('/api/model/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'json',
+                        content: JSON.stringify({
+                            id: customModel.id,
+                            name_ar: customModel.name_ar,
+                            name_en: customModel.name_en,
+                            building_type: customModel.building_type,
+                            storeys: customModel.storeys,
+                            spaces: customModel.spaces,
+                            partitions: customModel.partitions,
+                            walls: customModel.walls,
+                            slabs: customModel.slabs,
+                            openings: customModel.openings
+                        })
+                    })
+                }).catch(() => {});
+            }
+        } catch (err) {
+            console.error("Local parse and render error:", err);
+            alert(`⚠️ تعذر استيراد وتحليل الملف: ${err.message}`);
         }
-
-        this.app.viewer.loadBuildingModel(customModel);
-        this.updateActiveBuildingTitle(customModel);
-        alert(`✓ تم استيراد وبناء المخطط المعماري ثلاثي الأبعاد بنجاح: ${fileName}`);
-        this.closeModal();
     }
 
     populateSpacesEditor() {
