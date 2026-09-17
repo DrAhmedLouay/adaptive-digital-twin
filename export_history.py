@@ -7,6 +7,7 @@ from datetime import datetime
 transcript_file = '/Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/.system_generated/logs/transcript_full.jsonl'
 output_md = '/Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/CONVERSATION_HISTORY.md'
 output_html = '/Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/public/CONVERSATION_HISTORY.html'
+output_root_html = '/Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/CONVERSATION_HISTORY.html'
 
 dialogue_turns = []
 current_user = None
@@ -49,7 +50,18 @@ with open(transcript_file, 'r', encoding='utf-8') as f:
         elif step_type == 'PLANNER_RESPONSE' and content:
             text = content.strip()
             # Exclude internal technical status messages
-            if text and not text.startswith('Tool is running') and not text.startswith('Encountered error in tool'):
+            technical_prefixes = (
+                'Tool is running',
+                'Encountered error',
+                'Running the automated',
+                'Checking the live',
+                'Waiting for',
+                'Task id',
+                'Pushing the',
+                'The changes have been committed',
+                'I have checked the repository',
+            )
+            if text and not any(text.startswith(p) for p in technical_prefixes):
                 current_responses.append({
                     'text': text,
                     'created_at': created_at,
@@ -377,4 +389,7 @@ html_content += """
 with open(output_html, 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print(f"Successfully written HTML to {output_html}")
+with open(output_root_html, 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print(f"Successfully written HTML to {output_html} and {output_root_html}")
