@@ -111,11 +111,25 @@
                     data-tooltip="اختبار خوارزميات التكيف المعماري وإعادة توزيع الفضاءات والمقارنة الإحصائية الدقيقة بين الوضع الراهن والمقترح.">
                 🔄 إعادة التشكيل والتوزيع
             </button>
-            <a href="CONVERSATION_HISTORY.html" target="_blank" class="btn-plan-manager" style="background: rgba(168, 85, 247, 0.2); border-color: #a855f7; color: #d8b4fe; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"
+            <a href="CONVERSATION_HISTORY.html" target="_blank" class="btn-plan-manager" id="header-link-conversation-history" style="background: rgba(168, 85, 247, 0.2); border-color: #a855f7; color: #d8b4fe; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"
                data-tooltip-title="سجل المحادثات وتوثيق التطوير"
                data-tooltip="فتح سجل المحادثات الكامل بجميع أسئلتك وأوامرك وإجابات المساعد والخطوات الهندسية منذ بداية المشروع في صفحة تفاعلية قابلة للقراءة والطباعة والحفظ كـ PDF.">
                 📜 سجل المحادثات
             </a>
+            <!-- Active User Profile Badge & Logout -->
+            <div class="header-user-badge" id="header-user-badge"
+                 data-tooltip-title="حساب المستخدم النشط وصلاحيات النظام"
+                 data-tooltip="عرض اسم الحساب النشط وصلاحياته، مع إمكانية التبديل وتسجيل الخروج.">
+                <span id="user-badge-icon" style="font-size:14px;">👑</span>
+                <div class="user-badge-info">
+                    <span class="user-badge-name" id="user-badge-name">د. أحمد لؤي</span>
+                    <span class="user-badge-role" id="user-badge-role">مدير النظام (Admin)</span>
+                </div>
+                <button class="btn-header-logout" id="btn-header-logout" title="تسجيل الخروج أو تبديل الحساب">
+                    <span>خروج</span>
+                    <span>⏻</span>
+                </button>
+            </div>
             <div class="status-pill"
                  data-tooltip-title="المبنى المعماري النشط"
                  data-tooltip="المبنى المعروض حالياً في بيئة التوأم الرقمي ثلاثي الأبعاد وتجري عليه محاكاة الإشغال الحركي.">
@@ -1204,6 +1218,91 @@
         </div>
     </div>
 
+    <!-- =========================================================================
+         Authentication Gateway Overlay (v2.3.9 RBAC System)
+         ========================================================================= -->
+    <div class="auth-gateway-overlay" id="auth-gateway-overlay" style="display:none;">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">🏛️</div>
+                <h2>منصة التوأم الرقمي التكيفي للمباني</h2>
+                <div class="auth-subtitle">Adaptive Digital Twin for Kinetic & Spatial Reconfiguration</div>
+                <div class="auth-academic-tag">
+                    <span>🎓 الجامعة التكنولوجية • قسم هندسة العمارة • د. أحمد لؤي أحمد</span>
+                </div>
+            </div>
+
+            <form class="auth-form" id="auth-login-form">
+                <div class="auth-input-group">
+                    <label for="auth-username">
+                        <span>👤</span> اسم المستخدم (Username):
+                    </label>
+                    <div class="auth-input-wrap">
+                        <input type="text" id="auth-username" required autocomplete="username"
+                               placeholder="أدخل اسم المستخدم (drahmedlouay أو aya_archi)...">
+                    </div>
+                </div>
+
+                <div class="auth-input-group">
+                    <label for="auth-password">
+                        <span>🔑</span> رمز المرور (Password):
+                    </label>
+                    <div class="auth-input-wrap">
+                        <input type="password" id="auth-password" required autocomplete="current-password"
+                               placeholder="أدخل رمز المرور...">
+                        <button type="button" class="toggle-pwd-btn" id="btn-auth-toggle-pwd" title="إظهار/إخفاء رمز المرور">👁️</button>
+                    </div>
+                </div>
+
+                <div class="auth-remember-row">
+                    <label>
+                        <input type="checkbox" id="auth-remember-me" checked>
+                        <span>تذكر تسجيل الدخول في هذا الجهاز</span>
+                    </label>
+                </div>
+
+                <div class="auth-error-msg" id="auth-error-msg"></div>
+
+                <button type="submit" class="btn-auth-submit" id="btn-auth-submit">
+                    <span>تسجيل الدخول إلى المنصة</span>
+                    <span>➔</span>
+                </button>
+            </form>
+
+            <!-- Quick-Access Demo Cards for Immediate Evaluation -->
+            <div class="auth-demo-section">
+                <div class="auth-demo-title">
+                    <span>⚡ حسابات تجريبية للاختبار السريع للصلاحيات:</span>
+                </div>
+                <div class="auth-demo-grid">
+                    <!-- Admin Account Card -->
+                    <div class="auth-demo-card admin-card" id="btn-quick-login-admin"
+                         data-tooltip-title="حساب إدارة النظام (Admin)"
+                         data-tooltip="تسجيل فوري كمدير النظام (drahmedlouay): صلاحيات مطلقة مع ظهور زر سجل المحادثات.">
+                        <div class="auth-demo-card-head">
+                            <span class="auth-demo-card-name">👑 الإدارة (Admin)</span>
+                            <span class="auth-demo-card-sub">drahmedlouay</span>
+                        </div>
+                        <div class="auth-demo-card-priv">✓ صلاحيات مطلقة + سجل المحادثات 📜</div>
+                        <button type="button" class="btn-demo-click">دخول فوري كمسؤول ⚡</button>
+                    </div>
+
+                    <!-- User Account Card -->
+                    <div class="auth-demo-card user-card" id="btn-quick-login-user"
+                         data-tooltip-title="حساب مستخدم معماري (User)"
+                         data-tooltip="تسجيل فوري كمستخدم معماري (aya_archi): حجب وإخفاء سجل المحادثات تماماً.">
+                        <div class="auth-demo-card-head">
+                            <span class="auth-demo-card-name">👤 مستخدم (User)</span>
+                            <span class="auth-demo-card-sub">aya_archi</span>
+                        </div>
+                        <div class="auth-demo-card-priv">🔒 مستخدم عادي (حجب سجل المحادثات)</div>
+                        <button type="button" class="btn-demo-click">دخول فوري كمستخدم ⚡</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer Bar -->
     <footer class="main-footer"
             data-tooltip-title="حقوق الملكية الفكرية والبحث الأكاديمي"
@@ -1225,6 +1324,7 @@
     <script src="js/ifc_step_parser.js?v=2.3.9"></script>
     <script src="js/plan_manager.js?v=2.3.9"></script>
     <script src="js/tooltip.js?v=2.3.9"></script>
+    <script src="js/auth.js?v=2.3.9"></script>
     <script src="js/app.js?v=2.3.9"></script>
 </body>
 </html>

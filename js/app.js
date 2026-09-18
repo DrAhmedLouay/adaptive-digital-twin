@@ -10,6 +10,7 @@ class TwinApp {
         this.viewer = null;
         this.analytics = null;
         this.planManager = null;
+        this.authManager = null;
         this.pollingInterval = null;
         this.activeScenario = 'normal';
         this.isAdaptive = false;
@@ -20,6 +21,15 @@ class TwinApp {
     async init() {
         console.log("Initializing Adaptive Digital Twin Dashboard...");
         
+        // 0. تهيئة نظام المصادقة والصلاحيات (AuthManager - RBAC)
+        try {
+            if (typeof AuthManager !== 'undefined') {
+                this.authManager = new AuthManager(this);
+            }
+        } catch (err) {
+            console.error("Error in AuthManager init:", err);
+        }
+
         // 1. تهيئة المحركات مع العزل والحماية (Fault-tolerant Multi-Stage Initialization)
         try {
             this.viewer = new Twin3DViewer('viewport-container');

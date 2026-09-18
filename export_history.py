@@ -328,23 +328,61 @@ html_content = f"""<!DOCTYPE html>
             }}
         }}
     </style>
+    <script>
+        (function() {{
+            try {{
+                var raw = localStorage.getItem('dt_auth_session_v1') || sessionStorage.getItem('dt_auth_session_v1');
+                var session = raw ? JSON.parse(raw) : null;
+                if (!session || session.username !== 'drahmedlouay') {{
+                    window.__ACCESS_DENIED__ = true;
+                    window.__DENIED_USER__ = session ? (session.username || 'مستخدم عادي') : 'زائر غير مسجل';
+                }}
+            }} catch(e) {{
+                window.__ACCESS_DENIED__ = true;
+                window.__DENIED_USER__ = 'غير مسجل';
+            }}
+        }})();
+        document.addEventListener('DOMContentLoaded', function() {{
+            if (window.__ACCESS_DENIED__) {{
+                var wrapper = document.getElementById('conversation-content-wrapper');
+                if (wrapper) wrapper.style.display = 'none';
+                var denied = document.getElementById('access-denied-box');
+                if (denied) denied.style.display = 'block';
+                var nameEl = document.getElementById('denied-user-name');
+                if (nameEl) nameEl.textContent = window.__DENIED_USER__ || 'مستخدم عادي';
+            }}
+        }});
+    </script>
 </head>
 <body>
-    <div class="header">
-        <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ كـ PDF</button>
-        <h1>📜 سجل المحادثات الكامل ومراحل التطوير</h1>
-        <h2>Adaptive Digital Twin Platform - Full Research & Development Transcript</h2>
-        <div class="badge-bar">
-            <span class="badge researcher">🏛️ الباحث: م.م.د. أحمد لؤي أحمد</span>
-            <span class="badge">📊 إجمالي الجولات: {len(dialogue_turns)} جولة</span>
-            <span class="badge">🕒 تم التصدير: {datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
-        </div>
-        <p style="font-size: 13px; color: var(--text-muted);">
-            يوثق هذا الملف التفاعلي كافة الأسئلة، الأوامر، والشروحات المعمارية والهندسية وخطوات بناء وبرمجة منصة التوأم الرقمي التكيفي منذ المحطة الأولى وحتى الآن.
+    <div id="access-denied-box" style="display:none; max-width:620px; margin:80px auto; background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid #ef4444; border-radius:18px; padding:36px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.7);">
+        <div style="font-size:52px; margin-bottom:14px; filter:drop-shadow(0 0 16px rgba(239,68,68,0.4));">🔒</div>
+        <h2 style="color:#f87171; font-size:22px; font-weight:800; margin-bottom:10px;">عذراً، محتوى سجل المحادثات محجوب</h2>
+        <p style="color:#cbd5e1; font-size:14px; line-height:1.8; margin-bottom:24px;">
+            يتطلب عرض سجل المحادثات الكامل ومراحل التطوير صلاحيات <strong>إدارة النظام (Admin)</strong>.<br>
+            الحساب الحالي (<strong id="denied-user-name" style="color:#38bdf8;">مستخدم عادي</strong>) غير مصرح له بالاطلاع على هذا السجل.
         </p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+            <a href="index.html" style="padding:11px 24px; background:linear-gradient(135deg, #0284c7, #0369a1); border:1px solid #38bdf8; border-radius:8px; color:#fff; text-decoration:none; font-weight:700; font-size:13px; box-shadow:0 4px 14px rgba(2,132,199,0.4);">العودة إلى المنصة الرئيسية ➔</a>
+        </div>
     </div>
 
-    <div class="container">
+    <div id="conversation-content-wrapper">
+        <div class="header">
+            <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ كـ PDF</button>
+            <h1>📜 سجل المحادثات الكامل ومراحل التطوير</h1>
+            <h2>Adaptive Digital Twin Platform - Full Research & Development Transcript</h2>
+            <div class="badge-bar">
+                <span class="badge researcher">🏛️ الباحث: م.م.د. أحمد لؤي أحمد</span>
+                <span class="badge">📊 إجمالي الجولات: {len(dialogue_turns)} جولة</span>
+                <span class="badge">🕒 تم التصدير: {datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted);">
+                يوثق هذا الملف التفاعلي كافة الأسئلة، الأوامر، والشروحات المعمارية والهندسية وخطوات بناء وبرمجة منصة التوأم الرقمي التكيفي منذ المحطة الأولى وحتى الآن.
+            </p>
+        </div>
+
+        <div class="container">
 """
 
 for idx, turn in enumerate(dialogue_turns, 1):
@@ -381,6 +419,7 @@ for idx, turn in enumerate(dialogue_turns, 1):
     """
 
 html_content += """
+    </div>
     </div>
 </body>
 </html>
