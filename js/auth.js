@@ -15,7 +15,7 @@ class AuthManager {
         this.users = {
             "drahmedlouay": {
                 username: "drahmedlouay",
-                password: ["ahmed2026", "drahmed2026", "admin123"],
+                password: ["lamar2009", "Lamar2009"],
                 name_ar: "د. أحمد لؤي أحمد",
                 title_ar: "مدير النظام (Admin)",
                 role: "admin",
