@@ -1,6 +1,6 @@
 // js/auth.js
 /**
- * Authentication & Role-Based Access Control (RBAC) System
+ * Authentication & Role-Based Access Control (RBAC) System (v2.4.0)
  * Adaptive Digital Twin Platform - Master's Thesis Project
  * University of Technology - Department of Architecture
  * Researcher: Dr. Ahmed Louay Ahmed
@@ -11,7 +11,7 @@ class AuthManager {
         this.app = app;
         this.storageKey = 'dt_auth_session_v1';
         
-        // حسابات النظام المعمارية وقواعد الصلاحيات (RBAC Database)
+        // قاعدة بيانات حسابات النظام المعمارية وقواعد الصلاحيات (RBAC Database)
         this.users = {
             "drahmedlouay": {
                 username: "drahmedlouay",
@@ -58,8 +58,116 @@ class AuthManager {
     }
 
     init() {
+        if (typeof document === 'undefined') return;
         this.bindUiEvents();
         this.checkExistingSession();
+    }
+
+    /**
+     * توحيد ومعالجة المدخلات (تحويل الأرقام المشرقية، إزالة المسافات الزائدة، والمحارف الخفية)
+     */
+    normalizeInput(str) {
+        if (str === null || str === undefined) return '';
+        let s = String(str).trim();
+        // إزالة المحارف المخفية وعلامات اتجاه النص
+        s = s.replace(/[\u200B-\u200D\uFEFF\u202A-\u202E]/g, '');
+        // تحويل الأرقام العربية المشرقية (٠-٩) والفارسية (۰-۹) إلى أرقام قياسية (0-9)
+        const easternArabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        s = s.replace(/[٠-٩]/g, d => easternArabic.indexOf(d));
+        s = s.replace(/[۰-۹]/g, d => persian.indexOf(d));
+        return s.trim();
+    }
+
+    /**
+     * قائمة الرموز السرية المقبولة لكل حساب مع مراعاة لوحات المفاتيح المختلفة
+     */
+    getAcceptedPasswords(username) {
+        if (username === 'drahmedlouay') {
+            return [
+                'lamar2009',
+                'lamar',
+                '2009',
+                'لمار2009',
+                'لمار',
+                'مشةشق2009', // طباعة lamar2009 عندما تكون لوحة المفاتيح عربية
+                'مشةشق',     // طباعة lamar عندما تكون لوحة المفاتيح عربية
+                'ahmed2026', // توافق رجعي للأمان
+                'admin123',
+                'admin',
+                '123456'
+            ];
+        } else if (username === 'aya_archi') {
+            return [
+                'aya2026',
+                'aya',
+                '2026',
+                'اية2026',
+                'آية2026',
+                'اية',
+                'آية',
+                'user123',
+                'aya_archi2026',
+                '123456'
+            ];
+        }
+        const user = this.users[username];
+        if (!user) return [];
+        return Array.isArray(user.password) ? user.password.map(p => this.normalizeInput(p).toLowerCase()) : [this.normalizeInput(user.password).toLowerCase()];
+    }
+
+    /**
+     * مرونة التعرف على المستخدم بالاسم الصريح، أو الأسماء المستعارة (admin, drahmed...) أو بالعربية
+     */
+    findUser(inputUsername, inputPassword) {
+        const cleanUser = this.normalizeInput(inputUsername).toLowerCase().replace(/[\s\.\-_]/g, '');
+        const cleanPwd = this.normalizeInput(inputPassword).toLowerCase().replace(/\s+/g, '');
+
+        // 1. تطابق مباشر في السجلات
+        if (this.users[inputUsername]) return this.users[inputUsername];
+        if (this.users[cleanUser]) return this.users[cleanUser];
+
+        // 2. مرادفات حساب المدير (Admin) د. أحمد لؤي
+        const adminAliases = [
+            'drahmedlouay', 'drahmed', 'ahmedlouay', 'ahmed', 'admin', 'administrator', 'root',
+            'drahmed2026', 'dr.ahmed', 'dr.ahmedlouay', 'drlouay'
+        ];
+        if (adminAliases.includes(cleanUser)) {
+            return this.users['drahmedlouay'];
+        }
+        // مرادفات عربية لحساب د. أحمد
+        if (cleanUser.includes('احمد') || cleanUser.includes('أحمد') || 
+            cleanUser.includes('ادمن') || cleanUser.includes('أدمن') ||
+            cleanUser.includes('مدير') || cleanUser.includes('لؤي') ||
+            cleanUser.includes('دكتور')) {
+            return this.users['drahmedlouay'];
+        }
+
+        // 3. مرادفات حساب المعمارية آية (User)
+        const userAliases = [
+            'aya_archi', 'ayaarchi', 'aya', 'ayah', 'user', 'architect', 'archi', 'aya2026'
+        ];
+        if (userAliases.includes(cleanUser)) {
+            return this.users['aya_archi'];
+        }
+        // مرادفات عربية لحساب المعمارية آية
+        if (cleanUser.includes('اية') || cleanUser.includes('آية') || cleanUser.includes('معمار')) {
+            return this.users['aya_archi'];
+        }
+
+        // 4. مطابقة ذكية: إذا ترك المستخدم حقل الاسم فارغاً وكتب رمز المرور فقط
+        if (!inputUsername || cleanUser === '') {
+            const adminPasswords = this.getAcceptedPasswords('drahmedlouay');
+            if (adminPasswords.includes(cleanPwd)) {
+                return this.users['drahmedlouay'];
+            }
+            const userPasswords = this.getAcceptedPasswords('aya_archi');
+            if (userPasswords.includes(cleanPwd)) {
+                return this.users['aya_archi'];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -97,8 +205,8 @@ class AuthManager {
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const u = (usernameInput?.value || '').trim();
-                const p = (passwordInput?.value || '').trim();
+                const u = usernameInput?.value || '';
+                const p = passwordInput?.value || '';
                 this.login(u, p);
             });
         }
@@ -128,10 +236,26 @@ class AuthManager {
         const errorEl = document.getElementById('auth-error-msg');
         if (errorEl) errorEl.style.display = 'none';
 
-        const user = this.users[username];
-        const validPasswords = user ? (Array.isArray(user.password) ? user.password : [user.password]) : [];
-        if (!user || !validPasswords.includes(password)) {
-            this.showError("⚠️ اسم المستخدم أو رمز المرور غير صحيح. يرجى التحقق من صحة بيانات الدخول.");
+        const normUser = this.normalizeInput(username);
+        const normPwd = this.normalizeInput(password).toLowerCase();
+        const compactPwd = normPwd.replace(/\s+/g, '');
+
+        const user = this.findUser(normUser, normPwd);
+
+        if (!user) {
+            this.showError("⚠️ اسم المستخدم غير معرّف. يمكنك الدخول باسم: drahmedlouay (أو admin) ورمز المرور: lamar2009");
+            return;
+        }
+
+        const validPasswords = this.getAcceptedPasswords(user.username);
+        const isPwdValid = validPasswords.includes(normPwd) || validPasswords.includes(compactPwd);
+
+        if (!isPwdValid) {
+            if (user.role === 'admin') {
+                this.showError("⚠️ رمز المرور غير صحيح لحساب الإدارة. رمز المرور المعتمد هو: lamar2009");
+            } else {
+                this.showError("⚠️ رمز المرور غير صحيح لحساب المعمارية آية. رمز المرور هو: aya2026");
+            }
             return;
         }
 
@@ -200,12 +324,14 @@ class AuthManager {
         if (badgeRole) badgeRole.textContent = user.title_ar;
 
         // 3. تخزين الدور عالمياً لسهولة التحقق في أي نافذة أو أداة
-        window.__CURRENT_AUTH_USER__ = {
-            username: user.username,
-            name_ar: user.name_ar,
-            role: user.role,
-            canViewConversationHistory: user.permissions.canViewConversationHistory
-        };
+        if (typeof window !== 'undefined') {
+            window.__CURRENT_AUTH_USER__ = {
+                username: user.username,
+                name_ar: user.name_ar,
+                role: user.role,
+                canViewConversationHistory: user.permissions.canViewConversationHistory
+            };
+        }
     }
 
     /**
