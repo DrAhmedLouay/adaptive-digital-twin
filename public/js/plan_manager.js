@@ -422,7 +422,22 @@ class PlanManager {
             return;
         }
 
-        // 3. استيراد ملفات BIM IFC و AutoCAD DXF و JSON
+        // 3. استيراد وتجسيم مشاريع BIM IFC ثلاثية الأبعاد عبر محرك WebAssembly (web-ifc)
+        if (name.endsWith('.ifc')) {
+            if (dropzoneTitle) dropzoneTitle.textContent = "⏳ جاري تشغيل محرك BIM WebAssembly وقراءة الكتل ثلاثية الأبعاد...";
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                await this.loadIfcBimModel(arrayBuffer, file.name, dropzoneTitle);
+            } catch (err) {
+                console.error("IFC import error:", err);
+                alert(`⚠️ تعذر استيراد نموذج الـ IFC: ${err.message}`);
+            } finally {
+                if (dropzoneTitle) dropzoneTitle.textContent = originalText;
+            }
+            return;
+        }
+
+        // 4. استيراد ملفات AutoCAD DXF و JSON
         let fileType = 'json';
         if (name.endsWith('.ifc')) fileType = 'ifc';
         else if (name.endsWith('.dxf')) fileType = 'dxf';
@@ -497,6 +512,57 @@ class PlanManager {
             }, 50);
         };
         reader.readAsText(file);
+    }
+
+    async loadIfcBimModel(arrayBuffer, fileName, dropzoneTitle) {
+        if (!window.BIMIFCEngine) {
+            throw new Error("محرك BIMIFCEngine غير متوفر في المتصفح.");
+        }
+
+        if (!this.ifcEngine) {
+            this.ifcEngine = new window.BIMIFCEngine();
+        }
+
+        const modelData = await this.ifcEngine.parseAndBuildModel(arrayBuffer, fileName, (msg, pct) => {
+            if (dropzoneTitle) {
+                dropzoneTitle.textContent = `⏳ ${msg} (${pct}%)`;
+            }
+        });
+
+        // تحميل وتجسيم النموذج في بيئة 3D
+        this.app.viewer.loadBuildingModel(modelData);
+        this.updateActiveBuildingTitle(modelData);
+        
+        // تحديث شريط الطوابق وعارض عناصر الـ IFC
+        if (this.app.updateStoreyBar) {
+            this.app.updateStoreyBar(modelData);
+        }
+        if (this.app.refreshIfcViewerUI) {
+            this.app.refreshIfcViewerUI();
+        }
+
+        this.closeModal();
+
+        // إشعار نجاح غني بتفاصيل النموذج
+        const nStoreys = Object.keys(modelData.storeys || {}).length;
+        const walls = modelData.stats?.walls || 0;
+        const slabs = (modelData.stats?.slabs_floor || 0) + (modelData.stats?.slabs_roof || 0);
+        const cols = modelData.stats?.columns || 0;
+        const beams = modelData.stats?.beams || 0;
+        const doors = modelData.stats?.doors || 0;
+        const windows = modelData.stats?.windows || 0;
+        const stairs = modelData.stats?.stairs || 0;
+
+        alert(`✓ تم استيراد ونمذجة مشروع الـ IFC المعماري بالكامل بنجاح!\n` +
+              `📁 اسم الملف: ${fileName}\n` +
+              `🧱 إجمالي العناصر ثلاثية الأبعاد: ${modelData.totalElements} عنصر حقيقي\n` +
+              `🏢 الطوابق والمستويات المعمارية: ${nStoreys} طوابق\n` +
+              `• الجدران والواجهات: ${walls}\n` +
+              `• البلاطات والأسطح: ${slabs}\n` +
+              `• الأعمدة والجسور: ${cols + beams}\n` +
+              `• الأبواب والنوافذ: ${doors + windows}\n` +
+              `• الأدراج والسلالم: ${stairs}\n\n` +
+              `يمكنك عزل الطوابق وفحص خصائص أي عنصر عبر النقر المباشر في المنظور أو نافذة "🏢 عارض عناصر IFC".`);
     }
 
     async loadPdfModel(arrayBuffer, fileName) {
@@ -968,13 +1034,17 @@ class PlanManager {
         try {
             let customModel = null;
             if (fileType === 'ifc') {
-                if (window.IFCStepParser) {
+                if (window.BIMIFCEngine) {
+                    const arrayBuf = (typeof content === 'string') ? new TextEncoder().encode(content).buffer : content;
+                    this.loadIfcBimModel(arrayBuf, fileName);
+                    return;
+                } else if (window.IFCStepParser) {
                     customModel = window.IFCStepParser.parse(content);
                     if (customModel && (!customModel.name_ar || customModel.name_ar.includes('مشروع BIM'))) {
                         customModel.name_ar = `نموذج BIM معماري: ${fileName}`;
                     }
                 } else {
-                    throw new Error("محلل الـ IFC (IFCStepParser) غير متوفر في المتصفح.");
+                    throw new Error("محلل الـ IFC غير متوفر في المتصفح.");
                 }
             } else if (fileType === 'dxf') {
                 if (window.IFCStepParser && window.IFCStepParser.parseDXF) {

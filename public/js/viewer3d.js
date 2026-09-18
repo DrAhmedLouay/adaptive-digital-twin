@@ -379,6 +379,18 @@ class Twin3DViewer {
         }
         this.wallHighlightMeshes = {};
         this.batchedWallBoxes = {};
+        if (this.bimMeshes) {
+            for (const mesh of this.bimMeshes) {
+                if (mesh && mesh.parent) mesh.parent.remove(mesh);
+                if (mesh?.geometry) mesh.geometry.dispose();
+                if (mesh?.material) {
+                    if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose());
+                    else mesh.material.dispose();
+                }
+            }
+        }
+        this.bimMeshes = [];
+        this.ifcCategoryMeshes = {};
         this.clearSelection();
         this.activeStoreyFilter = 'all';
         this.isExplodedView = false;
@@ -461,6 +473,36 @@ class Twin3DViewer {
                 this.buildingGroup.add(grp);
                 this.storeyGroups[sId] = grp;
             }
+        }
+
+        // 1.ج في حال كان النموذج مستورداً ومولداً بمحرك BIM WebAssembly (web-ifc)
+        if (modelData.is_wasm_ifc && modelData.rawMeshes && modelData.rawMeshes.length > 0) {
+            this.bimMeshes = modelData.rawMeshes;
+            this.ifcCategoryMeshes = modelData.meshesByCategory || {};
+
+            for (const mesh of modelData.rawMeshes) {
+                const sId = mesh.userData?.storeyId;
+                const parent = (sId && this.storeyGroups[sId]) || this.buildingGroup;
+                parent.add(mesh);
+            }
+
+            // إنشاء شارات الفضاءات المعمارية
+            for (const [id, space] of Object.entries(spaces)) {
+                const b = space.bounds || { x: 0, z: 0, width: 6, depth: 6 };
+                const cx = b.x + b.width / 2;
+                const cz = b.z + b.depth / 2;
+                this.createRoomBadge(id, space, cx, cz);
+            }
+
+            // 4. بناء وتفعيل شبكة التدفق الحركي المعماري ثلاثية الأبعاد
+            this.setupCirculationParticles(modelData);
+
+            // 5. بناء وتجسيم شبكة مجسمات مستشعرات إنترنت الأشياء ثلاثية الأبعاد
+            this.initIoTSensors();
+
+            // 6. توسيط وضبط الكاميرا بدقة على منتصف الشبكة وتأطير المبنى
+            this.frameBuildingInView(modelData);
+            return;
         }
 
         // 2. إنشاء أرضيات وجدران الفضاءات المعمارية (سواء كانت مستطيلة أو مضلعة بـ 3 جدران أو أكثر)
@@ -4224,7 +4266,7 @@ class Twin3DViewer {
                 let curr = hit.object;
                 let uData = null;
                 while (curr && curr !== this.buildingGroup) {
-                    if (curr.userData && (curr.userData.type || curr.userData.wallId || curr.userData.slabId || curr.userData.columnId || curr.userData.beamId || curr.userData.stairId || curr.userData.openingId || curr.userData.spaceId)) {
+                    if (curr.userData && (curr.userData.type || curr.userData.wallId || curr.userData.slabId || curr.userData.columnId || curr.userData.beamId || curr.userData.stairId || curr.userData.openingId || curr.userData.spaceId || curr.userData.isBIMElement)) {
                         uData = curr.userData;
                         break;
                     }
@@ -4422,6 +4464,30 @@ class Twin3DViewer {
                 "النوع الوظيفي (Function)": sp.type || 'workspace',
                 "المنسوب (Base Elev)": `${sp.base_elevation || 0} م`
             };
+        } else if (uData.isBIMElement) {
+            info.id = `#${uData.expressID}`;
+            info.ifcType = uData.ifcType || 'IfcBuildingElement';
+            info.name_ar = uData.name || uData.ifcType;
+            info.name_en = uData.name || uData.ifcType;
+            info.category = uData.category;
+            
+            const obj = hit.targetObj || hit.mesh;
+            let dims = {
+                "معرّف العنصر (ExpressID)": `#${uData.expressID}`,
+                "نوع الـ BIM (Type)": uData.ifcType,
+                "الفئة المعمارية (Category)": uData.category,
+                "الطابق التابع له (Storey)": uData.storeyId || '-'
+            };
+            if (obj) {
+                const b = new THREE.Box3().setFromObject(obj);
+                const size = new THREE.Vector3();
+                b.getSize(size);
+                dims["العرض (X)"] = `${size.x.toFixed(2)} م`;
+                dims["الارتفاع (Y)"] = `${size.y.toFixed(2)} م`;
+                dims["العمق (Z)"] = `${size.z.toFixed(2)} م`;
+                dims["المنسوب (Elevation)"] = `${b.min.y.toFixed(2)} م`;
+            }
+            info.dimensions = dims;
         }
 
         return info;
@@ -4430,6 +4496,12 @@ class Twin3DViewer {
     setIfcCategoryVisible(category, isVisible) {
         if (this.ifcCategoryVisibility) {
             this.ifcCategoryVisibility[category] = isVisible;
+        }
+
+        if (this.ifcCategoryMeshes && this.ifcCategoryMeshes[category]) {
+            for (const mesh of this.ifcCategoryMeshes[category]) {
+                if (mesh) mesh.visible = isVisible;
+            }
         }
 
         if (category === 'walls') {
@@ -4521,6 +4593,22 @@ class Twin3DViewer {
 
     getIfcStats() {
         const model = this.buildingData || {};
+        if (model.is_wasm_ifc && model.stats) {
+            const s = model.stats;
+            return {
+                walls: s.walls || 0,
+                slabs_floor: s.slabs_floor || 0,
+                slabs_roof: s.slabs_roof || 0,
+                slabs_site: s.slabs_site || 0,
+                columns: s.columns || 0,
+                beams: s.beams || 0,
+                doors: s.doors || 0,
+                windows: s.windows || 0,
+                stairs: s.stairs || 0,
+                spaces: s.spaces || Object.keys(model.spaces || {}).length
+            };
+        }
+
         let wallCount = Object.keys(this.wallMeshes || {}).length || Object.keys(model.walls || {}).length;
         let floorSlabCount = 0;
         let roofSlabCount = 0;
@@ -4556,6 +4644,13 @@ class Twin3DViewer {
     }
 
     isolateElement(type, id) {
+        if (this.bimMeshes && this.bimMeshes.length > 0) {
+            for (const mesh of this.bimMeshes) {
+                const mId = mesh.userData?.expressID;
+                const match = (id === `#${mId}` || id == mId);
+                mesh.visible = match;
+            }
+        }
         for (const [wId, mesh] of Object.entries(this.wallMeshes || {})) {
             mesh.visible = (type === 'wall' && wId === id);
         }
@@ -4577,6 +4672,14 @@ class Twin3DViewer {
     }
 
     setElementVisible(type, id, isVisible) {
+        if (this.bimMeshes && this.bimMeshes.length > 0) {
+            for (const mesh of this.bimMeshes) {
+                const mId = mesh.userData?.expressID;
+                if (id === `#${mId}` || id == mId) {
+                    mesh.visible = isVisible;
+                }
+            }
+        }
         if (type === 'wall' && this.wallMeshes[id]) this.wallMeshes[id].visible = isVisible;
         if (type === 'slab' && this.slabMeshes[id]) this.slabMeshes[id].visible = isVisible;
         if (type === 'column' && this.columnMeshes[id]) this.columnMeshes[id].visible = isVisible;
