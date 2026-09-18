@@ -214,7 +214,7 @@ class Twin3DViewer {
         // 3. Renderer — تعيين خلفية صلبة غير شفافة بيضاء ناصعة تمنع أي تداخل مع خلفية الصفحة
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
         this.renderer.setSize(width, height);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
         this.renderer.setClearColor(0xffffff, 1.0);
         this.renderer.domElement.style.background = '#ffffff';
         this.renderer.shadowMap.enabled = true;
@@ -1866,6 +1866,91 @@ class Twin3DViewer {
             }
         }
         return this.isPanMode;
+    }
+
+    /**
+     * تدوير كامل كتل ومجسمات الـ IFC حول أحد المحاور بمقدار زاوية محددة
+     * وتعديل الارتفاع بحيث يستقر أسفل المبنى بدقة على أرضية المشهد (Y = 0)
+     * @param {string} axis 'x' | 'y' | 'z'
+     * @param {number} angleRad زاوية التدوير بالراديان (افتراضياً Math.PI / 2 أي 90 درجة)
+     */
+    rotateModel(axis = 'x', angleRad = Math.PI / 2) {
+        const meshes = this.bimMeshes || [];
+        if (meshes.length === 0) {
+            console.warn("rotateModel: لا توجد مجسمات BIM نشطة لتدويرها.");
+            return;
+        }
+
+        const rotMat = new THREE.Matrix4();
+        if (axis === 'x') rotMat.makeRotationX(angleRad);
+        else if (axis === 'y') rotMat.makeRotationY(angleRad);
+        else if (axis === 'z') rotMat.makeRotationZ(angleRad);
+
+        // تطبيق التدوير على رؤوس هندسة كل عنصر
+        for (const mesh of meshes) {
+            mesh.geometry.applyMatrix4(rotMat);
+            mesh.geometry.computeBoundingBox();
+            mesh.geometry.computeBoundingSphere();
+        }
+
+        // إعادة حساب الصندوق المحيط الإجمالي وتوسيط المبنى رأسياً وأفقياً
+        const globalBox = new THREE.Box3();
+        for (const mesh of meshes) {
+            if (mesh.geometry.boundingBox) {
+                globalBox.union(mesh.geometry.boundingBox);
+            }
+        }
+
+        const center = new THREE.Vector3();
+        globalBox.getCenter(center);
+        const minY = globalBox.min.y;
+
+        const offX = -center.x;
+        const offY = -minY;
+        const offZ = -center.z;
+
+        for (const mesh of meshes) {
+            mesh.geometry.translate(offX, offY, offZ);
+            mesh.geometry.computeBoundingBox();
+            mesh.geometry.computeBoundingSphere();
+            mesh.updateMatrix();
+        }
+
+        // تحديث أبعاد المخطط وإعادة تأطير الكاميرا
+        this.frameBuildingInView(this.buildingData);
+        console.log(`✓ تم تدوير مجسمات المبنى حول المحور ${axis.toUpperCase()} بمقدار ${(angleRad * 180 / Math.PI).toFixed(0)}° وتعديل الارتفاع.`);
+    }
+
+    /**
+     * الضبط والاستقامة التلقائية للنموذج (Auto-Level)
+     * يفحص سماكة البلاطات لجعل السطح الأفقي مستوياً ومستقراً على أرضية المشهد
+     */
+    autoLevelModel() {
+        const meshes = this.bimMeshes || [];
+        if (meshes.length === 0) return;
+
+        const slabs = meshes.filter(m => m.userData?.category === 'slabs_floor' || m.userData?.category === 'slabs_roof');
+        const targetMeshes = slabs.length > 0 ? slabs : meshes;
+
+        let sumDx = 0, sumDy = 0, sumDz = 0;
+        for (const m of targetMeshes) {
+            const b = m.geometry.boundingBox;
+            if (!b) continue;
+            sumDx += Math.abs(b.max.x - b.min.x);
+            sumDy += Math.abs(b.max.y - b.min.y);
+            sumDz += Math.abs(b.max.z - b.min.z);
+        }
+
+        if (sumDz < sumDy * 0.6 && sumDz < sumDx * 0.6) {
+            // Z يمثل السماكة (المبنى نائم على جانبه) -> تدوير حول X بـ -90 درجة
+            this.rotateModel('x', -Math.PI / 2);
+        } else if (sumDx < sumDy * 0.6 && sumDx < sumDz * 0.6) {
+            // X يمثل السماكة -> تدوير حول Z بـ 90 درجة
+            this.rotateModel('z', Math.PI / 2);
+        } else {
+            // Y هو السماكة أصلاً (النموذج قائم بالفعل)
+            this.rotateModel('y', 0);
+        }
     }
 
     fitCameraToBuilding() {

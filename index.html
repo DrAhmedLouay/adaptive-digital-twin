@@ -61,7 +61,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css?v=2.5.0">
+    <link rel="stylesheet" href="css/styles.css?v=2.6.0">
 </head>
 <body>
 
@@ -227,6 +227,12 @@
                     <button class="nav-gizmo-btn" id="btn-nav-pan-up" data-tooltip-title="إزاحة للأعلى (Pan Up)" data-tooltip="تحريك المشهد رأسياً للأعلى.">🔼</button>
                     <button class="nav-gizmo-btn" id="btn-nav-pan-down" data-tooltip-title="إزاحة للأسفل (Pan Down)" data-tooltip="تحريك المشهد رأسياً للأسفل.">🔽</button>
                     <button class="nav-gizmo-btn" id="btn-toggle-bg-theme" style="flex:1;" data-tooltip-title="تبديل الخلفية (أبيض / معتم)" data-tooltip="التبديل الفوري بين خلفية الاستوديو المعماري البيضاء الناصعة والخلفية الداكنة.">🌓 خلفية</button>
+                </div>
+                <div class="nav-gizmo-row" style="border-top:1px solid rgba(255,255,255,0.12); padding-top:4px; margin-top:2px;">
+                    <button class="nav-gizmo-btn" id="btn-gizmo-rot-x" data-tooltip-title="تدوير النموذج 90° X" data-tooltip="تدوير مجسم الـ IFC بمقدار 90 درجة حول المحور X لتصحيح الانقلاب الجانبي فورياً.">⤴️ X</button>
+                    <button class="nav-gizmo-btn" id="btn-gizmo-rot-y" data-tooltip-title="تدوير النموذج 90° Y" data-tooltip="تدوير مجسم الـ IFC أفقياً بمقدار 90 درجة حول المحور Y.">⤵️ Y</button>
+                    <button class="nav-gizmo-btn" id="btn-gizmo-rot-z" data-tooltip-title="تدوير النموذج 90° Z" data-tooltip="تدوير مجسم الـ IFC بمقدار 90 درجة حول المحور Z.">🔄 Z</button>
+                    <button class="nav-gizmo-btn primary" id="btn-gizmo-autolevel" data-tooltip-title="استقامة تلقائية للمجسم" data-tooltip="الكشف التلقائي عن وجه الأرضية وجعل المبنى قائماً بدقة على شبكة الأرضية.">✨ استقامة</button>
                 </div>
             </div>
 
@@ -737,6 +743,14 @@
                     <button class="ifc-action-btn secondary" id="btn-ifc-reset-view">
                         🔄 استعادة الوضع الافتراضي
                     </button>
+                    <div style="width: 100%; height: 1px; background: rgba(148, 163, 184, 0.15); margin: 6px 0;"></div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;">
+                        <span style="font-size: 0.82rem; font-weight: 600; color: #38bdf8;">🔄 تصحيح اتجاه واستقامة المجسم:</span>
+                        <button class="ifc-action-btn secondary" id="btn-ifc-rot-x" data-tooltip-title="تدوير 90° حول X" data-tooltip="تدوير المبنى 90 درجة حول المحور X لتصحيح الانقلاب الجانبي وجعل الجدران رأسية.">⤴️ تدوير 90° X</button>
+                        <button class="ifc-action-btn secondary" id="btn-ifc-rot-y" data-tooltip-title="تدوير 90° حول Y" data-tooltip="تدوير المبنى 90 درجة أفقياً حول المحور Y لتوجيه الواجهة.">⤵️ تدوير 90° Y</button>
+                        <button class="ifc-action-btn secondary" id="btn-ifc-rot-z" data-tooltip-title="تدوير 90° حول Z" data-tooltip="تدوير المبنى 90 درجة حول المحور Z.">🔄 تدوير 90° Z</button>
+                        <button class="ifc-action-btn primary" id="btn-ifc-autolevel" data-tooltip-title="الضبط والاستقامة التلقائية" data-tooltip="تحليل سماكات البلاطات وضبط استقامة المبنى رأسياً تلقائياً ليجلس على الأرضية.">✨ ضبط الاستقامة التلقائي</button>
+                    </div>
                 </div>
 
                 <!-- Storey Isolator Bar -->
@@ -1286,17 +1300,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
     <!-- WebAssembly BIM IFC 3D Engine (web-ifc by buildingSMART / That Open Company) -->
-    <script src="js/libs/web-ifc/web-ifc-api-iife.js?v=2.5.0"></script>
-    <script src="js/ifc_engine.js?v=2.5.0"></script>
+    <script src="js/libs/web-ifc/web-ifc-api-iife.js?v=2.6.0"></script>
+    <script src="js/ifc_engine.js?v=2.6.0"></script>
 
-    <!-- Application Scripts (v2.5.0) -->
-    <script src="js/default_model.js?v=2.5.0"></script>
-    <script src="js/viewer3d.js?v=2.5.0"></script>
-    <script src="js/analytics.js?v=2.5.0"></script>
-    <script src="js/ifc_step_parser.js?v=2.5.0"></script>
-    <script src="js/plan_manager.js?v=2.5.0"></script>
-    <script src="js/tooltip.js?v=2.5.0"></script>
-    <script src="js/auth.js?v=2.5.0"></script>
-    <script src="js/app.js?v=2.5.0"></script>
+    <!-- Application Scripts (v2.6.0) -->
+    <script src="js/default_model.js?v=2.6.0"></script>
+    <script src="js/viewer3d.js?v=2.6.0"></script>
+    <script src="js/analytics.js?v=2.6.0"></script>
+    <script src="js/ifc_step_parser.js?v=2.6.0"></script>
+    <script src="js/plan_manager.js?v=2.6.0"></script>
+    <script src="js/tooltip.js?v=2.6.0"></script>
+    <script src="js/auth.js?v=2.6.0"></script>
+    <script src="js/app.js?v=2.6.0"></script>
 </body>
 </html>

@@ -162,11 +162,72 @@
                     edgeOpacity: 0.5
                 }
             };
+
+            this.sharedMaterials = null;
+            this.customColorMaterials = new Map();
         }
 
         /**
-         * تهيئة محرك WebAssembly
+         * تهيئة مصفوفة الخامات المشتركة (Flyweight Materials) لتسريع التصيير ومنع الـ Lagging
          */
+        initSharedMaterials() {
+            if (this.sharedMaterials) return;
+            this.sharedMaterials = {};
+            this.customColorMaterials.clear();
+
+            for (const [catKey, palette] of Object.entries(this.materialPalette)) {
+                if (palette.transparent) {
+                    this.sharedMaterials[catKey] = new THREE.MeshStandardMaterial({
+                        color: palette.color,
+                        roughness: 0.15,
+                        metalness: 0.1,
+                        transparent: true,
+                        opacity: palette.opacity || 0.35,
+                        side: THREE.DoubleSide
+                    });
+                } else {
+                    this.sharedMaterials[catKey] = new THREE.MeshStandardMaterial({
+                        color: palette.color,
+                        roughness: palette.roughness || 0.65,
+                        metalness: palette.metalness || 0.15,
+                        side: THREE.FrontSide // تفعيل الإلغاء العتادي للوجوه الخلفية (Hardware Backface Culling) لمضاعفة السرعة
+                    });
+                }
+            }
+        }
+
+        /**
+         * استرجاع خامة مشتركة ومخزنة مؤقتاً لتجنب إنشاء آلاف الخامات المتكررة
+         */
+        getMaterial(catKey, ifcColor) {
+            this.initSharedMaterials();
+            const palette = this.materialPalette[catKey] || this.materialPalette.other;
+            const isTrans = Boolean(palette.transparent);
+
+            if (ifcColor && (ifcColor.x > 0.05 || ifcColor.y > 0.05 || ifcColor.z > 0.05)) {
+                const r = Math.round(ifcColor.x * 255);
+                const g = Math.round(ifcColor.y * 255);
+                const b = Math.round(ifcColor.z * 255);
+                const key = `${r}_${g}_${b}_${isTrans ? 't' : 'o'}`;
+
+                if (this.customColorMaterials.has(key)) {
+                    return this.customColorMaterials.get(key);
+                }
+
+                const mat = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(ifcColor.x, ifcColor.y, ifcColor.z),
+                    roughness: palette.roughness || 0.65,
+                    metalness: palette.metalness || 0.15,
+                    transparent: isTrans,
+                    opacity: isTrans ? (palette.opacity || 0.35) : 1.0,
+                    side: isTrans ? THREE.DoubleSide : THREE.FrontSide
+                });
+                this.customColorMaterials.set(key, mat);
+                return mat;
+            }
+
+            return this.sharedMaterials[catKey] || this.sharedMaterials.other;
+        }
         async init() {
             if (this.isInitialized) return true;
             if (this.initPromise) return this.initPromise;
@@ -384,38 +445,20 @@
                             bufferGeo.applyMatrix4(m);
                         }
 
-                        // تحويل محاور الإحداثيات الهندسية من IFC Z-Up إلى Three.js Y-Up:
-                        bufferGeo.rotateX(-Math.PI / 2);
-
-                        // تجهيز خامة العنصر ولونه
-                        let meshMat;
-                        const ifcColor = placedGeo.color;
-                        if (palette.transparent) {
-                            meshMat = new THREE.MeshPhysicalMaterial({
-                                color: palette.color,
-                                roughness: palette.roughness,
-                                metalness: palette.metalness,
-                                transmission: 0.85,
-                                transparent: true,
-                                opacity: palette.opacity,
-                                side: THREE.DoubleSide
-                            });
-                        } else {
-                            let matColor = palette.color;
-                            if (ifcColor && (ifcColor.x > 0.05 || ifcColor.y > 0.05 || ifcColor.z > 0.05)) {
-                                matColor = new THREE.Color(ifcColor.x, ifcColor.y, ifcColor.z);
-                            }
-                            meshMat = new THREE.MeshStandardMaterial({
-                                color: matColor,
-                                roughness: palette.roughness,
-                                metalness: palette.metalness,
-                                side: THREE.DoubleSide
-                            });
-                        }
+                        // استرجاع خامة مشتركة فائقة الأداء (تمنع إنشاء آلاف الخامات وتضاعف الـ FPS)
+                        const meshMat = this.getMaterial(catKey, placedGeo.color);
 
                         const threeMesh = new THREE.Mesh(bufferGeo, meshMat);
-                        threeMesh.castShadow = !palette.transparent;
-                        threeMesh.receiveShadow = true;
+
+                        // تحسينات الأداء الفائق ومنع الـ Lagging:
+                        // 1. تجميد حساب مصفوفات المجسمات الساكنة لعدم إرهاق المعالج في كل إطار
+                        threeMesh.matrixAutoUpdate = false;
+                        threeMesh.updateMatrix();
+                        threeMesh.frustumCulled = true;
+
+                        // 2. إيقاف إلقاء الظلال المعقدة لكل قطعة صغيرة لتجنب تكرار رسم المشهد آلاف المرات
+                        threeMesh.castShadow = false;
+                        threeMesh.receiveShadow = (catKey !== 'windows' && catKey !== 'spaces');
 
                         // بيانات فاحص الخصائص وتفكيك الطبقات (userData)
                         threeMesh.userData = {
@@ -427,18 +470,6 @@
                             storeyId: storeyId,
                             edgeColor: palette.edgeColor
                         };
-
-                        // إضافة خطوط الحواف المعمارية الأنيقة (Crisp Architectural Edges)
-                        if (numVerts < 8000 && catKey !== 'slabs_site') {
-                            const edgeGeo = new THREE.EdgesGeometry(bufferGeo, 30);
-                            const edgeMat = new THREE.LineBasicMaterial({
-                                color: palette.edgeColor,
-                                transparent: true,
-                                opacity: palette.edgeOpacity || 0.6
-                            });
-                            const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
-                            threeMesh.add(edgeLines);
-                        }
 
                         meshesByCategory[catKey].push(threeMesh);
                         rawMeshes.push(threeMesh);
@@ -453,9 +484,14 @@
                 }
             });
 
-            if (onProgress) onProgress("جاري محاذاة وتوسيط المبنى في منتصف الشبكة المعمارية...", 80);
+            if (onProgress) onProgress("جاري التحليل والضبط التلقائي لاتجاه المبنى واستقامته...", 75);
 
-            // 3. حساب الصندوق المحيط الإجمالي وتوسيط المبنى عند (0, 0, 0)
+            // 3. التحليل الذكي لاتجاه النموذج وتصحيح الانقلاب الجانبي تلقائياً
+            const detectedOrientation = this.detectAndApplyOrientation(meshesByCategory, rawMeshes);
+
+            if (onProgress) onProgress("جاري محاذاة وتوسيط المبنى في منتصف الشبكة المعمارية...", 85);
+
+            // 4. حساب الصندوق المحيط الإجمالي وتوسيط المبنى عند (0, 0, 0)
             const globalBox = new THREE.Box3();
             for (const mesh of rawMeshes) {
                 mesh.geometry.computeBoundingBox();
@@ -477,6 +513,18 @@
                 mesh.geometry.translate(offsetX, offsetY, offsetZ);
                 mesh.geometry.computeBoundingBox();
                 mesh.geometry.computeBoundingSphere();
+                mesh.matrixAutoUpdate = false;
+                mesh.updateMatrix();
+            }
+
+            // تفعيل إلقاء الظلال فقط على الجدران والبلاطات الرئيسية في النماذج الخفيفة والمتوسطة
+            if (rawMeshes.length < 200) {
+                for (const mesh of rawMeshes) {
+                    const cat = mesh.userData.category;
+                    if (cat === 'walls' || cat === 'slabs_floor') {
+                        mesh.castShadow = true;
+                    }
+                }
             }
 
             // تحديث الصندوق المحيط بعد التوسيط
@@ -568,6 +616,107 @@
             };
 
             return modelData;
+        }
+
+        /**
+         * التحليل الرياضي الذكي لاتجاه عناصر المبنى وتصحيح الانقلاب الجانبي (Auto-Orientation Detection)
+         * يفحص نسب الأبعاد الثلاثية للبلاطات والأسقف والأعمدة والجدران لتحديد المحور الرأسي الحقيقي.
+         */
+        detectAndApplyOrientation(meshesByCategory, rawMeshes) {
+            if (!rawMeshes || rawMeshes.length === 0) return 'none';
+
+            // 1. فحص البلاطات والأسطح المعمارية (Slabs)
+            // في المباني، البلاطة عبارة عن قرص مستوٍ أفقي: البعد الأصغر يمثل السماكة (المحور الرأسي / الارتفاع)
+            const slabs = [
+                ...(meshesByCategory.slabs_floor || []),
+                ...(meshesByCategory.slabs_roof || [])
+            ];
+
+            let votes = { Y: 0, Z: 0, X: 0 };
+
+            for (const slab of slabs) {
+                slab.geometry.computeBoundingBox();
+                const box = slab.geometry.boundingBox;
+                if (!box) continue;
+                const dx = Math.abs(box.max.x - box.min.x);
+                const dy = Math.abs(box.max.y - box.min.y);
+                const dz = Math.abs(box.max.z - box.min.z);
+
+                if (dy < dx * 0.45 && dy < dz * 0.45) {
+                    votes.Y += 2; // السماكة على محور Y => النموذج قائم وأفقي بالفعل في Three.js
+                } else if (dz < dx * 0.45 && dz < dy * 0.45) {
+                    votes.Z += 2; // السماكة على محور Z => النموذج مصمم بـ Z-up في IFC، يحتاج تدوير ليصبح قائماً
+                } else if (dx < dy * 0.45 && dx < dz * 0.45) {
+                    votes.X += 2; // السماكة على محور X => يحتاج تدوير
+                }
+            }
+
+            // 2. إذا لم تكن هناك بلاطات كافية لتحديد الاتجاه، نفحص الأعمدة الإنشائية (Columns)
+            // العمود الإنشائي مجسم رأسي ممدود: البعد الأكبر يمثل الارتفاع
+            const cols = meshesByCategory.columns || [];
+            if (votes.Y === 0 && votes.Z === 0 && votes.X === 0 && cols.length > 0) {
+                for (const col of cols) {
+                    col.geometry.computeBoundingBox();
+                    const box = col.geometry.boundingBox;
+                    if (!box) continue;
+                    const dx = Math.abs(box.max.x - box.min.x);
+                    const dy = Math.abs(box.max.y - box.min.y);
+                    const dz = Math.abs(box.max.z - box.min.z);
+
+                    if (dy > dx * 1.5 && dy > dz * 1.5) {
+                        votes.Y += 1;
+                    } else if (dz > dx * 1.5 && dz > dy * 1.5) {
+                        votes.Z += 1;
+                    } else if (dx > dy * 1.5 && dx > dz * 1.5) {
+                        votes.X += 1;
+                    }
+                }
+            }
+
+            // 3. فحص الجدران (Walls) كخيار إضافي
+            const walls = meshesByCategory.walls || [];
+            if (votes.Y === 0 && votes.Z === 0 && votes.X === 0 && walls.length > 0) {
+                for (const wall of walls) {
+                    wall.geometry.computeBoundingBox();
+                    const box = wall.geometry.boundingBox;
+                    if (!box) continue;
+                    const dx = Math.abs(box.max.x - box.min.x);
+                    const dy = Math.abs(box.max.y - box.min.y);
+                    const dz = Math.abs(box.max.z - box.min.z);
+
+                    if (dy < Math.max(dx, dz) && dy >= 2.0 && dy <= 6.0) {
+                        votes.Y += 1;
+                    } else if (dz < Math.max(dx, dy) && dz >= 2.0 && dz <= 6.0) {
+                        votes.Z += 1;
+                    }
+                }
+            }
+
+            // 4. اتخاذ القرار وتطبيق مصفوفة التدوير المناسبة
+            let appliedRotation = 'none';
+            const rotMat = new THREE.Matrix4();
+
+            if (votes.Z > votes.Y && votes.Z > votes.X) {
+                // المحور Z في ملف الـ IFC يمثل الارتفاع: تدوير بمقدار -90 درجة حول X لينطبق Z على Y
+                rotMat.makeRotationX(-Math.PI / 2);
+                appliedRotation = 'rotateX_-90';
+                for (const mesh of rawMeshes) {
+                    mesh.geometry.applyMatrix4(rotMat);
+                }
+            } else if (votes.X > votes.Y && votes.X > votes.Z) {
+                // المحور X يمثل الارتفاع: تدوير بمقدار 90 درجة حول Z لينطبق X على Y
+                rotMat.makeRotationZ(Math.PI / 2);
+                appliedRotation = 'rotateZ_90';
+                for (const mesh of rawMeshes) {
+                    mesh.geometry.applyMatrix4(rotMat);
+                }
+            } else {
+                // المحور Y هو الارتفاع أصلاً: النموذج مستقيم وقائم تماماً
+                appliedRotation = 'none';
+            }
+
+            console.log(`✓ التحديد الذكي لاتجاه نموذج الـ IFC: (Y=${votes.Y}, Z=${votes.Z}, X=${votes.X}) -> التحويل: ${appliedRotation}`);
+            return appliedRotation;
         }
     }
 

@@ -309,6 +309,26 @@ class TwinApp {
             const btn = document.getElementById('btn-toggle-bg-theme');
             if (btn) btn.title = isWhite ? 'الخلفية: أبيض (انقر للتبديل للداكن)' : 'الخلفية: داكن (انقر للتبديل للأبيض)';
         });
+        bindGizmoBtn('btn-gizmo-rot-x', () => {
+            if (this.viewer && typeof this.viewer.rotateModel === 'function') {
+                this.viewer.rotateModel('x', Math.PI / 2);
+            }
+        });
+        bindGizmoBtn('btn-gizmo-rot-y', () => {
+            if (this.viewer && typeof this.viewer.rotateModel === 'function') {
+                this.viewer.rotateModel('y', Math.PI / 2);
+            }
+        });
+        bindGizmoBtn('btn-gizmo-rot-z', () => {
+            if (this.viewer && typeof this.viewer.rotateModel === 'function') {
+                this.viewer.rotateModel('z', Math.PI / 2);
+            }
+        });
+        bindGizmoBtn('btn-gizmo-autolevel', () => {
+            if (this.viewer && typeof this.viewer.autoLevelModel === 'function') {
+                this.viewer.autoLevelModel();
+            }
+        });
 
         // طي وتوسيع اللوحة الجانبية (Sidebar Collapse) لتوسيع المشهد إلى 100%
         const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
@@ -522,6 +542,31 @@ class TwinApp {
                     this.viewer.resetCamera();
                     this.viewer.setStoreyFilter('all');
                     this.refreshIfcViewerUI();
+                }
+            });
+        }
+
+        // أزرار تدوير وتصحيح استقامة مجسمات الـ IFC في نافذة الفاحص
+        const bindIfcRot = (id, axis, angle) => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    if (this.viewer && typeof this.viewer.rotateModel === 'function') {
+                        this.viewer.rotateModel(axis, angle);
+                    }
+                });
+            }
+        };
+
+        bindIfcRot('btn-ifc-rot-x', 'x', Math.PI / 2);
+        bindIfcRot('btn-ifc-rot-y', 'y', Math.PI / 2);
+        bindIfcRot('btn-ifc-rot-z', 'z', Math.PI / 2);
+
+        const btnAutoLevelModal = document.getElementById('btn-ifc-autolevel');
+        if (btnAutoLevelModal) {
+            btnAutoLevelModal.addEventListener('click', () => {
+                if (this.viewer && typeof this.viewer.autoLevelModel === 'function') {
+                    this.viewer.autoLevelModel();
                 }
             });
         }
