@@ -15,7 +15,7 @@ class AuthManager {
         this.users = {
             "drahmedlouay": {
                 username: "drahmedlouay",
-                password: "ahmed2026",
+                password: ["ahmed2026", "drahmed2026", "admin123"],
                 name_ar: "د. أحمد لؤي أحمد",
                 title_ar: "مدير النظام (Admin)",
                 role: "admin",
@@ -34,7 +34,7 @@ class AuthManager {
             },
             "aya_archi": {
                 username: "aya_archi",
-                password: "aya2026",
+                password: ["aya2026", "aya_archi2026", "user123"],
                 name_ar: "المعمارية آية",
                 title_ar: "مستخدم معماري (User)",
                 role: "user",
@@ -93,8 +93,6 @@ class AuthManager {
         const usernameInput = document.getElementById('auth-username');
         const passwordInput = document.getElementById('auth-password');
         const togglePwdBtn = document.getElementById('btn-auth-toggle-pwd');
-        const quickAdminBtn = document.getElementById('btn-quick-login-admin');
-        const quickUserBtn = document.getElementById('btn-quick-login-user');
 
         if (form) {
             form.addEventListener('submit', (e) => {
@@ -110,23 +108,6 @@ class AuthManager {
                 const isPwd = passwordInput.type === 'password';
                 passwordInput.type = isPwd ? 'text' : 'password';
                 togglePwdBtn.textContent = isPwd ? '🙈' : '👁️';
-            });
-        }
-
-        // أزرار الدخول السريع للاختبار المباشر
-        if (quickAdminBtn) {
-            quickAdminBtn.addEventListener('click', () => {
-                if (usernameInput) usernameInput.value = 'drahmedlouay';
-                if (passwordInput) passwordInput.value = 'ahmed2026';
-                this.login('drahmedlouay', 'ahmed2026');
-            });
-        }
-
-        if (quickUserBtn) {
-            quickUserBtn.addEventListener('click', () => {
-                if (usernameInput) usernameInput.value = 'aya_archi';
-                if (passwordInput) passwordInput.value = 'aya2026';
-                this.login('aya_archi', 'aya2026');
             });
         }
 
@@ -148,8 +129,9 @@ class AuthManager {
         if (errorEl) errorEl.style.display = 'none';
 
         const user = this.users[username];
-        if (!user || user.password !== password) {
-            this.showError("⚠️ اسم المستخدم أو رمز المرور غير صحيح. يرجى التأكد من البيانات أو استخدام أزرار الدخول السريع أدناه.");
+        const validPasswords = user ? (Array.isArray(user.password) ? user.password : [user.password]) : [];
+        if (!user || !validPasswords.includes(password)) {
+            this.showError("⚠️ اسم المستخدم أو رمز المرور غير صحيح. يرجى التحقق من صحة بيانات الدخول.");
             return;
         }
 
