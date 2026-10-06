@@ -31,63 +31,80 @@ body {
 
 /* Header */
 header {
-  height: 60px;
+  min-height: 52px;
+  height: auto;
   background: rgba(15, 20, 28, 0.95);
   border-bottom: 1px solid var(--panel-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 5px 16px;
   z-index: 100;
   backdrop-filter: blur(10px);
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .logo-area {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .logo-badge {
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 18px;
+  font-size: 16px;
   color: #fff;
-  box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+  box-shadow: 0 0 12px rgba(0, 210, 255, 0.3);
+  flex-shrink: 0;
 }
 
 .logo-title h1 {
-  font-size: 17px;
+  font-size: 14.5px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .logo-title span {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+@media (max-width: 1440px) {
+  .logo-title span {
+    display: none;
+  }
 }
 
 .header-status {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .header-menu-group {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(30, 41, 59, 0.5);
   border: 1px solid rgba(148, 163, 184, 0.18);
-  padding: 3px 8px;
-  border-radius: 9px;
+  padding: 2px 6px;
+  border-radius: 8px;
   backdrop-filter: blur(8px);
   transition: all 0.2s ease;
 }
@@ -98,21 +115,21 @@ header {
 }
 
 .menu-group-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #94a3b8;
   white-space: nowrap;
-  margin-left: 6px;
+  margin-left: 3px;
   user-select: none;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .header-status-indicators {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .status-pill {
@@ -171,24 +188,25 @@ header {
   left: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  z-index: 12;
+  gap: 5px;
+  z-index: 22;
   pointer-events: none;
+  max-width: 300px;
 }
 
 .hud-toggle-pill {
   pointer-events: auto;
-  background: rgba(15, 23, 42, 0.88);
+  background: rgba(15, 23, 42, 0.9);
   border: 1px solid rgba(56, 189, 248, 0.4);
   color: #38bdf8;
-  padding: 5px 12px;
-  border-radius: 8px;
+  padding: 4px 10px;
+  border-radius: 7px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   transition: all 0.2s ease;
@@ -200,10 +218,10 @@ header {
 }
 
 .hud-cards-container {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  max-width: 680px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(76px, 94px));
+  gap: 4px;
+  max-width: 290px;
   transition: all 0.25s ease;
 }
 .hud-cards-container.collapsed {
@@ -212,24 +230,23 @@ header {
 
 .hud-card {
   pointer-events: auto;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.88);
   border: 1px solid rgba(148, 163, 184, 0.2);
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 4px 7px;
+  border-radius: 7px;
   backdrop-filter: blur(8px);
-  min-width: 90px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .hud-card .label {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--text-muted);
   margin-bottom: 2px;
   white-space: nowrap;
 }
 
 .hud-card .value {
-  font-size: 15px;
+  font-size: 13.5px;
   font-weight: bold;
   color: var(--text-main);
 }
@@ -300,32 +317,33 @@ header {
   top: 12px;
   right: 16px;
   left: auto;
-  background: rgba(15, 23, 36, 0.92);
+  background: rgba(15, 23, 36, 0.94);
   border: 1px solid rgba(0, 210, 255, 0.4);
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   backdrop-filter: blur(12px);
-  z-index: 12;
+  z-index: 18;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   animation: fadeInDown 0.3s ease-out;
-  max-width: calc(100vw - 420px);
+  max-width: calc(100% - 325px);
+  overflow: visible;
 }
 
 .hud-bar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 
 .hud-bar-content {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .hud-bar-content.collapsed {
@@ -351,14 +369,14 @@ header {
 }
 
 .hud-bar-title {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--accent-cyan);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   border-left: 1px solid rgba(255, 255, 255, 0.15);
-  padding-left: 12px;
+  padding-left: 10px;
 }
 
 .hud-bar-control {
@@ -406,19 +424,20 @@ header {
 .hud-menu-group {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   background: rgba(30, 41, 59, 0.55);
   border: 1px solid rgba(148, 163, 184, 0.18);
-  padding: 3px 6px;
+  padding: 2px 5px;
   border-radius: 7px;
+  flex-wrap: wrap;
 }
 
 .hud-group-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   color: #94a3b8;
   white-space: nowrap;
-  margin-left: 4px;
+  margin-left: 3px;
   user-select: none;
 }
 
@@ -426,10 +445,10 @@ header {
   background: rgba(0, 210, 255, 0.12);
   border: 1px solid rgba(0, 210, 255, 0.4);
   color: var(--accent-cyan);
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 6px;
-  font-size: 11px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-size: 10.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -951,16 +970,16 @@ input:checked + .slider:before {
   background: linear-gradient(135deg, rgba(0, 210, 255, 0.15), rgba(58, 123, 213, 0.15));
   border: 1px solid rgba(56, 189, 248, 0.45);
   color: var(--accent-cyan);
-  height: 32px;
-  padding: 0 11px;
-  border-radius: 7px;
-  font-size: 11.5px;
+  height: 29px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   transition: all 0.2s ease;
   white-space: nowrap;
   text-decoration: none;
@@ -1282,44 +1301,45 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
 /* Floating Architectural Blueprint Tracer Palette — Docked Top-Right */
 .blueprint-tracer-bar {
   position: absolute;
-  top: 54px;
+  top: 56px;
   right: 16px;
   left: auto;
-  max-width: min(960px, calc(100vw - 400px));
+  max-width: calc(100% - 325px);
   background: rgba(14, 20, 30, 0.96);
   border: 1px solid var(--accent-cyan);
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 6px 10px;
+  border-radius: 11px;
   display: none;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
   backdrop-filter: blur(14px);
-  z-index: 20;
+  z-index: 25;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 210, 255, 0.2);
   animation: fadeInDown 0.25s ease-out;
   direction: rtl;
+  overflow: visible;
 }
 
 .tracer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 6px;
+  gap: 12px;
+  padding-bottom: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tracer-tools {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .tracer-tools-categorized {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
   width: 100%;
 }
@@ -1327,20 +1347,20 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
 .tracer-group {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(148, 163, 184, 0.18);
-  padding: 3px 6px;
-  border-radius: 8px;
+  padding: 2px 5px;
+  border-radius: 7px;
   flex-wrap: wrap;
 }
 
 .tracer-group-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   color: #94a3b8;
   white-space: nowrap;
-  margin-left: 4px;
+  margin-left: 3px;
   user-select: none;
 }
 
@@ -1348,16 +1368,16 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.16);
   color: var(--text-main);
-  height: 28px;
-  padding: 0 9px;
-  border-radius: 6px;
-  font-size: 11px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 5px;
+  font-size: 10.5px;
   font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   transition: all 0.2s ease;
   white-space: nowrap;
   box-sizing: border-box;
@@ -1375,7 +1395,7 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   border-color: var(--accent-cyan);
   color: var(--accent-cyan);
   font-weight: bold;
-  box-shadow: 0 0 12px rgba(0, 210, 255, 0.35);
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.35);
 }
 
 .tracer-tool-btn.danger-btn {
@@ -1407,16 +1427,16 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   background: linear-gradient(135deg, #10b981, #059669);
   border: 1px solid #34d399;
   color: #ffffff;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 6px;
-  font-size: 11px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: 10.5px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   transition: all 0.2s ease;
   white-space: nowrap;
   box-sizing: border-box;
@@ -1897,45 +1917,50 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
 .header-user-badge {
   display: none;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  border-radius: 20px;
+  gap: 6px;
+  padding: 2px 8px;
+  height: 29px;
+  border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   backdrop-filter: blur(8px);
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .user-badge-info {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  line-height: 1.15;
   text-align: right;
 }
 
 .user-badge-name {
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+  white-space: nowrap;
 }
 
 .user-badge-role {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   opacity: 0.85;
+  white-space: nowrap;
 }
 
 .btn-header-logout {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.35);
   color: #fca5a5;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 0.65rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  white-space: nowrap;
 }
 
 .btn-header-logout:hover {
