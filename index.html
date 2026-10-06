@@ -81,65 +81,90 @@
         </div>
 
         <div class="header-status">
-            <button class="btn-plan-manager" id="btn-new-project" style="background: rgba(234, 179, 8, 0.15); border-color: #eab308; color: #fde047;"
-                    data-tooltip-title="بدء مشروع معماري جديد"
-                    data-tooltip="تفريغ المشهد بالكامل والبدء من لوحة بيضاء نظيفة خالية من العناصر لبناء أو استيراد تصميم معماري جديد من الصفر في منتصف الشبكة المحورية.">
-                ✨ مشروع جديد
-            </button>
-            <button class="btn-plan-manager" id="btn-open-plan-manager"
-                    data-tooltip-title="إدارة واستيراد المخططات المعمارية"
-                    data-tooltip="فتح نافذة لاختيار دراسات الحالة الجاهزة (إدارية، صحية، خدمية) أو رفع مخططات BIM بصيغة IFC (Revit / ArchiCAD)، أو مخططات PDF معمارية، أو AutoCAD DXF.">
-                📐 المخططات المعمارية
-            </button>
-            <button class="btn-plan-manager" id="btn-header-scale-calibration" style="background: rgba(0, 210, 255, 0.18); border-color: var(--accent-cyan); color: #7dd3fc; box-shadow: 0 0 10px rgba(0, 210, 255, 0.25);"
-                    data-tooltip-title="معايرة وتعديل مقياس مسقط الـ PDF (Scale Calibration)"
-                    data-tooltip="فتح لوحة وأدوات ضبط ومعايرة مقياس مساقط الـ PDF والمخططات الحقيقية بنقطتين معلومتين أو بنسبة مئوية لتطابق أبعاد الجدران 1:1.">
-                📏 معايرة مقياس المسقط
-            </button>
-            <button class="btn-plan-manager" id="btn-open-ifc-viewer" style="background: rgba(59, 130, 246, 0.18); border-color: #3b82f6; color: #93c5fd;"
-                    data-tooltip-title="أداة عارض وتفكيك عناصر IFC (BIM Inspector)"
-                    data-tooltip="أداة متقدمة لفحص نموذج BIM: إظهار وإخفاء الطبقات (جدران، أسقف، بلاطات، أعمدة، جسور، أبواب، شبابيك)، تنظيف السطوح الدخيلة تلقائياً، عزل الطوابق، وفحص خصائص وأبعاد أي عنصر عند النقر عليه في المشهد ثلاثي الأبعاد.">
-                🏢 عارض عناصر IFC
-            </button>
-            <button class="btn-plan-manager" id="btn-open-iot-modal" style="background: rgba(0, 210, 255, 0.15); border-color: var(--accent-cyan); color: #7dd3fc;"
-                    data-tooltip-title="شبكة مستشعرات الـ IoT والتحليل المكاني"
-                    data-tooltip="عرض لوحة مراقبة شبكة الحساسات اللحظية (PIR، عدادات الأبواب، جودة الهواء CO2) ومصفوفة التدفق التبادلي بين الفضاءات.">
-                📡 مستشعرات IoT
-            </button>
-            <button class="btn-plan-manager" id="btn-open-reconfig-modal" style="background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #6ee7b7;"
-                    data-tooltip-title="محرك إعادة التشكيل والتوزيع الوظيفي"
-                    data-tooltip="اختبار خوارزميات التكيف المعماري وإعادة توزيع الفضاءات والمقارنة الإحصائية الدقيقة بين الوضع الراهن والمقترح.">
-                🔄 إعادة التشكيل والتوزيع
-            </button>
-            <a href="CONVERSATION_HISTORY.html" target="_blank" class="btn-plan-manager" id="header-link-conversation-history" style="background: rgba(168, 85, 247, 0.2); border-color: #a855f7; color: #d8b4fe; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"
-               data-tooltip-title="سجل المحادثات وتوثيق التطوير"
-               data-tooltip="فتح سجل المحادثات الكامل بجميع أسئلتك وأوامرك وإجابات المساعد والخطوات الهندسية منذ بداية المشروع في صفحة تفاعلية قابلة للقراءة والطباعة والحفظ كـ PDF.">
-                📜 سجل المحادثات
-            </a>
-            <!-- Active User Profile Badge & Logout -->
-            <div class="header-user-badge" id="header-user-badge"
-                 data-tooltip-title="حساب المستخدم النشط وصلاحيات النظام"
-                 data-tooltip="عرض اسم الحساب النشط وصلاحياته، مع إمكانية التبديل وتسجيل الخروج.">
-                <span id="user-badge-icon" style="font-size:14px;">👑</span>
-                <div class="user-badge-info">
-                    <span class="user-badge-name" id="user-badge-name">د. أحمد لؤي</span>
-                    <span class="user-badge-role" id="user-badge-role">مدير النظام (Admin)</span>
-                </div>
-                <button class="btn-header-logout" id="btn-header-logout" title="تسجيل الخروج أو تبديل الحساب">
-                    <span>خروج</span>
-                    <span>⏻</span>
+            <!-- 1. مجموعة المشاريع ونماذج BIM -->
+            <div class="header-menu-group" data-group="project">
+                <span class="menu-group-label">🏗️ المشاريع و BIM</span>
+                <button class="btn-plan-manager header-btn-primary" id="btn-new-project"
+                        data-tooltip-title="بدء مشروع معماري جديد"
+                        data-tooltip="تفريغ المشهد بالكامل والبدء من لوحة بيضاء نظيفة خالية من العناصر لبناء أو استيراد تصميم معماري جديد من الصفر في منتصف الشبكة المحورية.">
+                    <span>✨</span>
+                    <span>مشروع جديد</span>
+                </button>
+                <button class="btn-plan-manager" id="btn-open-plan-manager"
+                        data-tooltip-title="إدارة واستيراد المخططات المعمارية"
+                        data-tooltip="فتح نافذة لاختيار دراسات الحالة الجاهزة (إدارية، صحية، خدمية) أو رفع مخططات BIM بصيغة IFC (Revit / ArchiCAD)، أو مخططات PDF معمارية، أو AutoCAD DXF.">
+                    <span>📐</span>
+                    <span>المخططات</span>
+                </button>
+                <button class="btn-plan-manager" id="btn-open-ifc-viewer"
+                        data-tooltip-title="أداة عارض وتفكيك عناصر IFC (BIM Inspector)"
+                        data-tooltip="أداة متقدمة لفحص نموذج BIM: إظهار وإخفاء الطبقات (جدران، أسقف، بلاطات، أعمدة، جسور، أبواب، شبابيك)، تنظيف السطوح الدخيلة تلقائياً، عزل الطوابق، وفحص خصائص وأبعاد أي عنصر عند النقر عليه في المشهد ثلاثي الأبعاد.">
+                    <span>🏢</span>
+                    <span>عارض IFC</span>
                 </button>
             </div>
-            <div class="status-pill"
-                 data-tooltip-title="المبنى المعماري النشط"
-                 data-tooltip="المبنى المعروض حالياً في بيئة التوأم الرقمي ثلاثي الأبعاد وتجري عليه محاكاة الإشغال الحركي.">
-                <span id="active-building-name" style="color:var(--accent-cyan); font-weight:600;">المبنى الإداري النموذجي</span>
+
+            <!-- 2. مجموعة التحليل والذكاء المعماري -->
+            <div class="header-menu-group" data-group="intelligence">
+                <span class="menu-group-label">🧠 التحليل والمحاكاة</span>
+                <button class="btn-plan-manager" id="btn-open-iot-modal"
+                        data-tooltip-title="شبكة مستشعرات الـ IoT والتحليل المكاني"
+                        data-tooltip="عرض لوحة مراقبة شبكة الحساسات اللحظية (PIR، عدادات الأبواب، جودة الهواء CO2) ومصفوفة التدفق التبادلي بين الفضاءات.">
+                    <span>📡</span>
+                    <span>مستشعرات IoT</span>
+                </button>
+                <button class="btn-plan-manager" id="btn-open-reconfig-modal"
+                        data-tooltip-title="محرك إعادة التشكيل والتوزيع الوظيفي"
+                        data-tooltip="اختبار خوارزميات التكيف المعماري وإعادة توزيع الفضاءات والمقارنة الإحصائية الدقيقة بين الوضع الراهن والمقترح.">
+                    <span>🔄</span>
+                    <span>إعادة التشكيل</span>
+                </button>
+                <button class="btn-plan-manager" id="btn-header-scale-calibration"
+                        data-tooltip-title="معايرة وتعديل مقياس مسقط الـ PDF (Scale Calibration)"
+                        data-tooltip="فتح لوحة وأدوات ضبط ومعايرة مقياس مساقط الـ PDF والمخططات الحقيقية بنقطتين معلومتين أو بنسبة مئوية لتطابق أبعاد الجدران 1:1.">
+                    <span>📏</span>
+                    <span>معايرة المسقط</span>
+                </button>
             </div>
-            <div class="status-pill"
-                 data-tooltip-title="بث بيانات الحساسات اللحظية"
-                 data-tooltip="حالة الاتصال بدفق حساسات IoT الافتراضية؛ تقوم بتوليد قياسات حركة وإشغال الأفراد كل 1.5 ثانية.">
-                <span class="pulse-dot"></span>
-                <span>بث IoT لحظي</span>
+
+            <!-- 3. مجموعة التوثيق والإدارة -->
+            <div class="header-menu-group" data-group="system">
+                <span class="menu-group-label">📑 التوثيق والحساب</span>
+                <a href="CONVERSATION_HISTORY.html" target="_blank" class="btn-plan-manager" id="header-link-conversation-history"
+                   data-tooltip-title="سجل المحادثات وتوثيق التطوير"
+                   data-tooltip="فتح سجل المحادثات الكامل بجميع أسئلتك وأوامرك وإجابات المساعد والخطوات الهندسية منذ بداية المشروع في صفحة تفاعلية قابلة للقراءة والطباعة والحفظ كـ PDF.">
+                    <span>📜</span>
+                    <span>سجل المحادثات</span>
+                </a>
+                <!-- Active User Profile Badge & Logout -->
+                <div class="header-user-badge" id="header-user-badge"
+                     data-tooltip-title="حساب المستخدم النشط وصلاحيات النظام"
+                     data-tooltip="عرض اسم الحساب النشط وصلاحياته، مع إمكانية التبديل وتسجيل الخروج.">
+                    <span id="user-badge-icon" style="font-size:14px;">👑</span>
+                    <div class="user-badge-info">
+                        <span class="user-badge-name" id="user-badge-name">د. أحمد لؤي</span>
+                        <span class="user-badge-role" id="user-badge-role">مدير النظام</span>
+                    </div>
+                    <button class="btn-header-logout" id="btn-header-logout" title="تسجيل الخروج أو تبديل الحساب">
+                        <span>خروج</span>
+                        <span>⏻</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. مؤشرات الحالة الحية -->
+            <div class="header-status-indicators">
+                <div class="status-pill"
+                     data-tooltip-title="المبنى المعماري النشط"
+                     data-tooltip="المبنى المعروض حالياً في بيئة التوأم الرقمي ثلاثي الأبعاد وتجري عليه محاكاة الإشغال الحركي.">
+                    <span id="active-building-name" style="color:var(--accent-cyan); font-weight:600;">المبنى النموذجي</span>
+                </div>
+                <div class="status-pill live-iot-pill"
+                     data-tooltip-title="بث بيانات الحساسات اللحظية"
+                     data-tooltip="حالة الاتصال بدفق حساسات IoT الافتراضية؛ تقوم بتوليد قياسات حركة وإشغال الأفراد كل 1.5 ثانية.">
+                    <span class="pulse-dot"></span>
+                    <span>IoT لحظي</span>
+                </div>
             </div>
         </div>
     </header>
@@ -204,6 +229,7 @@
             </div>
 
             <!-- Viewport 3D Smooth Navigation & Camera Controls Dock (Gizmo) -->
+            <!-- Viewport 3D Smooth Navigation & Camera Controls Dock (Gizmo) -->
             <div class="viewport-nav-gizmo" id="viewport-nav-gizmo">
                 <div class="nav-gizmo-row">
                     <button class="nav-gizmo-btn" id="btn-nav-orbit-left" data-tooltip-title="تدوير الكاميرا لليسار" data-tooltip="تدوير المنظور بسلاسة حول المبنى باتجاه عقارب الساعة.">↺</button>
@@ -220,19 +246,19 @@
                 <div class="nav-gizmo-row">
                     <button class="nav-gizmo-btn" id="btn-nav-zoom-in" data-tooltip-title="تقريب (Zoom In)" data-tooltip="تقريب الكاميرا بسلاسة لتفحص التفاصيل الدقيقة للمبنى.">➕</button>
                     <button class="nav-gizmo-btn" id="btn-nav-zoom-out" data-tooltip-title="تبعيد (Zoom Out)" data-tooltip="تبعيد الكاميرا لإظهار المبنى ومحيطه بالكامل.">➖</button>
-                    <button class="nav-gizmo-btn" id="btn-top-view" data-tooltip-title="تغيير المنظور 2D / 3D" data-tooltip="التبديل بين المنظور المجسم ثلاثي الأبعاد والمسقط الأفقي العلوي 2D.">📐</button>
-                    <button class="nav-gizmo-btn" id="btn-reset-view" data-tooltip-title="استعادة الوضع الافتراضي" data-tooltip="إعادة ضبط زاوية الرؤية ومستوى التقريب للوضع الافتراضي.">🔄</button>
-                </div>
-                <div class="nav-gizmo-row">
                     <button class="nav-gizmo-btn" id="btn-nav-pan-up" data-tooltip-title="إزاحة للأعلى (Pan Up)" data-tooltip="تحريك المشهد رأسياً للأعلى.">🔼</button>
                     <button class="nav-gizmo-btn" id="btn-nav-pan-down" data-tooltip-title="إزاحة للأسفل (Pan Down)" data-tooltip="تحريك المشهد رأسياً للأسفل.">🔽</button>
-                    <button class="nav-gizmo-btn" id="btn-toggle-bg-theme" style="flex:1;" data-tooltip-title="تبديل الخلفية (أبيض / معتم)" data-tooltip="التبديل الفوري بين خلفية الاستوديو المعماري البيضاء الناصعة والخلفية الداكنة.">🌓 خلفية</button>
+                </div>
+                <div class="nav-gizmo-row">
+                    <button class="nav-gizmo-btn" id="btn-top-view" data-tooltip-title="تغيير المنظور 2D / 3D" data-tooltip="التبديل بين المنظور المجسم ثلاثي الأبعاد والمسقط الأفقي العلوي 2D.">📐</button>
+                    <button class="nav-gizmo-btn" id="btn-reset-view" data-tooltip-title="استعادة الوضع الافتراضي" data-tooltip="إعادة ضبط زاوية الرؤية ومستوى التقريب للوضع الافتراضي.">🔄</button>
+                    <button class="nav-gizmo-btn" id="btn-toggle-bg-theme" data-tooltip-title="تبديل الخلفية (أبيض / معتم)" data-tooltip="التبديل الفوري بين خلفية الاستوديو المعماري البيضاء الناصعة والخلفية الداكنة.">🌓</button>
+                    <button class="nav-gizmo-btn primary" id="btn-gizmo-autolevel" data-tooltip-title="استقامة تلقائية للمجسم" data-tooltip="الكشف التلقائي عن وجه الأرضية وجعل المبنى قائماً بدقة على شبكة الأرضية.">✨</button>
                 </div>
                 <div class="nav-gizmo-row" style="border-top:1px solid rgba(255,255,255,0.12); padding-top:4px; margin-top:2px;">
                     <button class="nav-gizmo-btn" id="btn-gizmo-rot-x" data-tooltip-title="تدوير النموذج 90° X" data-tooltip="تدوير مجسم الـ IFC بمقدار 90 درجة حول المحور X لتصحيح الانقلاب الجانبي فورياً.">⤴️ X</button>
                     <button class="nav-gizmo-btn" id="btn-gizmo-rot-y" data-tooltip-title="تدوير النموذج 90° Y" data-tooltip="تدوير مجسم الـ IFC أفقياً بمقدار 90 درجة حول المحور Y.">⤵️ Y</button>
                     <button class="nav-gizmo-btn" id="btn-gizmo-rot-z" data-tooltip-title="تدوير النموذج 90° Z" data-tooltip="تدوير مجسم الـ IFC بمقدار 90 درجة حول المحور Z.">🔄 Z</button>
-                    <button class="nav-gizmo-btn primary" id="btn-gizmo-autolevel" data-tooltip-title="استقامة تلقائية للمجسم" data-tooltip="الكشف التلقائي عن وجه الأرضية وجعل المبنى قائماً بدقة على شبكة الأرضية.">✨ استقامة</button>
                 </div>
             </div>
 
@@ -325,33 +351,42 @@
                             </div>
                         </div>
                     </div>
-                    <button class="hud-toggle-btn" id="btn-toggle-iot-vis" style="background:rgba(0,210,255,0.15); border-color:var(--accent-cyan);"
-                            data-tooltip-title="إظهار / إخفاء مستشعرات الـ IoT في المشهد 3D"
-                            data-tooltip="التبديل بين إظهار أو إخفاء مجسمات حساسات الحركة PIR وعدادات الأبواب ثلاثية الأبعاد فوق الفضاءات.">📡 إخفاء الحساسات</button>
-                    <button class="hud-toggle-btn" id="btn-toggle-labels-vis"
-                            data-tooltip-title="إظهار / إخفاء عناوين وشارات الفضاءات"
-                            data-tooltip="التبديل بين إظهار أو إخفاء الشارات وعناوين الغرف المعمارية وبيانات إشغالها في المشهد 3D.">🏷️ إخفاء العناوين</button>
-                    <button class="hud-toggle-btn" id="btn-toggle-flow-vis"
-                            data-tooltip-title="إظهار / إخفاء تدفق الحركة (Spatial Flow)"
-                            data-tooltip="التبديل بين إظهار أو إخفاء جسيمات التدفق الحركي المعماري عبر شبكة الممرات والأبواب والقواطع التكيفية.">⚡ إخفاء تدفق الحركة</button>
-                    <button class="hud-toggle-btn" id="btn-toggle-flow-theme"
-                            data-tooltip-title="تخصيص وتمييز لون التدفق الحركي"
-                            data-tooltip="التبديل الفوري بين ألوان التدفق الحركي المعماري عالية التباين على الخلفية البيضاء (أزرق ملكي كحلي، بنفسجي إشعاعي، قرمزي ديناميكي، أخضر زمردي، كهرماني).">
-                        <span id="flow-color-dot" style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#1d4ed8; box-shadow:0 0 6px #1d4ed8; margin-left:4px; vertical-align:middle;"></span>
-                        <span id="flow-color-label">لون التدفق: أزرق ملكي</span>
-                    </button>
-                    <button class="hud-toggle-btn" id="btn-toggle-walls-vis"
-                            data-tooltip-title="إظهار / إخفاء الجدران والفتحات"
-                            data-tooltip="التبديل بين إظهار الجدران المعمارية ثلاثية الأبعاد بفتحات الأبواب والشبابيك الحقيقية أو إخفائها.">🧱 إخفاء الجدران</button>
-                    <button class="hud-toggle-btn" id="btn-toggle-blueprint-vis"
-                            data-tooltip-title="إخفاء / إظهار المسقط"
-                            data-tooltip="التبديل بين إظهار المسقط المعماري الحقيقي أو الاكتفاء بالكتل ثلاثية الأبعاد فقط.">👁️ إخفاء المسقط</button>
-                    <button class="hud-toggle-btn" id="btn-toggle-scale-panel" style="background:rgba(0,210,255,0.18); border-color:var(--accent-cyan); color:#38bdf8;"
-                            data-tooltip-title="إظهار / إخفاء لوحة مقياس وأبعاد المسقط"
-                            data-tooltip="التحكم بمقياس المسقط الواقعي (العرض، العمق، التكبير والتصغير، وأداة المعايرة بنقطتين).">📏 مقياس المسقط</button>
-                    <button class="hud-toggle-btn" id="btn-open-tracer-mode" style="background:rgba(0,210,255,0.22); border-color:var(--accent-cyan); color:#38bdf8;"
-                            data-tooltip-title="أداة التحديد المعماري التفاعلي"
-                            data-tooltip="تفعيل لوحة أدوات الرسم المباشر للنقر وبناء الجدران والأبواب والفتحات والسلالم فوق المسقط.">✏️ تحديد معالم المخطط</button>
+                    <!-- مجموعة أزرار طبقات الرؤية (Layer Visibility Menu) -->
+                    <div class="hud-menu-group" data-hud-group="layers">
+                        <span class="hud-group-label">👁️ الطبقات:</span>
+                        <button class="hud-toggle-btn" id="btn-toggle-walls-vis"
+                                data-tooltip-title="إظهار / إخفاء الجدران والفتحات"
+                                data-tooltip="التبديل بين إظهار الجدران المعمارية ثلاثية الأبعاد بفتحات الأبواب والشبابيك الحقيقية أو إخفائها.">🧱 إخفاء الجدران</button>
+                        <button class="hud-toggle-btn" id="btn-toggle-blueprint-vis"
+                                data-tooltip-title="إخفاء / إظهار المسقط"
+                                data-tooltip="التبديل بين إظهار المسقط المعماري الحقيقي أو الاكتفاء بالكتل ثلاثية الأبعاد فقط.">👁️ إخفاء المسقط</button>
+                        <button class="hud-toggle-btn" id="btn-toggle-iot-vis"
+                                data-tooltip-title="إظهار / إخفاء مستشعرات الـ IoT في المشهد 3D"
+                                data-tooltip="التبديل بين إظهار أو إخفاء مجسمات حساسات الحركة PIR وعدادات الأبواب ثلاثية الأبعاد فوق الفضاءات.">📡 إخفاء الحساسات</button>
+                        <button class="hud-toggle-btn" id="btn-toggle-labels-vis"
+                                data-tooltip-title="إظهار / إخفاء عناوين وشارات الفضاءات"
+                                data-tooltip="التبديل بين إظهار أو إخفاء الشارات وعناوين الغرف المعمارية وبيانات إشغالها في المشهد 3D.">🏷️ إخفاء العناوين</button>
+                        <button class="hud-toggle-btn" id="btn-toggle-flow-vis"
+                                data-tooltip-title="إظهار / إخفاء تدفق الحركة (Spatial Flow)"
+                                data-tooltip="التبديل بين إظهار أو إخفاء جسيمات التدفق الحركي المعماري عبر شبكة الممرات والأبواب والقواطع التكيفية.">⚡ إخفاء تدفق الحركة</button>
+                        <button class="hud-toggle-btn" id="btn-toggle-flow-theme"
+                                data-tooltip-title="تخصيص وتمييز لون التدفق الحركي"
+                                data-tooltip="التبديل الفوري بين ألوان التدفق الحركي المعماري عالية التباين على الخلفية البيضاء (أزرق ملكي كحلي، بنفسجي إشعاعي، قرمزي ديناميكي، أخضر زمردي، كهرماني).">
+                            <span id="flow-color-dot" style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#1d4ed8; box-shadow:0 0 6px #1d4ed8; margin-left:4px; vertical-align:middle;"></span>
+                            <span id="flow-color-label">لون التدفق</span>
+                        </button>
+                    </div>
+
+                    <!-- مجموعة أدوات القياس والتحديد (Tools & Scale Menu) -->
+                    <div class="hud-menu-group" data-hud-group="tools">
+                        <span class="hud-group-label">📐 الأدوات:</span>
+                        <button class="hud-toggle-btn hud-accent-btn" id="btn-toggle-scale-panel"
+                                data-tooltip-title="إظهار / إخفاء لوحة مقياس وأبعاد المسقط"
+                                data-tooltip="التحكم بمقياس المسقط الواقعي (العرض، العمق، التكبير والتصغير، وأداة المعايرة بنقطتين).">📏 مقياس المسقط</button>
+                        <button class="hud-toggle-btn hud-accent-btn" id="btn-open-tracer-mode"
+                                data-tooltip-title="أداة التحديد المعماري التفاعلي"
+                                data-tooltip="تفعيل لوحة أدوات الرسم المباشر للنقر وبناء الجدران والأبواب والفتحات والسلالم فوق المسقط.">✏️ تحديد معالم المخطط</button>
+                    </div>
                 </div>
             </div>
 
@@ -361,70 +396,94 @@
                     <span style="color:var(--accent-cyan); font-weight:bold; font-size:12px;">✏️ أداة المعايرة المعمارية والرسم المباشر فوق المخطط</span>
                     <span style="color:var(--text-muted); font-size:11px;" id="tracer-hint">انقر على أدوات الرسم لبناء العناصر فوق المسقط:</span>
                 </div>
-                <div class="tracer-tools">
-                    <button class="tracer-tool-btn" data-tool="calibrate-scale" id="tool-calibrate-scale" style="background:rgba(0,210,255,0.12); border-color:var(--accent-cyan); color:#38bdf8; font-weight:bold;"
-                            data-tooltip-title="معايرة مقياس الـ PDF بنقطتين"
-                            data-tooltip="انقر نقطتين على أي جدار أو خط قياس معلوم الطول في مسقط الـ PDF لتعديل مقياس المخطط ليطابق الأبعاد الحقيقية 1:1.">📏 معايرة المقياس</button>
-                    <button class="tracer-tool-btn active" data-tool="wall" id="tool-draw-wall"
-                            data-tooltip-title="رسم جدار فوق الـ PDF"
-                            data-tooltip="انقر نقطتين مباشرة فوق خطوط جدران المسقط المستورد لتجسيم جدار معماري ثلاثي الأبعاد.">🧱 رسم جدار</button>
-                    <button class="tracer-tool-btn" data-tool="door" id="tool-draw-door"
-                            data-tooltip-title="إضافة باب معماري"
-                            data-tooltip="انقر فوق أي جدار في المخطط لإنشاء فتحة باب وتفريغ الجدار وتثبيت العتبة وقوس الفتح.">🚪 إضافة باب</button>
-                    <button class="tracer-tool-btn" data-tool="window" id="tool-draw-window"
-                            data-tooltip-title="إضافة شباك"
-                            data-tooltip="انقر فوق أي جدار لإنشاء فتحة شباك بالزجاج المعماري الشفاف والعتبات.">🪟 إضافة شباك</button>
-                    <button class="tracer-tool-btn" data-tool="passage" id="tool-draw-passage"
-                            data-tooltip-title="فتحة عبور / ممر مفتوح"
-                            data-tooltip="انقر فوق أي جدار لإنشاء فتحة عبور وممر مفتوح بدون مصراع لتسهيل تدفق الحركة.">🔲 فتحة عبور</button>
-                    <button class="tracer-tool-btn" data-tool="room" id="tool-tag-room"
-                            data-tooltip-title="تحديد فضاء وغرفة (مستطيل بزاويتين)"
-                            data-tooltip="انقر على زاويتين متقابلتين للغرفة في الـ PDF لتوليد فضاء إشغالي محاط بجدرانه وحساساته.">🏷️ فضاء مستطيل</button>
-                    <button class="tracer-tool-btn" data-tool="enclosed-space" id="tool-enclosed-space" style="border-color:rgba(46,204,113,0.4); color:#2ecc71;"
-                            data-tooltip-title="إنشاء فضاء من 3+ جدران مغلقة"
-                            data-tooltip="انقر داخل مساحة محاطة بـ 3 جدران أو أكثر لكشفها وتوليد الفضاء وأرضيته فورياً، أو انقر فوق الجدران المحيطة تباعاً لإغلاق الفضاء.">📐 فضاء من 3+ جدران</button>
-                    <button class="tracer-tool-btn" data-tool="polygon-space" id="tool-polygon-space" style="border-color:rgba(16,185,129,0.5); color:#34d399;"
-                            data-tooltip-title="رسم فضاء مضلع حر متعدد النقاط (شكل L أو غير منتظم)"
-                            data-tooltip="انقر على زوايا الفضاء نقطة بنقطة لتحديد أي شكل مضلع غير منتظم؛ انقر نقراً مزدوجاً أو بالقرب من البداية لإغلاق وتجسيم الفضاء والأرضية فورياً.">⬡ فضاء مضلع حر</button>
-                    <button class="tracer-tool-btn" data-tool="space-separator" id="tool-space-separator" style="border-color:rgba(168,85,247,0.5); color:#c084fc;"
-                            data-tooltip-title="قاطع فضائي افتراضي (تقسيم فضاء مفتوح)"
-                            data-tooltip="انقر نقطتين لتقسيم فضاء مفتوح كبير إلى فضاءين وظيفيين فرعيين دون بناء جدار إنشائي (Room Separator).">➗ قاطع فضائي</button>
-                    <button class="tracer-tool-btn" data-tool="circle-space" id="tool-circle-space" style="border-color:rgba(56,189,248,0.5); color:#38bdf8;"
-                            data-tooltip-title="رسم فضاء دائري / شعاعي"
-                            data-tooltip="انقر في المركز واسحب لتحديد نصف القطر ثم انقر مجدداً لتجسيم الفضاء الدائري والبهو المركزي (Atrium / Amphitheater).">🔘 فضاء دائري</button>
-                    <button class="tracer-tool-btn" id="btn-auto-detect-all-spaces" style="background:rgba(16,185,129,0.2); border-color:#10b981; color:#34d399; font-weight:bold;"
-                            data-tooltip-title="كشف وتوليد كافة الفضاءات آلياً بنقرة واحدة"
-                            data-tooltip="تحليل فراغي ذكي يكشف جميع الغرف والقاعات المغلقة بالمبنى ويولد أرضياتها وحساساتها التكيفية دفعة واحدة في ثانية واحدة.">⚡ كشف كافة الفضاءات</button>
-                    <button class="tracer-tool-btn" data-tool="staircase" id="tool-draw-stair" style="border-color:rgba(52,152,219,0.5); color:#3498db;"
-                            data-tooltip-title="إضافة سلم معماري (حركة عمودية)"
-                            data-tooltip="انقر لتثبيت بيت درج / سلم معماري يربط الطابق بالحركة العمودية مع مؤشر الصعود ونقطة الربط بالممرات. اضغط R للتدوير 90 درجة.">🪜 إضافة سلم</button>
-                    <button class="tracer-tool-btn" data-tool="iot-sensor" id="tool-add-sensor" style="border-color:rgba(0,210,255,0.4); color:var(--accent-cyan);"
-                            data-tooltip-title="تثبيت مستشعر IoT"
-                            data-tooltip="انقر داخل أي فضاء أو فوق أي باب لتثبيت وبرمجة مستشعر IoT ذكي (PIR، تلوث/بيئي، ضوضاء، عداد حركة).">📡 مستشعر IoT</button>
-                    <button class="tracer-tool-btn" data-tool="move-wall" id="tool-move-wall" style="border-color:rgba(245,158,11,0.4); color:var(--accent-amber);"
-                            data-tooltip-title="تحريك وتدوير الجدار أو السلم (R للتدوير)"
-                            data-tooltip="انقر فوق أي جدار أو سلم لاختياره أو سحبه؛ اضغط مفتاح R لتدوير الجدار 45° أو تدوير السلم 90° مع تحديث الفتحات ومسارات الحركة.">↔️🔄 تحريك وتدوير (جدار / سلم)</button>
-                    <button class="tracer-tool-btn" data-tool="delete-wall" id="tool-delete-wall" style="border-color:rgba(231,76,60,0.4);"
-                            data-tooltip-title="حذف فتحة أو جدار أو سلم أو مستشعر"
-                            data-tooltip="انقر فوق أي باب أو شباك أو فتحة عبور أو سلم أو مستشعر IoT أو جدار أو فضاء ملون لحذفه فورياً.">🗑️ حذف عنصر / سلم</button>
-                    <button class="tracer-tool-btn trim-btn" data-tool="trim-wall" id="tool-trim-wall" style="border-color:rgba(236,72,153,0.5); color:#ec4899;"
-                            data-tooltip-title="تقليم وقص جدار بين جدارين (Trim Wall)"
-                            data-tooltip="انقر فوق أي جدار فاصل بين جدارين لتقليمه وحذفه فورياً، ودمج الفضاءين وتوسيع وتكبير المساحة الناتجة وتحديث الأرضيات والمؤشرات.">✂️ تقليم جدار (Trim)</button>
-                    <button class="tracer-tool-btn" id="btn-clean-wall-joins" style="border-color:rgba(0,210,255,0.4); color:var(--accent-cyan);"
-                            data-tooltip-title="تنظيف وتوصيل تقاطعات الجدران"
-                            data-tooltip="معايرة هندسية آلية لربط وتوصيل نهايات الجدران المتقاطعة وزوايا الغرف نظيفاً دون فجوات أو تداخل.">📐 تنظيف التقاطعات</button>
-                    <button class="tracer-tool-btn" id="btn-clear-all-walls" style="border-color:rgba(231,76,60,0.3); color:#e74c3c;"
-                            data-tooltip-title="مسح الجدران والفضاءات والأرضيات الملونة"
-                            data-tooltip="حذف جميع الجدران والفتحات والكتل والأرضيات الملونة للبدء برسم مسقط الـ PDF من لوحة نظيفة تماماً.">🧹 مسح الجدران والفضاءات</button>
-                    <button class="tracer-tool-btn" id="tracer-toggle-view"
-                            data-tooltip-title="تبديل المنظور 2D / 3D"
-                            data-tooltip="التبديل بين المنظور العلوي العمودي (Top-down 2D) والمنظور المجسم 3D لسهولة الرسم فوق الـ PDF.">📐 مسقط علوي 2D</button>
-                    <button class="tracer-tool-btn" id="tracer-undo-btn"
-                            data-tooltip-title="تراجع عن آخر عنصر"
-                            data-tooltip="حذف آخر جدار أو فتحة أو فضاء تم رسمه في وضع المعايرة.">↩️ تراجع</button>
-                    <button class="tracer-done-btn" id="btn-close-tracer"
-                            data-tooltip-title="إنهاء وحفظ"
-                            data-tooltip="حفظ المخطط المعماري والخروج من وضع الرسم التفاعلي.">✓ إنهاء وحفظ</button>
+                <div class="tracer-tools tracer-tools-categorized">
+                    <!-- 1. مجموعة البناء والفتحات المعمارية -->
+                    <div class="tracer-group" data-tracer-group="build">
+                        <span class="tracer-group-label">🧱 البناء والفتحات:</span>
+                        <button class="tracer-tool-btn active" data-tool="wall" id="tool-draw-wall"
+                                data-tooltip-title="رسم جدار فوق الـ PDF"
+                                data-tooltip="انقر نقطتين مباشرة فوق خطوط جدران المسقط المستورد لتجسيم جدار معماري ثلاثي الأبعاد.">🧱 رسم جدار</button>
+                        <button class="tracer-tool-btn" data-tool="door" id="tool-draw-door"
+                                data-tooltip-title="إضافة باب معماري"
+                                data-tooltip="انقر فوق أي جدار في المخطط لإنشاء فتحة باب وتفريغ الجدار وتثبيت العتبة وقوس الفتح.">🚪 إضافة باب</button>
+                        <button class="tracer-tool-btn" data-tool="window" id="tool-draw-window"
+                                data-tooltip-title="إضافة شباك"
+                                data-tooltip="انقر فوق أي جدار لإنشاء فتحة شباك بالزجاج المعماري الشفاف والعتبات.">🪟 إضافة شباك</button>
+                        <button class="tracer-tool-btn" data-tool="passage" id="tool-draw-passage"
+                                data-tooltip-title="فتحة عبور / ممر مفتوح"
+                                data-tooltip="انقر فوق أي جدار لإنشاء فتحة عبور وممر مفتوح بدون مصراع لتسهيل تدفق الحركة.">🔲 فتحة عبور</button>
+                        <button class="tracer-tool-btn" data-tool="staircase" id="tool-draw-stair"
+                                data-tooltip-title="إضافة سلم معماري (حركة عمودية)"
+                                data-tooltip="انقر لتثبيت بيت درج / سلم معماري يربط الطابق بالحركة العمودية مع مؤشر الصعود ونقطة الربط بالممرات. اضغط R للتدوير 90 درجة.">🪜 إضافة سلم</button>
+                    </div>
+
+                    <!-- 2. مجموعة الفضاءات والمساحات -->
+                    <div class="tracer-group" data-tracer-group="spaces">
+                        <span class="tracer-group-label">📐 الفضاءات:</span>
+                        <button class="tracer-tool-btn" data-tool="room" id="tool-tag-room"
+                                data-tooltip-title="تحديد فضاء وغرفة (مستطيل بزاويتين)"
+                                data-tooltip="انقر على زاويتين متقابلتين للغرفة في الـ PDF لتوليد فضاء إشغالي محاط بجدرانه وحساساته.">🏷️ فضاء مستطيل</button>
+                        <button class="tracer-tool-btn" data-tool="enclosed-space" id="tool-enclosed-space"
+                                data-tooltip-title="إنشاء فضاء من 3+ جدران مغلقة"
+                                data-tooltip="انقر داخل مساحة محاطة بـ 3 جدران أو أكثر لكشفها وتوليد الفضاء وأرضيته فورياً، أو انقر فوق الجدران المحيطة تباعاً لإغلاق الفضاء.">📐 فضاء من 3+ جدران</button>
+                        <button class="tracer-tool-btn" data-tool="polygon-space" id="tool-polygon-space"
+                                data-tooltip-title="رسم فضاء مضلع حر متعدد النقاط (شكل L أو غير منتظم)"
+                                data-tooltip="انقر على زوايا الفضاء نقطة بنقطة لتحديد أي شكل مضلع غير منتظم؛ انقر نقراً مزدوجاً أو بالقرب من البداية لإغلاق وتجسيم الفضاء والأرضية فورياً.">⬡ فضاء مضلع حر</button>
+                        <button class="tracer-tool-btn" data-tool="circle-space" id="tool-circle-space"
+                                data-tooltip-title="رسم فضاء دائري / شعاعي"
+                                data-tooltip="انقر في المركز واسحب لتحديد نصف القطر ثم انقر مجدداً لتجسيم الفضاء الدائري والبهو المركزي (Atrium / Amphitheater).">🔘 فضاء دائري</button>
+                        <button class="tracer-tool-btn" data-tool="space-separator" id="tool-space-separator"
+                                data-tooltip-title="قاطع فضائي افتراضي (تقسيم فضاء مفتوح)"
+                                data-tooltip="انقر نقطتين لتقسيم فضاء مفتوح كبير إلى فضاءين وظيفيين فرعيين دون بناء جدار إنشائي (Room Separator).">➗ قاطع فضائي</button>
+                        <button class="tracer-tool-btn" id="btn-auto-detect-all-spaces"
+                                data-tooltip-title="كشف وتوليد كافة الفضاءات آلياً بنقرة واحدة"
+                                data-tooltip="تحليل فراغي ذكي يكشف جميع الغرف والقاعات المغلقة بالمبنى ويولد أرضياتها وحساساتها التكيفية دفعة واحدة في ثانية واحدة.">⚡ كشف كافة الفضاءات</button>
+                    </div>
+
+                    <!-- 3. مجموعة التعديل والتحرير -->
+                    <div class="tracer-group" data-tracer-group="edit">
+                        <span class="tracer-group-label">✂️ التعديل:</span>
+                        <button class="tracer-tool-btn" data-tool="move-wall" id="tool-move-wall"
+                                data-tooltip-title="تحريك وتدوير الجدار أو السلم (R للتدوير)"
+                                data-tooltip="انقر فوق أي جدار أو سلم لاختياره أو سحبه؛ اضغط مفتاح R لتدوير الجدار 45° أو تدوير السلم 90° مع تحديث الفتحات ومسارات الحركة.">↔️🔄 تحريك وتدوير</button>
+                        <button class="tracer-tool-btn trim-btn" data-tool="trim-wall" id="tool-trim-wall"
+                                data-tooltip-title="تقليم وقص جدار بين جدارين (Trim Wall)"
+                                data-tooltip="انقر فوق أي جدار فاصل بين جدارين لتقليمه وحذفه فورياً، ودمج الفضاءين وتوسيع وتكبير المساحة الناتجة وتحديث الأرضيات والمؤشرات.">✂️ تقليم جدار</button>
+                        <button class="tracer-tool-btn" data-tool="delete-wall" id="tool-delete-wall"
+                                data-tooltip-title="حذف فتحة أو جدار أو سلم أو مستشعر"
+                                data-tooltip="انقر فوق أي باب أو شباك أو فتحة عبور أو سلم أو مستشعر IoT أو جدار أو فضاء ملون لحذفه فورياً.">🗑️ حذف عنصر</button>
+                        <button class="tracer-tool-btn" id="btn-clean-wall-joins"
+                                data-tooltip-title="تنظيف وتوصيل تقاطعات الجدران"
+                                data-tooltip="معايرة هندسية آلية لربط وتوصيل نهايات الجدران المتقاطعة وزوايا الغرف نظيفاً دون فجوات أو تداخل.">📐 تنظيف التقاطعات</button>
+                        <button class="tracer-tool-btn" id="btn-clear-all-walls"
+                                data-tooltip-title="مسح الجدران والفضاءات والأرضيات الملونة"
+                                data-tooltip="حذف جميع الجدران والفتحات والكتل والأرضيات الملونة للبدء برسم مسقط الـ PDF من لوحة نظيفة تماماً.">🧹 مسح الكل</button>
+                    </div>
+
+                    <!-- 4. مجموعة القياس والمستشعرات -->
+                    <div class="tracer-group" data-tracer-group="sensors">
+                        <span class="tracer-group-label">📏 القياس والحساسات:</span>
+                        <button class="tracer-tool-btn" data-tool="calibrate-scale" id="tool-calibrate-scale"
+                                data-tooltip-title="معايرة مقياس الـ PDF بنقطتين"
+                                data-tooltip="انقر نقطتين على أي جدار أو خط قياس معلوم الطول في مسقط الـ PDF لتعديل مقياس المخطط ليطابق الأبعاد الحقيقية 1:1.">📏 معايرة المقياس</button>
+                        <button class="tracer-tool-btn" data-tool="iot-sensor" id="tool-add-sensor"
+                                data-tooltip-title="تثبيت مستشعر IoT"
+                                data-tooltip="انقر داخل أي فضاء أو فوق أي باب لتثبيت وبرمجة مستشعر IoT ذكي (PIR، تلوث/بيئي، ضوضاء، عداد حركة).">📡 مستشعر IoT</button>
+                    </div>
+
+                    <!-- 5. مجموعة الإجراءات والمنظور -->
+                    <div class="tracer-group" data-tracer-group="actions">
+                        <span class="tracer-group-label">⚙️ الإجراءات:</span>
+                        <button class="tracer-tool-btn" id="tracer-toggle-view"
+                                data-tooltip-title="تبديل المنظور 2D / 3D"
+                                data-tooltip="التبديل بين المنظور العلوي العمودي (Top-down 2D) والمنظور المجسم 3D لسهولة الرسم فوق الـ PDF.">📐 مسقط علوي 2D</button>
+                        <button class="tracer-tool-btn" id="tracer-undo-btn"
+                                data-tooltip-title="تراجع عن آخر عنصر"
+                                data-tooltip="حذف آخر جدار أو فتحة أو فضاء تم رسمه في وضع المعايرة.">↩️ تراجع</button>
+                        <button class="tracer-done-btn" id="btn-close-tracer"
+                                data-tooltip-title="إنهاء وحفظ"
+                                data-tooltip="حفظ المخطط المعماري والخروج من وضع الرسم التفاعلي.">✓ إنهاء وحفظ</button>
+                    </div>
                 </div>
 
                 <!-- Dedicated Transform & Rotation Control Bar for Selected Elements -->
