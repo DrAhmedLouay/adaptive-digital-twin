@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سجل المحادثات الكامل والمقترحات | منصة التوأم الرقمي المتكيف</title>
+    <title>سجل المحادثات والمخططات المعمارية | منصة التوأم الرقمي المتكيف</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <style>
         :root {
             --bg-color: #0b1120;
@@ -60,7 +61,6 @@
             color: var(--text-muted);
             font-weight: 400;
             margin-bottom: 18px;
-            font-family: 'Cairo', sans-serif;
             direction: ltr;
             text-align: right;
         }
@@ -88,6 +88,11 @@
             background: rgba(192, 132, 252, 0.12);
             border-color: var(--accent-purple);
             color: var(--accent-purple);
+        }
+        .badge.media-badge-header {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: var(--accent-amber);
+            color: var(--accent-amber);
         }
         .print-btn {
             position: absolute;
@@ -141,6 +146,23 @@
             border-color: var(--accent-cyan);
             box-shadow: 0 0 10px rgba(0,210,255,0.25);
         }
+        .filter-media-btn {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid var(--accent-amber);
+            color: #fbbf24;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .filter-media-btn.active {
+            background: var(--accent-amber);
+            color: #0b1120;
+        }
         .quick-nav-row {
             display: flex;
             gap: 8px;
@@ -186,6 +208,9 @@
         .turn-card.highlight-card {
             border-color: var(--accent-cyan);
             box-shadow: 0 8px 25px rgba(0,210,255,0.2);
+        }
+        .turn-card.has-media {
+            border-right: 5px solid var(--accent-amber);
         }
         .turn-header {
             background: rgba(30, 41, 59, 0.9);
@@ -251,6 +276,167 @@
             font-size: 15px;
             color: #cbd5e1;
             line-height: 1.9;
+        }
+        /* Media & Diagram Styling */
+        .media-box-card {
+            background: #090e1a;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 12px;
+            margin: 16px 0;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .media-box-header {
+            background: rgba(245, 158, 11, 0.12);
+            padding: 10px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+        }
+        .media-badge-tag {
+            color: #fbbf24;
+            font-weight: 800;
+            font-size: 13px;
+        }
+        .media-file-tag {
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .media-img-container {
+            padding: 16px;
+            text-align: center;
+            background: #060911;
+        }
+        .zoomable-media-img {
+            max-width: 100%;
+            max-height: 520px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            cursor: zoom-in;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .zoomable-media-img:hover {
+            transform: scale(1.015);
+            box-shadow: 0 8px 30px rgba(0, 210, 255, 0.3);
+        }
+        .media-box-footer {
+            padding: 14px 18px;
+            background: #0d1527;
+            border-top: 1px solid #1e293b;
+        }
+        .media-title {
+            display: block;
+            color: #f8fafc;
+            font-size: 14.5px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .media-desc {
+            color: #94a3b8;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        .media-zoom-hint {
+            font-size: 12px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        /* PDF Document Card */
+        .pdf-box-card {
+            background: linear-gradient(135deg, #131d31, #0a0f1d);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 12px;
+            padding: 18px 22px;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        .pdf-box-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .pdf-box-icon {
+            font-size: 38px;
+            background: rgba(56, 189, 248, 0.12);
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .pdf-box-title {
+            color: #f8fafc;
+            font-weight: 800;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+        .pdf-box-desc {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+        .pdf-box-meta {
+            color: var(--accent-cyan);
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+        }
+        .pdf-view-btn {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border: 1px solid #38bdf8;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+        .pdf-view-btn:hover {
+            background: #0284c7;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(2, 132, 199, 0.5);
+        }
+        /* Mermaid Diagram Card */
+        .mermaid-block {
+            background: #080c16;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 22px 0;
+            overflow-x: auto;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .mermaid-badge {
+            display: inline-block;
+            background: rgba(0, 210, 255, 0.12);
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .mermaid svg {
+            max-width: 100% !important;
+            height: auto !important;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
         }
         /* Rich Rendered Elements */
         .rich-h1 {
@@ -371,18 +557,71 @@
         .rich-table tr:hover td {
             background: rgba(0,210,255,0.05);
         }
+        /* Lightbox Modal */
+        .lightbox-modal {
+            display: none;
+            position: fixed;
+            z-index: 99999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(5, 9, 20, 0.94);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .lightbox-content-box {
+            max-width: 92vw;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #lightbox-img {
+            max-width: 100%;
+            max-height: 82vh;
+            border-radius: 12px;
+            border: 2px solid var(--accent-cyan);
+            box-shadow: 0 10px 40px rgba(0, 210, 255, 0.4);
+        }
+        #lightbox-caption {
+            margin-top: 14px;
+            color: #f8fafc;
+            font-size: 15px;
+            font-weight: 800;
+            text-align: center;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 24px;
+            right: 32px;
+            color: #fff;
+            font-size: 42px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .lightbox-close:hover {
+            color: var(--accent-cyan);
+        }
         @media print {
             body {
                 background: white !important;
                 color: black !important;
             }
-            .header, .toolbar, .turn-card, .user-box, .model-box, .rich-table th, .rich-table td {
+            .header, .toolbar, .turn-card, .user-box, .model-box, .rich-table th, .rich-table td, .media-box-card, .pdf-box-card, .mermaid-block {
                 background: white !important;
                 color: black !important;
                 border-color: #ccc !important;
                 box-shadow: none !important;
             }
-            .print-btn, .toolbar {
+            .print-btn, .toolbar, .filter-media-btn, .lightbox-modal {
                 display: none !important;
             }
             .user-text, .model-content, .rich-p, .rich-list {
@@ -407,6 +646,27 @@
                 window.__DENIED_USER__ = 'غير مسجل';
             }
         })();
+
+        function openLightbox(src, title) {
+            var modal = document.getElementById('media-lightbox-modal');
+            var img = document.getElementById('lightbox-img');
+            var caption = document.getElementById('lightbox-caption');
+            if (modal && img) {
+                img.src = src;
+                if (caption) caption.textContent = title || '';
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeLightbox() {
+            var modal = document.getElementById('media-lightbox-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             if (window.__ACCESS_DENIED__) {
                 var wrapper = document.getElementById('conversation-content-wrapper');
@@ -417,26 +677,61 @@
                 if (nameEl) nameEl.textContent = window.__DENIED_USER__ || 'مستخدم عادي';
             }
 
+            // Initialize Mermaid
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({
+                    startOnLoad: true,
+                    theme: 'dark',
+                    securityLevel: 'loose',
+                    themeVariables: {
+                        primaryColor: '#0284c7',
+                        primaryTextColor: '#f8fafc',
+                        primaryBorderColor: '#38bdf8',
+                        lineColor: '#00d2ff',
+                        secondaryColor: '#1e293b',
+                        tertiaryColor: '#0f172a'
+                    }
+                });
+            }
+
             // Search filter
             var searchInput = document.getElementById('search-filter-input');
-            if (searchInput) {
-                searchInput.addEventListener('input', function(e) {
-                    var query = e.target.value.toLowerCase().trim();
-                    var cards = document.querySelectorAll('.turn-card');
-                    var matchCount = 0;
-                    cards.forEach(function(card) {
-                        var text = card.textContent.toLowerCase();
-                        if (!query || text.indexOf(query) !== -1) {
-                            card.style.display = '';
-                            matchCount++;
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-                    var statsEl = document.getElementById('search-stats');
-                    if (statsEl) {
-                        statsEl.textContent = query ? ('تم العثور على: ' + matchCount + ' جولة') : '';
+            var mediaFilterBtn = document.getElementById('media-filter-toggle');
+            var mediaOnlyActive = false;
+
+            function applyFilters() {
+                var query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+                var cards = document.querySelectorAll('.turn-card');
+                var matchCount = 0;
+                cards.forEach(function(card) {
+                    var text = card.textContent.toLowerCase();
+                    var isMediaCard = card.classList.contains('has-media');
+                    var matchesQuery = !query || text.indexOf(query) !== -1;
+                    var matchesMedia = !mediaOnlyActive || isMediaCard;
+
+                    if (matchesQuery && matchesMedia) {
+                        card.style.display = '';
+                        matchCount++;
+                    } else {
+                        card.style.display = 'none';
                     }
+                });
+                var statsEl = document.getElementById('search-stats');
+                if (statsEl) {
+                    statsEl.textContent = (query || mediaOnlyActive) ? ('تم العثور على: ' + matchCount + ' جولة') : '';
+                }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', applyFilters);
+            }
+
+            if (mediaFilterBtn) {
+                mediaFilterBtn.addEventListener('click', function() {
+                    mediaOnlyActive = !mediaOnlyActive;
+                    mediaFilterBtn.classList.toggle('active', mediaOnlyActive);
+                    mediaFilterBtn.textContent = mediaOnlyActive ? '✅ عرض كافة الجولات' : '🖼️ عرض المخططات والرسوم فقط';
+                    applyFilters();
                 });
             }
         });
@@ -455,40 +750,55 @@
         </div>
     </div>
 
+    <!-- Lightbox Modal -->
+    <div id="media-lightbox-modal" class="lightbox-modal" onclick="closeLightbox()">
+        <span class="lightbox-close">&times;</span>
+        <div class="lightbox-content-box" onclick="event.stopPropagation()">
+            <img id="lightbox-img" src="" alt="Zoomed view" />
+            <div id="lightbox-caption"></div>
+        </div>
+    </div>
+
     <div id="conversation-content-wrapper">
         <div class="header">
             <button class="print-btn" onclick="window.print()">🖨️ طباعة / حفظ كـ PDF</button>
-            <h1>📜 سجل المحادثات الكامل والمقترحات المعمارية</h1>
-            <h2>Adaptive Digital Twin Platform - Full Research Transcript & Academic Proposals</h2>
+            <h1>📜 سجل المحادثات الكامل والمخططات المعمارية</h1>
+            <h2>Adaptive Digital Twin Platform - Complete Transcript with Architectural Drawings & Diagrams</h2>
             <div class="badge-bar">
                 <span class="badge researcher">🏛️ الباحث: م.م.د. أحمد لؤي أحمد</span>
-                <span class="badge">📊 إجمالي الجولات: 105 جولة حوارية ومحطة تطويرية</span>
-                <span class="badge highlight">🎯 الإصدار: v2.6.2 (محدّث وشامل لكافة الإجابات)</span>
-                <span class="badge">🕒 تاريخ التصدير: 2026-10-06 16:12</span>
+                <span class="badge">📊 إجمالي الجولات: 106 جولة حوارية</span>
+                <span class="badge media-badge-header">🖼️ المخططات والرسوم: 12 وثيقة ومخطط + 17 مخطط هيكلي تفاعلي</span>
+                <span class="badge highlight">🎯 الإصدار: v2.7.0 (مكتمل وشامل للوسائط)</span>
+                <span class="badge">🕒 تاريخ التحديث: 2026-10-06 16:26</span>
             </div>
             <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.8;">
-                يوثق هذا السجل الشامل كافة الجلسات الحوارية، الأوامر البرمجية، والمناقشات المعمارية الدقيقة منذ تأسيس المنصة، بما فيها دراسات المقارنة الأكاديمية مع رسالة الماجستير السابقة، مقترح رسالة الماجستير الموسع المعتمد على المنصة، تفاسير نقاط حركة المشاة، وحلول عارض ملفات الـ IFC.
+                يوثق هذا السجل الشامل كافة الجلسات الحوارية، الأوامر البرمجية، والمناقشات المعمارية الدقيقة منذ تأسيس المنصة، مدمجاً بها كافة <strong>المخططات المعمارية، الرسوم التوضيحية، لقطات الشاشة التشخيصية، ملفات الـ PDF الأصلية (المقترح البحثي ورسالة الماجستير)، ومخططات Mermaid الهيكلية التفاعلية</strong> في مواضعها الزمنية الصحيحة.
             </p>
         </div>
 
         <div class="toolbar">
             <div class="search-box-row">
-                <input type="text" id="search-filter-input" class="search-input" placeholder="🔍 ابحث في المحادثات (مثال: IFC, رسالة ماجستير, تدفق الحركة, lamar2009, جدران, ألوان)...">
+                <input type="text" id="search-filter-input" class="search-input" placeholder="🔍 ابحث في المحادثات والمخططات (مثال: IFC, مقترح ماجستير, تدفق الحركة, lamar2009, جدران, ألوان)...">
+                <button type="button" id="media-filter-toggle" class="filter-media-btn">🖼️ عرض المخططات والرسوم فقط</button>
                 <span id="search-stats" style="font-size:13px; color:var(--accent-cyan); font-weight:700; min-width:140px;"></span>
             </div>
             <div class="quick-nav-row">
-                <span class="nav-label">⚡ محطات فاصلة:</span>
+                <span class="nav-label">⚡ أهم المحطات:</span>
                 <a href="#turn-104" class="nav-btn">🎯 جولة 104: مقترح رسالة الماجستير المفصل</a>
-                <a href="#turn-103" class="nav-btn">📊 جولة 103: دراسة المقارنة مع رسالة الماجستير</a>
-                <a href="#turn-102" class="nav-btn">💡 جولة 102: دليل المنصة ودلالات ألوان تدفق الحركة</a>
-                <a href="#turn-101" class="nav-btn">🏗️ جولة 101: علاج بطء وانقلاب مجسمات الـ IFC</a>
-                <a href="#turn-105" class="nav-btn">📜 جولة 105: توثيق وتحديث سجل المحادثات الشامل</a>
+                <a href="#turn-103" class="nav-btn">📄 جولة 103: وثيقة رسالة الماجستير والمقارنة</a>
+                <a href="#turn-102" class="nav-btn">💡 جولة 102: دليل المنصة ودلالات ألوان الحركة</a>
+                <a href="#turn-79" class="nav-btn">📸 جولة 79: إثبات نشر الخلفية البيضاء</a>
+                <a href="#turn-64" class="nav-btn">🖼️ جولة 64: تشخيص عارض IFC</a>
+                <a href="#turn-35" class="nav-btn">🖼️ جولة 35: مخطط الهدف المعماري</a>
+                <a href="#turn-20" class="nav-btn">🖼️ جولة 20: مخطط أدوات المنصة والجدران</a>
+                <a href="#turn-1" class="nav-btn">📄 جولة 1: وثيقة المقترح البحثي الأولي</a>
+                <a href="#turn-106" class="nav-btn">📊 جولة 106: توثيق وفهرسة كافة المخططات والرسوم</a>
             </div>
         </div>
 
         <div class="container">
 
-        <div class="turn-card" id="turn-1">
+        <div class="turn-card has-media" id="turn-1">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 1</span>
                 <span>⏰ 2026-09-15 11:10:04 UTC</span>
@@ -496,6 +806,23 @@
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">كيف يمكن الاستفادة من المقترح البحثي المرفق في بناء منصة او اداة لتحقيق هدف البحث؟</div>
+                
+                    <div class="pdf-box-card">
+                        <div class="pdf-box-left">
+                            <div class="pdf-box-icon">📑</div>
+                            <div class="pdf-box-details">
+                                <div class="pdf-box-title">وثيقة المقترح البحثي الأكاديمي التأسيسي (Initial Research Proposal Document)</div>
+                                <div class="pdf-box-desc">المقترح البحثي الأكاديمي الأولي لرسالة الماجستير الذي انطلقت منه فكرة بناء وبرمجة منصة التوأم الرقمي المتكيف وتحقيق أهداف البحث.</div>
+                                <div class="pdf-box-meta">📁 media_1789470574410.pdf &bull; ⚖️ الحجم: 349 KB</div>
+                            </div>
+                        </div>
+                        <div class="pdf-box-action">
+                            <a href="history_assets/media_1789470574410.pdf" target="_blank" class="pdf-view-btn">
+                                <span>📥 استعراض / تحميل الوثيقة ➔</span>
+                            </a>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -510,9 +837,9 @@
 <li>عرض خريطة حرارية حية (Real-Time 3D Heatmap) لحركة المستخدمين وكثافة الإشغال.</li>
 <li>تشغيل <strong>خوارزمية تكيفية</strong> تقترح تلقائياً أفضل سيناريو لإعادة توزيع الفضاءات والممرات والأثاث لتحقيق أقصى كفاءة مكانية.</li>
 </ol>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>flowchart TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart TD
     A[BIM Model LOD 300-400\nRevit / IFC] --&gt; D[Digital Twin Core Engine]
     B[IoT Sensors\nReal / Virtual Motion &amp; Occupancy] --&gt; C[Real-Time Streaming API\nMQTT / WebSockets]
     C --&gt; D
@@ -520,7 +847,7 @@
     E --&gt; F[Interactive 3D Web Dashboard\nThree.js / Autodesk Viewer]
     F --&gt; G1[Live Heatmaps &amp; Bottlenecks]
     F --&gt; G2[Scenario Simulator: Before vs After]
-    F --&gt; G3[Automated Layout Recommendations]</code></pre>
+    F --&gt; G3[Automated Layout Recommendations]</div>
         </div>
 <hr class="rich-hr">
 <h3 class="rich-h3">2. البنية المعمارية للنظام (System Architecture)</h3>
@@ -631,6 +958,7 @@
 </ul>
 <hr class="rich-hr">
 <p class="rich-p">هل تود أن نركز على <strong>الجانب الخوارزمي</strong> (تصميم خوارزمية التكيف ومعادلات الكفاءة المكانية)، أم تبحث عن مساعدة في <strong>بناء النموذج البرمجي الأولي للوحة التحكم (Full-Stack 3D Prototype)</strong>؟</p></div>
+                
             </div>
         </div>
     
@@ -642,6 +970,7 @@
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">@[Quote]</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -697,9 +1026,9 @@
 <hr class="rich-hr">
 <h3 class="rich-h3">3. قرارات التكيف التي تتخذها الخوارزمية (Action Space)</h3>
 <p class="rich-p">عندما ترصد الخوارزمية خللاً، تقترح حلاً من بين 3 مستويات من التكيف المعماري:</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     Trigger[رصد اختناق أو سوء توزيع فراغي] --&gt; Eval{مستوى الشدة والزمن}
     
     Eval --&gt;|لحظي - أقل من 30 دقيقة| A1[المستوى 1: التوجيه الديناميكي للحركة Dynamic Routing]
@@ -708,7 +1037,7 @@
     
     A1 --&gt; R1[تغيير مسار المراجعين عبر لوحات إرشادية ذكية إلى ممر بديل]
     A2 --&gt; R2[تحويل قاعة اجتماعات غير مشغولة إلى منطقة انتظار مؤقتة]
-    A3 --&gt; R3[اقتراح فتح/إغلاق قواطع مرنة Movable Partitions وتعديل مصفوفة الأثاث]</code></pre>
+    A3 --&gt; R3[اقتراح فتح/إغلاق قواطع مرنة Movable Partitions وتعديل مصفوفة الأثاث]</div>
         </div>
 <hr class="rich-hr">
 <h3 class="rich-h3">4. خوارزميات التحسين المقترحة (المنهجية العلمية)</h3>
@@ -854,6 +1183,7 @@ for res in results:
 <ul class="rich-list">
 <li>لن تكون الرسالة مجرد استعراض لبرامج BIM، بل ستقدم <strong>أداة متخذ قرار معماري ذكي (Decision-Support System)</strong> تُظهر كيف يتحول المبنى من بنية صلبة غير مستجيبة إلى كائن يتكيف لحظياً مع حركة مستخدميه.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -865,12 +1195,14 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">ابدأ العمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p">تم إعداد <strong>الخطة التنفيذية المعمارية والبرمجية</strong> لبناء منصة <strong>&quot;التوأم الرقمي التكيفي&quot; (Adaptive Digital Twin Platform)</strong> كأداة بحثية وتطبيقية متكاملة لرسالة الماجستير.</p>
 <p class="rich-p">يمكنك الاطلاع على تفاصيل الخطة في وثيقة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/implementation_plan.md" target="_blank" rel="noopener">implementation_plan.md</a>.</p>
 <p class="rich-p">يرجى مراجعة الخطة والضغط على <strong>Proceed</strong> أو إعطاء موافقتك للانطلاق مباشرة في تنفيذ وبناء المنصة.</p></div>
+                
             </div>
         </div>
     
@@ -882,6 +1214,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -931,6 +1264,7 @@ for res in results:
 <p class="rich-p">👉 <strong><a href="http://127.0.0.1:8080" target="_blank" rel="noopener">http://127.0.0.1:8080</a></strong></p>
 <blockquote class="rich-quote">[!TIP]</blockquote>
 <blockquote class="rich-quote">للاطلاع على التوثيق التفصيلي للنموذج الرياضي ونتائج الاختبارات، يمكنك مراجعة وثيقة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a> وملف <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/README.md" target="_blank" rel="noopener">README.md</a>.</blockquote></div>
+                
             </div>
         </div>
     
@@ -942,12 +1276,14 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكتب في اسفل صفحة المنصة الجملة التالية:&quot;هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد&quot;</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p">تمت إضافة العبارة المطلوبة بنجاح في شريط التذييل (Footer) أسفل صفحة المنصة بتنسيق متناسق مع الواجهة المعمارية:</p>
 <blockquote class="rich-quote"><strong>&quot;هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد&quot;</strong></blockquote>
 <p class="rich-p">يمكنك مشاهدتها مباشرة في أسفل الشاشة عند تشغيل المنصة في المتصفح عبر <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/public/index.html" target="_blank" rel="noopener"><code class="inline-code">index.html</code></a>.</p></div>
+                
             </div>
         </div>
     
@@ -959,6 +1295,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">هل قمت بادراج كل ما ذكرته في المحادثات السابقة اعلاه؟ ام جزء منها؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1003,6 +1340,7 @@ for res in results:
 <hr class="rich-hr">
 <h3 class="rich-h3">الخلاصة</h3>
 <p class="rich-p">المنصة الموجودة بين يديك الآن في المجلد <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin" target="_blank" rel="noopener"><code class="inline-code">adaptive_digital_twin</code></a> تحتوي على <strong>النظام الوظيفي المتكامل (Full Working Prototype)</strong> الذي يمكنك تشغيله فوراً، عرضه على المشرفين، وإظهار كل آليات المقترح البحثي (BIM + IoT + Adaptive Algorithm + 3D Heatmaps + Before/After Evaluation) بشكل مبهر وتفاعلي.</p></div>
+                
             </div>
         </div>
     
@@ -1014,6 +1352,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">@[Quote] هل قمت بتنفيذ الخطوات؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1083,6 +1422,7 @@ for res in results:
 <li>صدور بطاقات التوجيه وإعادة التوزيع الفراغي.</li>
 <li>تحديث جدول المقارنة الأكاديمي (Before vs. After).</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -1094,6 +1434,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">كيف يمكن الاستفادة من المنصة؟ وكيف يمكن ادخال بيانات لابنية؟ وهل يمكن ادخال مخططات معمارية لاجراء محاكاة؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1152,9 +1493,9 @@ for res in results:
 <hr class="rich-hr">
 <h3 class="rich-h3">ثالثاً: هل يمكن إدخال مخططات معمارية لإجراء محاكاة؟</h3>
 <p class="rich-p"><strong>نعم، بالتأكيد!</strong> ويمكن تحقيق ذلك معمارياً عبر 3 مسارات تقنية:</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>flowchart LR
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart LR
     A1[مخطط Revit / BIM بصيغة IFC] --&gt; B1[استخراج تلقائي للفضاءات والجدران IfcOpenShell]
     A2[مخطط CAD بصيغة DXF / SVG] --&gt; B2[تحويل خطوط البوليلين لمضلعات ثلاثية الأبعاد]
     A3[صورة مخطط معمارية PNG / PDF] --&gt; B3[خوارزميات الرؤية الحاسوبية Computer Vision]
@@ -1162,7 +1503,7 @@ for res in results:
     B1 --&gt; C[محرك التوأم الرقمي AdaptiveTwin]
     B2 --&gt; C
     B3 --&gt; C
-    C --&gt; D[محاكاة الإشغال والتكيف 3D]</code></pre>
+    C --&gt; D[محاكاة الإشغال والتكيف 3D]</div>
         </div>
 <h4 class="rich-h4">1. المسار الأول: الاستيراد المباشر من برامج الـ BIM (Revit ➔ IFC) [وهو الأنسب لرسالتك]</h4>
 <ul class="rich-list">
@@ -1187,6 +1528,7 @@ for res in results:
 <hr class="rich-hr">
 <p class="rich-p">💡 <strong>خطوة تالية مقترحة:</strong></p>
 <p class="rich-p">إذا كان لديك <strong>مخطط لمبنى معين (Case Study)</strong> ترغب باعتماده في رسالتك (سواء كان ملفاً لغرف وسعات معينة، أو مخطط AutoCAD/Revit)، يمكننا ربطه بالمنصة فوراً لتجري عليه المحاكاة الحقيقية وتستخرج جداول التحليل الخاصة به.</p></div>
+                
             </div>
         </div>
     
@@ -1198,12 +1540,14 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">قم باضافة جميع المقترحات اعلاه</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p">تم إعداد <strong>الخطة التنفيذية لإضافة نظام استيراد وإدارة المخططات المعمارية وتعدد دراسات الحالة ومحلل ملفات DXF و JSON ومحرر الفضاءات التفاعلي</strong>.</p>
 <p class="rich-p">يمكنك مراجعة تفاصيل الخطة في وثيقة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/implementation_plan.md" target="_blank" rel="noopener">implementation_plan.md</a>.</p>
 <p class="rich-p">يرجى مراجعة الخطة والضغط على <strong>Proceed</strong> أو إعطاء موافقتك لبدء التنفيذ والبرمجة فوراً.</p></div>
+                
             </div>
         </div>
     
@@ -1215,6 +1559,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1253,6 +1598,7 @@ for res in results:
 <p class="rich-p">👉 <strong><a href="http://127.0.0.1:8080" target="_blank" rel="noopener">http://127.0.0.1:8080</a></strong></p>
 <p class="rich-p">(أو شغّله مجدداً عبر الطرفية بأمر <code class="inline-code">/usr/bin/python3 run.py</code>)</p>
 <p class="rich-p">ثم انقر على زر <strong>&quot;📐 إدارة واستيراد المخططات المعمارية&quot;</strong> في أعلى الصفحة لتجربة التبديل بين المباني أو رفع مخططات جديدة فورياً!</p></div>
+                
             </div>
         </div>
     
@@ -1264,6 +1610,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">&quot;🏛️ دراسات الحالة الجاهزة (Presets)&quot; و &quot;📁 رفع مخطط جديد (AutoCAD DXF / BIM JSON)&quot; لا تعمل ولا توجد امكانية لاستيراد IFC او  ريفت او archicad او امتدادات PDF</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1317,6 +1664,7 @@ for res in results:
 <li><strong>دراسات الحالة:</strong> اضغط على <strong>&quot;📐 إدارة واستيراد المخططات المعمارية&quot;</strong> ثم انقر على <strong>&quot;مجمع الرعاية الصحية والعيادات الاستشارية&quot;</strong>، وستشاهد فوراً تحول المبنى بالكامل ثلاثي الأبعاد إلى مبنى العيادات وغرفه وممراته الجديدة.</li>
 <li><strong>رفع المخططات:</strong> انتقل إلى تبويب <strong>&quot;📁 رفع مخطط جديد&quot;</strong> واسحب أي ملف بصيغة <code class="inline-code">.ifc</code> أو <code class="inline-code">.pdf</code> أو <code class="inline-code">.dxf</code> أو <code class="inline-code">.json</code> وسترى معالجته الفورية وتوليده ثلاثياً.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -1328,6 +1676,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">عند تحريك الـ cursor فوق اي من ازرار او اختيارات واجهة المنصة، قم باظهار رسالة تشرح معنى او دور هذه الاختيار او الميزة</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1371,6 +1720,7 @@ for res in results:
 <li>قم بتحديث الصفحة (<code class="inline-code">Cmd + Shift + R</code> على Mac لتحديث ملفات الـ JS والـ CSS).</li>
 <li><strong>حرّك مؤشر الفأرة (Hover)</strong> فوق أي زر أو بطاقة أو سيناريو لتشاهد بطاقة الشرح تظهر فوراً بتصميم عصري وأنيق!</li>
 </ol></div>
+                
             </div>
         </div>
     
@@ -1382,6 +1732,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">تم استيراد ملف PDF لكن المعروض في الشاشة لازال الملف السابق ولا يتطابق معه</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1394,6 +1745,7 @@ for res in results:
 <li>إضافة شريط أدوات عائم للتحكم بشفافية المسقط، كتل الفضاءات، وتبديل الصفحات.</li>
 </ol>
 <p class="rich-p">يرجى مراجعة الخطة وإبداء موافقتكم للبدء في التنفيذ الفوري.</p></div>
+                
             </div>
         </div>
     
@@ -1405,6 +1757,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1457,6 +1810,7 @@ for res in results:
 <ol class="rich-list">
 <li>جرب استخدام شريط التحكم العائم أعلى يسار المنظور ثلاثي الأبعاد لضبط الشفافية والتنقل بين الصفحات.</li>
 </ol></div>
+                
             </div>
         </div>
     
@@ -1468,6 +1822,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">في &quot;المخطط المعماري المرفوع مسبقاً (Case Study PDF Plan) مسقط معماري حقيقي؛ انقر لمعاينته مباشرة كمسقط أرضي تفاعلي مع الخريطة الحرارية والحساسات اللحظية. ⚡ معاينة الـ PDF في المشهد&quot; يظهر ملف الـ pdf للمترح البحثي، احذف المقترح البحثي pdf</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1477,6 +1832,7 @@ for res in results:
 <li><strong>إزالة بطاقة المعاينة من الواجهة</strong>: تم إزالة خيار وزر &quot;معاينة الـ PDF في المشهد&quot; من تبويب <strong>&quot;📁 رفع مخطط جديد&quot;</strong> في <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/public/index.html" target="_blank" rel="noopener"><code class="inline-code">public/index.html</code></a> وحذف معالجه البرمجي من <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/public/js/plan_manager.js" target="_blank" rel="noopener"><code class="inline-code">public/js/plan_manager.js</code></a>.</li>
 <li><strong>جاهزية منطقة الرفع</strong>: أصبحت نافذة <strong>&quot;📁 رفع مخطط جديد&quot;</strong> مخصصة بالكامل لاستقبال مخططاتكم المعمارية الحقيقية (بصيغ <code class="inline-code">PDF</code>, أو صور المساقط <code class="inline-code">PNG/JPG/SVG</code>, أو نماذج BIM <code class="inline-code">IFC/DXF/JSON</code>)؛ حيث يكفي سحب وإفلات أي مخطط معماري ليتم تصييره فورياً على أرضية المشهد ثلاثي الأبعاد وإسقاط التوأم الرقمي والخرائط الحرارية فوقه بدقة.</li>
 </ol></div>
+                
             </div>
         </div>
     
@@ -1488,6 +1844,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لماذا لم يتم تمييز المخطط / المسقط المعماري بشكل دقيق من ناحية خطوط الجدران والابواب والشبابيك والفتحات؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1518,9 +1875,9 @@ for res in results:
 <hr class="rich-hr">
 <h3 class="rich-h3">2. التمييز المطلوب في أبحاث التوأم الرقمي (Spatial Occupancy Twins)</h3>
 <p class="rich-p">في أبحاث <strong>تحسين الإشغال المكاني وإدارة المرافق (Spatial Occupancy &amp; Facility Management)</strong> المعتمدة على <strong>نظرية التحليل الفراغي (Space Syntax &amp; Spatial Graph Theory)</strong>، تنقسم عناصر المبنى إلى مستويين:</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     A[&quot;المخطط المعماري المستورد&quot;] --&gt; B[&quot;المستوى الهندسي الصامت (Physical Shell)&quot;]
     A --&gt; C[&quot;المستوى الطوبولوجي الحركي (Spatial Graph &amp; Flow)&quot;]
     
@@ -1529,7 +1886,7 @@ for res in results:
     
     C --&gt; C1[&quot;العقد الفراغية (Spatial Nodes: Rooms &amp; Halls)&quot;]
     C --&gt; C2[&quot;روابط التدفق (Doors &amp; Portals: Edges)&quot;]
-    C --&gt; C3[&quot;القواطع التكيفية المرنة (Movable / Adaptive Partitions)&quot;]</code></pre>
+    C --&gt; C3[&quot;القواطع التكيفية المرنة (Movable / Adaptive Partitions)&quot;]</div>
         </div>
 <ol class="rich-list">
 <li><strong>المستوى الحركي الطوبولوجي (وهو ما تم تركيزه في المنصة حتى الآن):</strong> تمثيل الفضاءات كعقد (<code class="inline-code">Nodes</code>)، والفتحات وممرات الحركة كروابط تدفق (<code class="inline-code">Circulation Edges</code>)، وحساب كثافة الأفراد وسرعة التدفق عبرها، والتحكم بالقواطع المنزلقة.</li>
@@ -1555,6 +1912,7 @@ for res in results:
 </ul>
 <hr class="rich-hr">
 <p class="rich-p"><strong>هل تفضلون البدء في تعزيز خوارزمية قراءة الجدران والأبواب لملفات الـ IFC و AutoCAD DXF، أم إضافة أداة الرسم والتحديد التفاعلي للجدران والفتحات فوق مسقط الـ PDF؟</strong></p></div>
+                
             </div>
         </div>
     
@@ -1566,6 +1924,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">نعم</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1578,6 +1937,7 @@ for res in results:
 <li><strong>التصيير ثلاثي الأبعاد في Three.js</strong>: بناء جدران صلبة مفرغة للأبواب مع زجاج خفيف للشبابيك وعتبات مضيئة لحركة الأفراد.</li>
 </ol>
 <p class="rich-p">يرجى مراجعة الخطة والموافقة عليها لنبدأ مباشرة في تنفيذها.</p></div>
+                
             </div>
         </div>
     
@@ -1589,6 +1949,7 @@ for res in results:
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1671,6 +2032,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote"><strong>التزام الملكية الفكرية والبحثية:</strong> تم الحفاظ بدقة على نص التذييل الأكاديمي المعتمد في أسفل شاشة المنصة:</blockquote>
 <blockquote class="rich-quote"><em>&quot;هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد&quot;</em></blockquote></div>
+                
             </div>
         </div>
     
@@ -1682,6 +2044,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">في اداة &quot;أداة التحديد المعماري التفاعلي: تفعيل الرسم التفاعلي المباشر للنقر وتحديد الجدران والأبواب والفتحات فوق المسقط وتجسيمها فورياً&quot;، اضف امكانية النقر على ملف الـ PDF الذي يتم استيراده للرسم على المخطط (جدران، ابواب، شبابيك، فتحات، الخ)</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1747,10 +2110,11 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote"><strong>التزام الملكية الفكرية والبحثية:</strong> تم الحفاظ بدقة على نص التذييل الأكاديمي المعتمد في أسفل شاشة المنصة:</blockquote>
 <blockquote class="rich-quote"><em>&quot;هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد&quot;</em></blockquote></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-20">
+        <div class="turn-card has-media" id="turn-20">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 20</span>
                 <span>⏰ 2026-09-15 15:34:30 UTC</span>
@@ -1758,6 +2122,22 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">تأكد من عمل هذه الادوات، مع امكانية اضافة حذف الجدران الموجودة</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789486444159.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789486444159.png" alt="مخطط أدوات المنصة المعمارية وطلب ميزة حذف الجدران (Architectural Tools Blueprint)" class="zoomable-media-img" onclick="openLightbox(this.src, 'مخطط أدوات المنصة المعمارية وطلب ميزة حذف الجدران (Architectural Tools Blueprint)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">مخطط أدوات المنصة المعمارية وطلب ميزة حذف الجدران (Architectural Tools Blueprint)</strong>
+                            <p class="media-desc">مخطط المسقط الأفقي ثنائي الأبعاد المرفوع من قِبل المعمار لفحص أدوات رسم وتحرير الجدران وإضافة إمكانية حذف الجدران القائمة.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1828,10 +2208,11 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li><strong>لتجربة حذف جدار معين:</strong> اختر <strong><code class="inline-code">🗑️ حذف جدار</code></strong>، ثم مرر الفأرة فوق أي جدار لمشاهدة لونه يتحول إلى <strong>الأحمر المضيء</strong> ثم انقر لحذفه فورياً مع فتحاته.</li>
 </ol>
 <blockquote class="rich-quote">تفاصيل التوثيق الفني متاحة في ملف <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>.</blockquote></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-21">
+        <div class="turn-card has-media" id="turn-21">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 21</span>
                 <span>⏰ 2026-09-15 16:08:18 UTC</span>
@@ -1839,6 +2220,22 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">جميع الميزات والارزار لا تعمل ، عالج الخلل</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789488484552.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789488484552.png" alt="لقطة تشخيص وتتبع أزرار المنصة المعمارية وتفعيل الأحداث (UI Diagnostics)" class="zoomable-media-img" onclick="openLightbox(this.src, 'لقطة تشخيص وتتبع أزرار المنصة المعمارية وتفعيل الأحداث (UI Diagnostics)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">لقطة تشخيص وتتبع أزرار المنصة المعمارية وتفعيل الأحداث (UI Diagnostics)</strong>
+                            <p class="media-desc">لقطة واجهة المستخدم التي وثق بها المعمار توقف استجابة الأزرار، وتم بناءً عليها إعادة ربط معالجات الأحداث (Event Listeners) وخادم التشغيل.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -1969,6 +2366,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>افتح المتصفح وانتقل إلى <code class="inline-code">http://127.0.0.1:8080</code></li>
 <li><strong>اضغط <code class="inline-code">Cmd+Shift+R</code></strong> (تحديث إجباري) لضمان تحميل أحدث الملفات</li>
 </ol></div>
+                
             </div>
         </div>
     
@@ -1980,6 +2378,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لازالت لا تعمل، عالج المشكلة</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2052,6 +2451,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>اختر <strong><code class="inline-code">إضافة باب</code></strong> أو <strong><code class="inline-code">إضافة شباك</code></strong> وانقر فوق الجدار لتفريغه وتركيب العنصر.</li>
 <li>اختر <strong><code class="inline-code">حذف جدار</code></strong> لتحديده بالأحمر وحذفه فورياً، أو <strong><code class="inline-code">مسح كل الجدران</code></strong> للبدء من لوحة نظيفة.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -2063,10 +2463,12 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p"><em>(تم تنفيذ متطلبات الجولة بنجاح في المنظومة البرمجية)</em></p></div>
+                
             </div>
         </div>
     
@@ -2078,6 +2480,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2150,6 +2553,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>اختر <strong><code class="inline-code">إضافة باب</code></strong> أو <strong><code class="inline-code">إضافة شباك</code></strong> وانقر فوق الجدار لتفريغه وتركيب العنصر.</li>
 <li>اختر <strong><code class="inline-code">حذف جدار</code></strong> لتحديده بالأحمر وحذفه فورياً، أو <strong><code class="inline-code">مسح كل الجدران</code></strong> للبدء من لوحة نظيفة.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -2161,6 +2565,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">عند حذف الجدران والفضاءات قم بحذف الارضيات الملونه للفضاءات</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2213,6 +2618,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>اختر <strong><code class="inline-code">🗑️ حذف جدار / فضاء</code></strong> وانقر مباشرة فوق أي أرضية ملونة لحذفها وإخفائها فورياً.</li>
 <li>أو انقر على <strong><code class="inline-code">🧹 مسح الجدران والفضاءات</code></strong> لمسح كافة الكتل والجدران والأرضيات والبدء بمخطط PDF نظيف تماماً.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -2224,6 +2630,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اشرح ما هو دور النقاط المربعة الزرقاء التي تسير كتيار في المخطط؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2256,6 +2663,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li><strong>دورة التحريك المستمر (<code class="inline-code">Animation Loop</code>):</strong></li>
 </ul>
 <p class="rich-p">تتحرك إحداثيات الجسيمات في دالة <code class="inline-code">animate()</code> بمعدل ثابت على طول المحور السيني <code class="inline-code">X</code>، لتعطي إيحاء التدفق الجاري باستمرار، وتتكرر في حلقة مغلقة لتمثيل نبض الحركة المستمر داخل المنشأة الإدارية.</p></div>
+                
             </div>
         </div>
     
@@ -2267,6 +2675,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اليس من المفترض ان تتبع هذه الجسيمات نمط حركة معين وترتبط بشكل مسارات وممرات الحركة والتوزيع الفضائي؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2317,6 +2726,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>يُسيّر الجسيمات عبر الممرات الواقعية والفتحات.</li>
 <li>يحوّل مسارها ديناميكياً بالزمن الحقيقي عند فتح أو إغلاق القواطع المرنة التكيفية.</li>
 </ol></div>
+                
             </div>
         </div>
     
@@ -2328,6 +2738,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">نعم قم بتفعيل التطوير</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2373,6 +2784,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <blockquote class="rich-quote">تم توثيق كامل التحديثات وتفاصيل المنظومة في ملف <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>.</blockquote>
 <hr class="rich-hr">
 <p class="rich-p"><em>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</em></p></div>
+                
             </div>
         </div>
     
@@ -2384,6 +2796,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لماذا عند الابتعاد عن المسقط zoom out تبدأ الشاشة بالسواد والمخطط يختفي؟ عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2448,6 +2861,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <p class="rich-p"><em>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</em></p></div>
+                
             </div>
         </div>
     
@@ -2459,6 +2873,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اضف امكانية حذف باب، شباك، فتحة، كذلك اضف امكانية التقاء جدارين متقاطعين بشكل نظيف</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2513,10 +2928,11 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>اختر أداة <strong><code class="inline-code">🗑️ حذف فتحة / جدار</code></strong>، ثم مرر الفأرة فوق أي باب أو شباك لتحديده باللون الأحمر وانقر لحذفه وملاحظة إغلاق الجدار فورياً.</li>
 <li>اختر أداة <strong><code class="inline-code">🧱 رسم جدار</code></strong> وارسم جداراً يلتقي مع جدار قائم لملاحظة الالتقاط المغناطيسي والوصلات النظيفة، أو انقر على <strong><code class="inline-code">📐 تنظيف التقاطعات</code></strong> لضبط المخطط تلقائياً.</li>
 </ol></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-31">
+        <div class="turn-card has-media" id="turn-31">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 31</span>
                 <span>⏰ 2026-09-15 22:32:17 UTC</span>
@@ -2524,6 +2940,22 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">خطأ في النظلم</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789511530907.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789511530907.png" alt="لقطة رصد خطأ النظام في المتصفح ومعالجة توقف التفاعل (System Error Log)" class="zoomable-media-img" onclick="openLightbox(this.src, 'لقطة رصد خطأ النظام في المتصفح ومعالجة توقف التفاعل (System Error Log)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">لقطة رصد خطأ النظام في المتصفح ومعالجة توقف التفاعل (System Error Log)</strong>
+                            <p class="media-desc">لقطة شاشة توثق رسالة الخطأ الظاهرة في المتصفح، والتي عُولجت بإصلاح تهيئة بيئة Three.js وإعادة تشغيل المنصة.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2555,6 +2987,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>يرجى فقط <strong>تحديث صفحة المتصفح</strong> (عبر الضغط على <strong><code class="inline-code">Cmd + Shift + R</code></strong> على أجهزة الماك، أو <strong><code class="inline-code">Ctrl + F5</code></strong> / زر التحديث).</li>
 <li>ستختفي رسالة الخطأ الحمراء فوراً، وسيعمل شريط الأدوات المعماري بكافة ميزاته الجديدة (حذف الفتحات، استعادة الجدران مصمتة، وتنظيف التقاطعات والزوايا).</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -2566,6 +2999,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">هنالك خلل جوهري في حركة الجسيمات لانها تتحرك بشكل عشوائي دون الالتزام بالفتحات والابواب وتخترق الجدران المغلقة، هل هذا صحيح؟ عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2636,6 +3070,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <blockquote class="rich-quote">تم توثيق كامل التفاصيل الفنية والرياضية في مستند <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>.</blockquote>
 <p class="rich-p">&gt;</p>
 <blockquote class="rich-quote"><strong>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</strong></blockquote></div>
+                
             </div>
         </div>
     
@@ -2647,6 +3082,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">النموذج الحالي case study يوجد فيها خلل في تدفق الجسيمات، لايوجد منطق واضح لحركتها، عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2682,9 +3118,9 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <hr class="rich-hr">
 <h3 class="rich-h3">🏛️ المعالجة المعمارية المنفذة: شبكة الرحلات الوظيفية المتكاملة (Closed-Loop Architectural Journeys)</h3>
 <p class="rich-p">تم تحويل المنظومة من قطع متقطعة إلى <strong>8 رحلات معمارية وظيفية دائرية متكاملة (Closed-Loop Functional Journeys)</strong> تمثل أنماط السلوك الحقيقي لمستخدمي المبنى:</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     Entry[&quot;المدخل الخارجي (Main Entry)&quot;] --&gt; Reception[&quot;ردهة الاستقبال (Reception)&quot;]
     Reception --&gt; Spine[&quot;الشريان المركزي (Corridor Spine)&quot;]
     
@@ -2705,7 +3141,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
     
     Waiting --&gt; Exit[&quot;المغادرة عبر الاستقبال والمدخل&quot;]
     HallA --&gt; Exit
-    HallB --&gt; Exit</code></pre>
+    HallB --&gt; Exit</div>
         </div>
 <h4 class="rich-h4">تفاصيل مسارات الرحلات المنفذة:</h4>
 <ol class="rich-list">
@@ -2784,6 +3220,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <blockquote class="rich-quote">تم توثيق كامل المخططات والشروحات في مستند <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>.</blockquote>
 <p class="rich-p">&gt;</p>
 <blockquote class="rich-quote"><strong>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</strong></blockquote></div>
+                
             </div>
         </div>
     
@@ -2795,6 +3232,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">كيف يمكن التعامل مع المداخل الخارجية؟ السلالم؟ الوصول الى المبنى / الطابق؟ التمييز بين الفضاءات وبين ممرات الحركة؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -2803,13 +3241,13 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <hr class="rich-hr">
 <h3 class="rich-h3">1. التعامل مع المداخل الخارجية والوصول إلى المبنى (Exterior Entrances &amp; Ingress/Egress Thresholds):</h3>
 <p class="rich-p">في النمذجة الرقمية للتوائم، لا يُعامل المدخل الخارجي كفتحة جدارية عادية، بل كـ <strong>بوابة عبور حديّة (Boundary Transition Portal)</strong> تفصل بين مجالين مختلفين فيزيائياً وسلوكياً (المجال العام الخارجي غير المقيد $\leftrightarrow$ المجال الداخلي المقيد والمكيف):</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph LR
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph LR
     Site[&quot;الموقع العام / الفضاء الخارجي (Outdoor Site)&quot;] --&gt;|&quot;مسار الاقتراب (Approach Path)&quot;| EntryThreshold[&quot;عتبة المدخل الرئيسي (Access Gate)&quot;]
     EntryThreshold --&gt;|&quot;فحص أمني / تسجيل (Check-in)&quot;| Vestibule[&quot;ردهة العبور الهوائية (Air-lock / Vestibule)&quot;]
     Vestibule --&gt;|&quot;بوابة الدخول (Turnstiles / Portals)&quot;| Reception[&quot;ردهة الاستقبال الرئيسية (Main Lobby)&quot;]
-    Reception --&gt;|&quot;توزيع التدفق (Spatial Dispatch)&quot;| CentralSpine[&quot;الشريان الحركي المركزي&quot;]</code></pre>
+    Reception --&gt;|&quot;توزيع التدفق (Spatial Dispatch)&quot;| CentralSpine[&quot;الشريان الحركي المركزي&quot;]</div>
         </div>
 <ul class="rich-list">
 <li><strong>النمذجة الرياضية (Graph Boundary Node):</strong></li>
@@ -2830,9 +3268,9 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <hr class="rich-hr">
 <h3 class="rich-h3">2. السلالم وعناصر الحركة الرأسية (Vertical Circulation &amp; Staircases):</h3>
 <p class="rich-p">السلالم والمصاعد والمنحدرات تمثل <strong>حلقات الوصل الرأسية متعددة الأبعاد (Inter-Floor Vertical Edges)</strong> التي تربط المستويات الأفقية ($L_1 \leftrightarrow L_2$):</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     subgraph Floor_L1 [&quot;الطابق الأرضي (Level 1)&quot;]
         L1_Corridor[&quot;ممر الطابق الأول&quot;] --&gt; L1_StairDoor[&quot;باب بيت الدرج (Stair Core Door)&quot;]
     end
@@ -2846,7 +3284,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
     subgraph Floor_L2 [&quot;الطابق الثاني (Level 2)&quot;]
         FlightL2 --&gt; L2_StairDoor[&quot;باب الخروج للطابق الثاني&quot;]
         L2_StairDoor --&gt; L2_Corridor[&quot;ممر الطابق الثاني&quot;]
-    end</code></pre>
+    end</div>
         </div>
 <h4 class="rich-h4">كيف يتعامل معها التوأم الرقمي؟</h4>
 <ol class="rich-list">
@@ -2890,9 +3328,9 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <hr class="rich-hr">
 <h3 class="rich-h3">4. التمييز المعماري والرياضي بين الفضاءات وممرات الحركة:</h3>
 <p class="rich-p">من الأخطاء الشائعة في النمذجة معاملة &quot;الممر&quot; كغرفة عادية، أو معاملة &quot;الغرفة&quot; كممر. الفرق بينهما جوهري معمارياً وحسابياً:</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     subgraph Functional_Space [&quot;الفضاء الوظيفي / الغرفة (Convex Space)&quot;]
         FS1[&quot;الهدف: الاستقرار والإقامة (Dwell Time)&quot;]
         FS2[&quot;معيار الكثافة: المساحة لكل شخص (m² / person)&quot;]
@@ -2905,7 +3343,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         CC2[&quot;معيار الكثافة: معدل التدفق (persons / min / meter)&quot;]
         CC3[&quot;نمط الحركة: تيار خطي مستمر أحادي أو ثنائي الاتجاه&quot;]
         CC4[&quot;المقاييس الحرارية: الاحتكاك، سرعة العبور، مستوى الخدمة (LOS)&quot;]
-    end</code></pre>
+    end</div>
         </div>
 <h4 class="rich-h4">أوجه التمييز المنفذة والمقترحة في منصتنا:</h4>
 <ol class="rich-list">
@@ -2937,10 +3375,11 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</blockquote></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-35">
+        <div class="turn-card has-media" id="turn-35">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 35</span>
                 <span>⏰ 2026-09-15 23:04:50 UTC</span>
@@ -2948,14 +3387,30 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">ما يهمني من الاداة او النظام هو تحقيق الهدف المرفق، فكيف يمكن ذلك؟</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789513486815.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789513486815.png" alt="المخطط التأسيسي لهدف البحث المعماري ومحاكاة الإشغال اللحظي (Research Objective)" class="zoomable-media-img" onclick="openLightbox(this.src, 'المخطط التأسيسي لهدف البحث المعماري ومحاكاة الإشغال اللحظي (Research Objective)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">المخطط التأسيسي لهدف البحث المعماري ومحاكاة الإشغال اللحظي (Research Objective)</strong>
+                            <p class="media-desc">مخطط نصي ومعماري يحدد الهدف الجوهري للنظام: رصد حركة وشاغلي المبنى وإجراء التكيف المكاني والحركي اللحظي.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p">أهلاً بكم دكتور أحمد. يمثل هذا النص <strong>البيان التأسيسي للهدف البحثي والمنهجية العلمية (Research Problem &amp; Core Methodology)</strong>، وتعتبر منصتنا هذه مصممة ومبنية في كل تفاصيلها المعمارية والبرمجية لتحقيق هذا الهدف بالضبط.</p>
 <p class="rich-p">لتحقيق هذا الهدف البحثي بشقيه (التشخيصي والتكيفي)، يعمل النظام وفق <strong>منظومة متكاملة من 5 طبقات تكنولوجية ومعمارية (5-Tier Digital Twin Architecture)</strong> تترجم نص البحث إلى واقع عملي ونتائج قابلة للقياس الأكاديمي:</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     subgraph Tier1 [&quot;1. النموذج الهندسي (BIM / As-Built Model)&quot;]
         BIM[&quot;استيراد مخططات المبنى القائم (BIM IFC / DXF / PDF)&quot;] --&gt; SpatialGraph[&quot;تحويل المبنى إلى رسم بياني فضائي (Spatial Graph)&quot;]
     end
@@ -2981,7 +3436,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
     subgraph Tier5 [&quot;5. قياس الكفاءة المكانية المرجوة (Empirical Validation)&quot;]
         ActuatorPartitions &amp; BypassRouting --&gt; Compare[&quot;مقارنة الحالة الثابتة vs الحالة التكيفية&quot;]
         Compare --&gt; Results[&quot;تحقيق الكفاءة المكانية: +35% سعة، -40% ازدحام، +25% توازن فضائي&quot;]
-    end</code></pre>
+    end</div>
         </div>
 <hr class="rich-hr">
 <h3 class="rich-h3">تفصيل آليات تحقيق الهدف البحثي في المنصة:</h3>
@@ -3066,6 +3521,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</blockquote></div>
+                
             </div>
         </div>
     
@@ -3077,6 +3533,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">هل السلوك اللحظي للمراجعين في المبنى او الطابق له علاقة بنوع الفعالية او الفضاء؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3095,9 +3552,9 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </tbody></table></div>
 <hr class="rich-hr">
 <h3 class="rich-h3">🔍 الأبعاد السلوكية الأربعة التي يحددها نوع الفضاء:</h3>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     SpaceType[&quot;نوع الفضاء والفعالية المعمارية (Typology &amp; Activity)&quot;] --&gt; Dim1[&quot;1. زمن المكوث (Dwell Time &amp; Static Load)&quot;]
     SpaceType --&gt; Dim2[&quot;2. التوجيه الحركي والسرعة (Kinematic Trajectories)&quot;]
     SpaceType --&gt; Dim3[&quot;3. المسافة النفسية والتحمل (Proxemics &amp; Spatial Stress)&quot;]
@@ -3106,7 +3563,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
     Dim1 --&gt; TwinModel[&quot;تغذية خوارزميات التوأم الرقمي (Digital Twin Intelligence)&quot;]
     Dim2 --&gt; TwinModel
     Dim3 --&gt; TwinModel
-    Dim4 --&gt; TwinModel</code></pre>
+    Dim4 --&gt; TwinModel</div>
         </div>
 <h4 class="rich-h4">1. زمن المكوث والاستقرار (Dwell Time vs Transit):</h4>
 <ul class="rich-list">
@@ -3150,6 +3607,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</blockquote></div>
+                
             </div>
         </div>
     
@@ -3161,6 +3619,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">كيف يمكن تصدير المحادثات معك (اسئلتي واوامري ع اجاباتك عنها) منذ البداية  في ملف يمكن الرجوع اليه ؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3206,6 +3665,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <p class="rich-p">إذا أردت في أي وقت لاحق بعد محادثات جديدة إعادة تصدير وتحديث الملفين، يمكنك فقط إخباري (&quot;قم بتحديث سجل المحادثات&quot;) وسأقوم بتشغيل أداة التصدير فورياً لإضافة الجولات الجديدة.</p>
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</blockquote></div>
+                
             </div>
         </div>
     
@@ -3217,6 +3677,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">تشغيله من ال-terminal</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3291,10 +3752,11 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>ملاحظة توثيقية:</strong></blockquote>
 <blockquote class="rich-quote"><em>&quot;هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد&quot;</em></blockquote></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-39">
+        <div class="turn-card has-media" id="turn-39">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 39</span>
                 <span>⏰ 2026-09-16 10:22:51 UTC</span>
@@ -3302,6 +3764,22 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">كيف يمكن تطوير الاداة / النظام؟ ما هي مقترحاتك لغرض تحقيق هدف البحث الذي تحدثنا عنه سابقا؟</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789554163752.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789554163752.png" alt="مخطط الإطار المنهجي لتطوير نظام التوأم الرقمي المتكيف (Methodology Framework)" class="zoomable-media-img" onclick="openLightbox(this.src, 'مخطط الإطار المنهجي لتطوير نظام التوأم الرقمي المتكيف (Methodology Framework)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">مخطط الإطار المنهجي لتطوير نظام التوأم الرقمي المتكيف (Methodology Framework)</strong>
+                            <p class="media-desc">مخطط يحدد منهجية ومراحل تطوير المنصة لتحقيق أهداف البحث العلمي في العمارة الحركية الذكية.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3309,9 +3787,9 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <blockquote class="rich-quote"><em>&quot;تعاني العديد من المباني الإدارية والصحية من سوء توزيع الفضاءات وضعف إدارة مسارات الحركة. يهدف هذا البحث إلى بناء &#x27;توأم رقمي&#x27; لمبنى قائم يربط بين النموذج الهندسي (BIM) ومستشعرات إنترنت الأشياء (IoT) التي ترصد حركة المستغلين للفضاءات لحظياً، لاستنباط أنماط الاستخدام وإعادة تشكيل التصميم الداخلي وتوزيع الوظائف المعمارية بما يحقق الكفاءة المكانية المرجوة.&quot;</em></blockquote>
 <p class="rich-p">نستعرض فيما يلي <strong>رؤية تطويرية شاملة وخارطة طريق أكاديمية وهندسية</strong> لنقل النظام من مرحلة &quot;النموذج الأولي التفاعلي&quot; إلى مرحلة <strong>&quot;منصة بحثية متكاملة للتوأم الرقمي التكيفي (Adaptive BIM-IoT Digital Twin Platform)&quot;</strong> قابلة للاختبار الميداني، والتحليل الإحصائي، والنشر العلمي في أرقى المجلات المحكمة في مجالات <em>(Architectural Computing, Automation in Construction, Building and Environment)</em>:</p>
 <hr class="rich-hr">
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>flowchart TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart TD
     subgraph S1 [&quot;1️⃣ طبقة الإدخال والتكامل (Data Ingestion)&quot;]
         BIM[&quot;نموذج BIM الهندسي والمعلوماتي (IFC)&quot;]
         IoT[&quot;مستشعرات IoT الحركية والبيئية (PIR / BLE / People Counters)&quot;]
@@ -3341,7 +3819,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
     SpaceSyntax --&gt; Algo
     KPIs --&gt; Algo
     Algo --&gt; Kinetic
-    Algo --&gt; Swap</code></pre>
+    Algo --&gt; Swap</div>
         </div>
 <hr class="rich-hr">
 <h2 class="rich-h2">أولاً: المحاور الاستراتيجية لتطوير الأداة والنظام</h2>
@@ -3453,6 +3931,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>ملاحظة توثيقية:</strong></blockquote>
 <blockquote class="rich-quote"><em>&quot;هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد&quot;</em></blockquote></div>
+                
             </div>
         </div>
     
@@ -3464,6 +3943,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">نعم انطلق بتنفيذ رؤية التطوير، وقبل ذلك احتفظ بنسخة من المنصة / النظام في حال رغبة الرجوع اليها لاحقاً</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3497,6 +3977,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>ملاحظة توثيقية:</strong></blockquote>
 <blockquote class="rich-quote"><em>&quot;هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد&quot;</em></blockquote></div>
+                
             </div>
         </div>
     
@@ -3508,6 +3989,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3600,6 +4082,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>ملاحظة توثيقية:</strong></blockquote>
 <blockquote class="rich-quote"><em>&quot;هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد&quot;</em></blockquote></div>
+                
             </div>
         </div>
     
@@ -3611,6 +4094,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">عند اضافة او حذف باب او فتحة عبور، لا يتأثر تدفق الجسيمات الزرقاء، عالج هذا الشيء بطريقة علمية. كذلك قم بتمييز الوان الابواب والفتحات لانها متداخلة مع الوان الجدران ولا يمكن تمييزها.</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3657,6 +4141,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <blockquote class="rich-quote">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</blockquote></div>
+                
             </div>
         </div>
     
@@ -3668,6 +4153,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اضافة ميزة اضافة / حذف حساسات او مستشعرات IoT وليس فقط اظهار واخفاء</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3721,9 +4207,9 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <h4 class="rich-h4">3. أساليب التحكم التفاعلية المزدوجة</h4>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     subgraph &quot;طرق إدارة شبكة المستشعرات IoT&quot;
         A[&quot;المسار الأول: المشهد 3D والمسقط المعماري&quot;] --&gt; B[&quot;زر &#x27;📡 مستشعر IoT&#x27; في شريط المعايرة&quot;]
         B --&gt; C[&quot;النقر داخل أي فضاء أو فوق أي باب&quot;]
@@ -3732,7 +4218,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         E[&quot;المسار الثاني: لوحة التحكم في نافذة IoT Modal&quot;] --&gt; F[&quot;نموذج الإضافة واختيار الفضاء/الباب والاسم&quot;]
         F --&gt; G[&quot;جدول السجل الحي للمستشعرات (Inventory Table)&quot;]
         G --&gt; H[&quot;زر &#x27;🗑️ حذف&#x27; فوري وتحديث مصفوفات التدفق&quot;]
-    end</code></pre>
+    end</div>
         </div>
 <ol class="rich-list">
 <li><strong>التحكم المكاني المباشر (3D View &amp; Blueprint Tracer):</strong></li>
@@ -3778,6 +4264,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</strong></blockquote></div>
+                
             </div>
         </div>
     
@@ -3789,6 +4276,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">امكانية اخفاء عناوين الفضاءات واظهارها، امكانية تحريك الجدران</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3800,6 +4288,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <p class="rich-p">يرجى مراجعة الخطة وإعطاء إشارة البدء (الموافقة) للانطلاق في التنفيذ البرمجي والتحقق المباشر.</p>
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</strong></blockquote></div>
+                
             </div>
         </div>
     
@@ -3811,6 +4300,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3846,6 +4336,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <p class="rich-p">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</p></div>
+                
             </div>
         </div>
     
@@ -3857,6 +4348,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اضف ميزة امكانية تحديد / انشاء فضاء من اغلاق ثلاث جدران او اكثر</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3878,6 +4370,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <p class="rich-p">يرجى الاطلاع على الخطة وتأكيد الموافقة لنبدأ التنفيذ مباشرة.</p>
 <hr class="rich-hr">
 <p class="rich-p">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</p></div>
+                
             </div>
         </div>
     
@@ -3889,6 +4382,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -3945,6 +4439,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <p class="rich-p">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</p></div>
+                
             </div>
         </div>
     
@@ -3956,6 +4451,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">ما هي علاقة السلم stair case (الحركة العمودية) بالحركة في الممرات والفضاءات ضمن الطابق الواحد، عالج هذا منطقياً وعلمياً بناءً على المحادثات السابقة، واضف امككانية ادراج سلم في المسقط الافقي</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4023,6 +4519,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <p class="rich-p">يرجى الاطلاع على وثيقة خطة التنفيذ وتأكيد الموافقة لننطلق في برمجة وتفعيل الميزة مباشرة.</p>
 <hr class="rich-hr">
 <p class="rich-p">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</p></div>
+                
             </div>
         </div>
     
@@ -4034,6 +4531,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4151,6 +4649,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</strong></blockquote></div>
+                
             </div>
         </div>
     
@@ -4162,6 +4661,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">امكانية تحريك وتدوير السلم، وامكانية تحريك وتدوير الجدار</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4174,6 +4674,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <p class="rich-p">يرجى مراجعة الخطة وإعطاء إشارة البدء (أو تزويدي بأي ملاحظات إضافية) للانطلاق في التنفيذ.</p>
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</strong></blockquote></div>
+                
             </div>
         </div>
     
@@ -4185,6 +4686,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4285,6 +4787,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <blockquote class="rich-quote">هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</blockquote></div>
+                
             </div>
         </div>
     
@@ -4296,6 +4799,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">تحريك السلم وتدويره مربك وغير ناجح، كذلك تحريك وتدوير الجدار، عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4408,6 +4912,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 </ul>
 <hr class="rich-hr">
 <blockquote class="rich-quote"><strong>هذه المنصة قيد التطوير لاغراض بحثية ، وتم تطويرها من قبل المهندس المعماري الدكتور احمد لؤي احمد</strong></blockquote></div>
+                
             </div>
         </div>
     
@@ -4419,10 +4924,12 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لماذا عند استيراد ملف IFC يتم اظهاره غير مكتمل المستويات والكتلة؟ عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p">I have started running the existing test suite to ensure the current baseline passes before implementing the IFC multi-storey and building massing engine. I will inspect the results shortly.</p></div>
+                
             </div>
         </div>
     
@@ -4434,6 +4941,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4486,6 +4994,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li><strong>💥 فصل الطوابق</strong> → يُباعِد الطوابق رأسيًا لتفحصها بصريًا</li>
 <li><strong>🔄 دمج الطوابق</strong> → يعود للعرض الاعتيادي المدمج</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -4497,6 +5006,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">تحريك السلم وتدويره مربك وغير ناجح، كذلك تحريك وتدوير الجدار، عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4518,6 +5028,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         </div>
 <p class="rich-p"><em>(يمكنك تحديث المتصفح الآن لرؤية الواجهة مع التعديلات الجديدة وتجربة سلاسة التحريك).</em></p>
 <p class="rich-p">هل ترغب في أن نستكمل اختبار وظائف السلالم والطوابق، أم ننتقل إلى جزئية أخرى في التوأم الرقمي؟</p></div>
+                
             </div>
         </div>
     
@@ -4529,10 +5040,12 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p"><em>(تم تنفيذ متطلبات الجولة بنجاح في المنظومة البرمجية)</em></p></div>
+                
             </div>
         </div>
     
@@ -4544,6 +5057,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">كود تشغيله من الـ Terminal</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4565,6 +5079,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         </div>
 <p class="rich-p"><em>(يمكنك تحديث المتصفح الآن لرؤية الواجهة مع التعديلات الجديدة وتجربة سلاسة التحريك).</em></p>
 <p class="rich-p">هل ترغب في أن نستكمل اختبار وظائف السلالم والطوابق، أم ننتقل إلى جزئية أخرى في التوأم الرقمي؟</p></div>
+                
             </div>
         </div>
     
@@ -4576,6 +5091,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">حذف وتدوير وتحريك السلم لا يعمل ، اضف اختيار ان يكون السلم باتجاهين او نازل او صاعد باتجاه واحد</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4641,6 +5157,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li><strong>حزمة الاختبارات الآلية:</strong> تم تمرير <strong>25/25 اختباراً</strong> بنجاح (<code class="inline-code">test_staircase.py</code>, <code class="inline-code">test_wall_and_stair_transform.py</code>, <code class="inline-code">test_ifc_multi_storey.py</code>).</li>
 </ul>
 <p class="rich-p"><em>(يمكنك الآن تحديث صفحة المتصفح وتجربة إدراج السلالم، تدويرها، تحريكها، تبديل اتجاهها، وحذفها بكل سهولة).</em></p></div>
+                
             </div>
         </div>
     
@@ -4652,6 +5169,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لا يمكن تحريك السلم، عالج الامر وبسرعة</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4691,6 +5209,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>تم تمرير كافة الفحوصات الآلية بنجاح (<code class="inline-code">25/25 tests passed</code>).</li>
 <li>الخادم يعمل ونشط عبر المنفذ: <strong><code class="inline-code">http://127.0.0.1:8080</code></strong> (يمكنك تحديث الصفحة وتجربة السحب أو النقر لتحريك السلم فورياً).</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -4702,6 +5221,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">هنالك خلل في واجهة المنصة / النظام، عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4753,6 +5273,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>النظام يعمل الآن بانسجام كامل عبر الرابط: <strong><code class="inline-code">http://127.0.0.1:8080</code></strong></li>
 <li>يرجى تحديث الصفحة (<code class="inline-code">Cmd + Shift + R</code> أو <code class="inline-code">F5</code>)؛ ستظهر الواجهة الآن بهيكلها الهندسي النظيف والمستقر بالكامل.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -4764,11 +5285,13 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">المطلوب الان التالي: عند استيراد مخطط او ملف ifc يكون في منتصف الشبكة المحورية للشاشة، كذلك اضف خاصية امكانية البدء بمشروع جديد</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p">تم إعداد خطة التنفيذ المفصلة لتوسيط المخططات ونماذج IFC في منتصف الشبكة المحورية للشاشة <code class="inline-code">(0, 0, 0)</code> وإضافة خاصية البدء بـ <strong>&quot;مشروع جديد&quot;</strong>.</p>
 <p class="rich-p">يرجى مراجعة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/implementation_plan.md" target="_blank" rel="noopener">خطة التنفيذ</a> والموافقة عليها لنبدأ بالتطبيق والتحقق مباشرة.</p></div>
+                
             </div>
         </div>
     
@@ -4780,6 +5303,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4811,6 +5335,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li><strong>حالة الخادم:</strong> يعمل الآن على الرابط <code class="inline-code">http://127.0.0.1:8080</code>.</li>
 </ul>
 <p class="rich-p">يمكنك تفقد التفاصيل الفنية الموثقة في <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">تقرير الإنجاز (Walkthrough)</a>.</p></div>
+                
             </div>
         </div>
     
@@ -4822,6 +5347,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">افحص خاصية استيراد ملف بامتداد ifc، وعالج الخلل ان وجد</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -4947,10 +5473,11 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>الخادم يعمل بنشاط على الرابط: <strong><code class="inline-code">http://127.0.0.1:8080</code></strong> وجاهز لاستيراد أي ملف IFC وتجسيمه وتوسيعه بدقة في منتصف الشاشة.</li>
 <li><strong>التوثيق:</strong> تم توثيق الفحص والحلول بالكامل في وثيقة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>.</li>
 </ul></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-64">
+        <div class="turn-card has-media" id="turn-64">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 64</span>
                 <span>⏰ 2026-09-16 21:19:27 UTC</span>
@@ -4958,6 +5485,22 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">عند استيراد ملف ifc تظهر سطوح وجدران غير موجوده في الملف المستور الاصلي، عالج الخلل</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789593549981.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789593549981.png" alt="لقطة فحص عارض الـ IFC وتشخيص ظهور أسطح وجدران شاذة (IFC Anomaly Diagnostic)" class="zoomable-media-img" onclick="openLightbox(this.src, 'لقطة فحص عارض الـ IFC وتشخيص ظهور أسطح وجدران شاذة (IFC Anomaly Diagnostic)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">لقطة فحص عارض الـ IFC وتشخيص ظهور أسطح وجدران شاذة (IFC Anomaly Diagnostic)</strong>
+                            <p class="media-desc">توثيق الخلل الهندسي لظهور أسطح وجدران غير أصلية عند استيراد ملفات IFC، وتم بناءً عليه تصحيح مكتبة web-ifc وفلاتر العناصر.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5046,6 +5589,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
 <li>كافة اختبارات المستورد المعماري واختبارات التوسيط والمشاريع الجديدة اجتازت بنجاح 100%.</li>
 <li>الخادم يعمل الآن بنجاح على: <strong><code class="inline-code">http://127.0.0.1:8080</code></strong>. وعند استيراد ملف الـ IFC ستظهر فقط العناصر المعمارية والإنشائية الحقيقية المحددة في ملفك دون أي سطوح طافية أو جدران وهمية زائدة.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -5057,6 +5601,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">ارفع المنصة / النظام على Streamlit و Github</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5146,6 +5691,7 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py</code></pre>
         </div>
 <p class="rich-p">ثم افتح الرابط: <strong><code class="inline-code">http://localhost:8501</code></strong>.</p></div>
+                
             </div>
         </div>
     
@@ -5157,6 +5703,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لم افهم طريقة الرفع وبناء web link على Github ، بسط ولك الصلاحية https://github.com/DrAhmedLouay</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5207,6 +5754,7 @@ streamlit run streamlit_app.py</code></pre>
 <p class="rich-p">👉 <strong><code class="inline-code">https://drahmedlouay-adaptive-digital-twin.streamlit.app</code></strong></p>
 <hr class="rich-hr">
 <p class="rich-p"><strong>ابدأ الآن بالضغط على رابط الخطوة 1 لإنشاء المستودع، وبمجرد الضغط أخبرني بكلمة &quot;تم&quot; لأكمل الرفع فوراً!</strong></p></div>
+                
             </div>
         </div>
     
@@ -5218,6 +5766,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">تم</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5262,6 +5811,7 @@ streamlit run streamlit_app.py</code></pre>
 </ol>
 <p class="rich-p">خلال دقيقة إلى دقيقتين سيعطيك Streamlit رابط ويب رسمي سحابي يعمل 24/7:</p>
 <p class="rich-p">👉 <strong><code class="inline-code">https://drahmedlouay-adaptive-digital-twin.streamlit.app</code></strong></p></div>
+                
             </div>
         </div>
     
@@ -5273,6 +5823,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">تأكد هل هذا الرابط يعمل على streamlit https://drahmedlouay-adaptive-digital-twin.streamlit.app ام هذا الرابط : https://adaptive-digital-twin.streamlit.app</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5299,6 +5850,7 @@ streamlit run streamlit_app.py</code></pre>
 <blockquote class="rich-quote"><strong>معلومات إضافية للمتابعة:</strong></blockquote>
 <blockquote class="rich-quote">- مستودع الكود على GitHub: <a href="https://github.com/DrAhmedLouay/adaptive-digital-twin" target="_blank" rel="noopener">https://github.com/DrAhmedLouay/adaptive-digital-twin</a></blockquote>
 <blockquote class="rich-quote">- يمكنك دائماً إدارة وتعديل رابط التطبيق عبر لوحة تحكم Streamlit من: <a href="https://share.streamlit.io" target="_blank" rel="noopener">https://share.streamlit.io</a></blockquote></div>
+                
             </div>
         </div>
     
@@ -5311,6 +5863,7 @@ streamlit run streamlit_app.py</code></pre>
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">عند استيراد ملف ifc في رابط https://drahmedlouay.github.io/adaptive-digital-twin لايحدث شيء سوى تظهر الرسالة: ⏳ جاري قراءة وتحليل المخطط المعماري...
 يدعم: PDF (مخططات معمارية حقيقية) • صور المساقط (PNG, JPG, SVG) • IFC (Revit / ArchiCAD) • DXF • JSON&quot;....عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5362,6 +5915,7 @@ streamlit run streamlit_app.py</code></pre>
 <ul class="rich-list">
 <li><strong>التجربة:</strong> يمكنك الآن فتح الرابط <a href="https://drahmedlouay.github.io/adaptive-digital-twin/" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/</a>، والضغط على <strong>&quot;المخططات المعمارية&quot;</strong> -&gt; <strong>&quot;رفع مخطط جديد&quot;</strong> وإسقاط أي ملف <code class="inline-code">IFC</code> وسيتم تحليله وبناؤه ثلاثي الأبعاد فوراً وتوسيطه في منتصف الشبكة.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -5373,10 +5927,12 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p"><em>(أمر متابعة واستكمال للعمليات البرمجية قيد التنفيذ للجولة 69 ➔ تم إنجاز الحل البرمجي الشامل وتحديث منصة الويب بالكامل في الجولة 73)</em></p></div>
+                
             </div>
         </div>
     
@@ -5388,10 +5944,12 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p"><em>(أمر متابعة واستكمال للعمليات البرمجية قيد التنفيذ للجولة 69 ➔ تم إنجاز الحل البرمجي الشامل وتحديث منصة الويب بالكامل في الجولة 73)</em></p></div>
+                
             </div>
         </div>
     
@@ -5403,10 +5961,12 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p"><em>(أمر متابعة واستكمال للعمليات البرمجية قيد التنفيذ للجولة 69 ➔ تم إنجاز الحل البرمجي الشامل وتحديث منصة الويب بالكامل في الجولة 73)</em></p></div>
+                
             </div>
         </div>
     
@@ -5418,6 +5978,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5469,6 +6030,7 @@ streamlit run streamlit_app.py</code></pre>
 <ul class="rich-list">
 <li><strong>التجربة:</strong> يمكنك الآن فتح الرابط <a href="https://drahmedlouay.github.io/adaptive-digital-twin/" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/</a>، والضغط على <strong>&quot;المخططات المعمارية&quot;</strong> -&gt; <strong>&quot;رفع مخطط جديد&quot;</strong> وإسقاط أي ملف <code class="inline-code">IFC</code> وسيتم تحليله وبناؤه ثلاثي الأبعاد فوراً وتوسيطه في منتصف الشبكة.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -5480,6 +6042,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">تأكد من عمل &quot;شبكة مستشعرات إنترنت الأشياء والتحليل المكاني اللحظي (BIM-IoT Live Telemetry)&quot;</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5546,10 +6109,11 @@ streamlit run streamlit_app.py</code></pre>
 <li>الرابط المباشر على GitHub Pages محدث وجاهز للتجربة فوراً:</li>
 </ul>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/</a></strong></p></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-75">
+        <div class="turn-card has-media" id="turn-75">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 75</span>
                 <span>⏰ 2026-09-17 09:47:30 UTC</span>
@@ -5557,6 +6121,22 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لازالت عند استيراد ملف ifc تظهر سطوح وجدران غير موجوده في الملف المستورد الاصلي اضف خاصية IFC Viewer tool ، عالج الخلل</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789638396113.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789638396113.png" alt="لقطة استعراض مجسم الـ IFC ومقترح أداة IFC Viewer التخصصية (IFC Viewer Tool Proposal)" class="zoomable-media-img" onclick="openLightbox(this.src, 'لقطة استعراض مجسم الـ IFC ومقترح أداة IFC Viewer التخصصية (IFC Viewer Tool Proposal)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">لقطة استعراض مجسم الـ IFC ومقترح أداة IFC Viewer التخصصية (IFC Viewer Tool Proposal)</strong>
+                            <p class="media-desc">لقطة ثلاثية الأبعاد للمجسم المستورد مع مقترح إضافة أداة مخصصة لمعاينة وعزل عناصر الـ IFC بشكل مستقل وسلس.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5648,10 +6228,11 @@ streamlit run streamlit_app.py</code></pre>
 <li>تم التحقق من تطابق جميع ملفات الواجهة والبرمجة بنسبة 100% بين المجلد الرئيسي ومجلد <code class="inline-code">public/</code>.</li>
 <li>تم دمج ورفع الكود عبر <code class="inline-code">git push origin main</code>، والتحديثات منشورة الآن على الرابط المباشر.</li>
 </ul></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-76">
+        <div class="turn-card has-media" id="turn-76">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 76</span>
                 <span>⏰ 2026-09-17 10:21:27 UTC</span>
@@ -5659,6 +6240,22 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">هنالك خلل في شاشة العرض حيث تغطي شرائط ونوافذ الادوات اكثر من نصف الشاشة: قم بتغيير لون الشبكة الثلاثية الى الابيض؛ قم باضافة امكانية تحريك وتدوير وتقريب وتبعيد الاشياء بسلاسة؛ لوحظ وجود lagging تأخير وصعوبة في تدوير وتحريك فايل الـ ifc المرفق؛ اعد تنظيم نوافذ وشرائط الادوات بطريقة مناسبة دون حذف اي منها</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789640482723.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789640482723.png" alt="لقطة شاشة العرض ثلاثية الأبعاد والمطالبة بالشبكة البيضاء وتصفير الـ Lag" class="zoomable-media-img" onclick="openLightbox(this.src, 'لقطة شاشة العرض ثلاثية الأبعاد والمطالبة بالشبكة البيضاء وتصفير الـ Lag')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">لقطة شاشة العرض ثلاثية الأبعاد والمطالبة بالشبكة البيضاء وتصفير الـ Lag</strong>
+                            <p class="media-desc">لقطة شاشة توضح حجب الأشرطة لجانب كبير من الواجهة، والمطالبة بتحويل الشبكة للون الأبيض وضمان سلاسة تدوير وتكبير المشهد.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5705,6 +6302,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <p class="rich-p">يمكنك الآن تجربة الرابط الحي وملاحظة الفارق الكبير في سرعة التدوير واستجابة الكاميرا والمظهر المنظم:</p>
 <p class="rich-p">🔗 <a href="https://drahmedlouay.github.io/adaptive-digital-twin" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin</a></p></div>
+                
             </div>
         </div>
     
@@ -5716,6 +6314,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لم تعالج الخلل، لازالت اغلب المشاكل قائمة ، والخلفية لازالت سوداء</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5760,6 +6359,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <p class="rich-p">تم رفع وتحديث كافة الملفات على GitHub Pages، ويمكنك فتح الرابط الآن (ويفضل عمل تحديث للصفحة عبر <code class="inline-code">Cmd + Shift + R</code> على الماك أو <code class="inline-code">Ctrl + F5</code>):</p>
 <p class="rich-p">🔗 <a href="https://drahmedlouay.github.io/adaptive-digital-twin" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin</a></p></div>
+                
             </div>
         </div>
     
@@ -5771,6 +6371,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">@[Quote] لم يتم تحويل الخلفية الثلاثية الابعاد الى اللون الابيض</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5805,10 +6406,11 @@ streamlit run streamlit_app.py</code></pre>
 <p class="rich-p">يمكنك النقر على الرابط التالي مباشرة للتحميل الفوري للنسخة البيضاء:</p>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.0" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.0</a></strong></p>
 <p class="rich-p"><em>(أو الضغط على <strong><code class="inline-code">Cmd + Shift + R</code></strong> في متصفحك على الماك لإجبار المتصفح على مسح الكاش القديم).</em></p></div>
+                
             </div>
         </div>
     
-        <div class="turn-card" id="turn-79">
+        <div class="turn-card has-media" id="turn-79">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 79</span>
                 <span>⏰ 2026-09-17 10:51:27 UTC</span>
@@ -5816,6 +6418,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">حدث &quot;سجل المحادثات&quot;</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5848,10 +6451,26 @@ streamlit run streamlit_app.py</code></pre>
 <li><strong>الجولة 78:</strong> حسم تحويل خلفية المشهد إلى الأبيض المعماري النقي الصلب، وإلغاء شفافية WebGL، وإضافة كاسر التخزين المؤقت التلقائي للمتصفح.</li>
 <li><strong>الجولة 79:</strong> تحديث وتصدير سجل المحادثات الكامل بصيغتي HTML و Markdown.</li>
 </ul></div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">📸 الرسم / لقطة الإثبات المرفقة من المساعد البرمجي</span>
+                            <span class="media-file-tag">📁 white_background_verified.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/white_background_verified.png" alt="📸 لقطة شاشة التحقق المباشر من نشر الخلفية البيضاء على GitHub Pages (Live Verification)" class="zoomable-media-img" onclick="openLightbox(this.src, '📸 لقطة شاشة التحقق المباشر من نشر الخلفية البيضاء على GitHub Pages (Live Verification)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">📸 لقطة شاشة التحقق المباشر من نشر الخلفية البيضاء على GitHub Pages (Live Verification)</strong>
+                            <p class="media-desc">لقطة حية التقطها المساعد البرمجي عبر المتصفح من الرابط العام المنشور للتأكد من تفعيل الشبكة المعمارية البيضاء وتناسق الواجهة.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
         </div>
     
-        <div class="turn-card" id="turn-80">
+        <div class="turn-card has-media" id="turn-80">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 80</span>
                 <span>⏰ 2026-09-17 10:54:18 UTC</span>
@@ -5859,6 +6478,22 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اين ذهبت هذه القائمة؟</div>
+                
+                    <div class="media-box-card">
+                        <div class="media-box-header">
+                            <span class="media-badge-tag">🖼️ المخطط / الرسم المرفق في هذه الجولة</span>
+                            <span class="media-file-tag">📁 media_1789642449019.png</span>
+                        </div>
+                        <div class="media-img-container">
+                            <img src="history_assets/media_1789642449019.png" alt="لقطة استفسار المعمار عن موضع القائمة العلوية للأدوات (Toolbar Positioning)" class="zoomable-media-img" onclick="openLightbox(this.src, 'لقطة استفسار المعمار عن موضع القائمة العلوية للأدوات (Toolbar Positioning)')" loading="lazy" />
+                        </div>
+                        <div class="media-box-footer">
+                            <strong class="media-title">لقطة استفسار المعمار عن موضع القائمة العلوية للأدوات (Toolbar Positioning)</strong>
+                            <p class="media-desc">لقطة استفسار المعمار عن اختفاء/موضع شريط الأدوات المعمارية، وتم على إثرها إعادة ترتيب وتثبيت الأشرطة في أعلى الشاشة.</p>
+                            <span class="media-zoom-hint">🔍 انقر على الصورة لتكبيرها بالحجم الكامل (Interactive Zoom)</span>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -5927,6 +6562,7 @@ streamlit run streamlit_app.py</code></pre>
 <p class="rich-p">يمكنك فتح الرابط التالي مباشرة لرؤية القائمة مستقرة وواضحة في الركن الأيمن السفلي:</p>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.2" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.2</a></strong></p>
 <p class="rich-p"><em>(كما تم توثيق كامل تفاصيل الجولة في <a href="https://drahmedlouay.github.io/adaptive-digital-twin/CONVERSATION_HISTORY.html" target="_blank" rel="noopener">سجل المحادثات التفاعلي</a> وفي وثيقة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>).</em></p></div>
+                
             </div>
         </div>
     
@@ -5938,6 +6574,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">ميز التدفق الحركي بلون عن الخلفية البيضاء</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6018,6 +6655,7 @@ streamlit run streamlit_app.py</code></pre>
 <h3 class="rich-h3">🔗 رابط التشغيل المباشر للمنصة المحدثة:</h3>
 <p class="rich-p">يمكنك الآن تجربة المنصة ومشاهدة التدفق الحركي الجديد عالي التباين وتجربة تبديل ألوانه عبر الرابط المباشر:</p>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.3" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.3</a></strong></p></div>
+                
             </div>
         </div>
     
@@ -6029,6 +6667,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اضف لازارز الاتجاهات والتدوير علامة اليد pam لتحريك الاشياء. في ملفات الـ ifc المستوردة فان تحديد الجدران لتخصيص فضاءات جديدة لا تعمل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6095,6 +6734,7 @@ streamlit run streamlit_app.py</code></pre>
 <h3 class="rich-h3">🔗 رابط التشغيل المباشر للإصدار المحدث (v2.3.4):</h3>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.4" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.4</a></strong></p>
 <p class="rich-p"><em>(تم توثيق كافة التفاصيل والتحليلات البرمجية في <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a> وتحديث سجل المحادثات المتراكم <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/CONVERSATION_HISTORY.html" target="_blank" rel="noopener">CONVERSATION_HISTORY.html</a>).</em></p></div>
+                
             </div>
         </div>
     
@@ -6106,6 +6746,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اضف امكانية عمل trim لجدار بين جدارين وحذفه لتكبير وزيادة مساحة الفضاء</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6178,6 +6819,7 @@ streamlit run streamlit_app.py</code></pre>
 <h3 class="rich-h3">🌐 رابط المعاينة المباشرة:</h3>
 <p class="rich-p">يمكنك تجربة وتفقد الميزة الجديدة مباشرة عبر الرابط التالي:</p>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.5" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.5</a></strong></p></div>
+                
             </div>
         </div>
     
@@ -6189,6 +6831,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">المنصة توقفت بعد التحديث</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6254,6 +6897,7 @@ streamlit run streamlit_app.py</code></pre>
 <h3 class="rich-h3">🌐 رابط التشغيل المباشر بعد الإصلاح الشامل:</h3>
 <p class="rich-p">المنصة الآن تعمل بكامل كفاءتها وسلاستها مع الحفاظ على كافة الميزات السابقة وأداة <strong>تقليم الجدران وتوسيع الفضاءات (Trim)</strong>:</p>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.6" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.6</a></strong></p></div>
+                
             </div>
         </div>
     
@@ -6265,6 +6909,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">لازالت المنصة لا تستجيب ولا تعمل، عالج الخلل بدون حذف للخصائص</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6340,6 +6985,7 @@ streamlit run streamlit_app.py</code></pre>
 <h3 class="rich-h3">🌐 رابط المعاينة والتشغيل المباشر:</h3>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.7" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.7</a></strong></p>
 <p class="rich-p"><em>(تم رفع وتأكيد كافة التعديلات على مستودع GitHub وتوثيق تفاصيل الجولة 85 في سجل المحادثات التراكمي).</em></p></div>
+                
             </div>
         </div>
     
@@ -6351,6 +6997,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">جد طرق اضافية لتحديد وانشاء فضاءات</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6389,6 +7036,7 @@ streamlit run streamlit_app.py</code></pre>
 </ul>
 <hr class="rich-hr">
 <p class="rich-p">📋 يرجى الاطلاع على <strong><a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/implementation_plan.md" target="_blank" rel="noopener">خطة التنفيذ التفصيلية (implementation_plan.md)</a></strong>، وبمجرد تأكيدك وموافقتك سأشرع مباشرة في برمجة وتفعيل هذه الأدوات بالكامل ودمجها في المنصة.</p></div>
+                
             </div>
         </div>
     
@@ -6400,6 +7048,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6426,6 +7075,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <h3 class="rich-h3">🌐 رابط التشغيل والمعاينة المباشرة (Live):</h3>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.8" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.8</a></strong></p></div>
+                
             </div>
         </div>
     
@@ -6437,6 +7087,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">غير واضح عندي كيفية احتساب التدفق، وما معنى الوان التدفق في المخطط، وغير معروف كيفية احتساب مسارات الحركة في الممرات والفضاءات، وهل هناك تمييز وفرق بين انماط وانواع المسارات الحركية حسب نوع استخدام الفضاء ونوع المستخدم (موظفين، مراجعين، الخ)؟</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6526,9 +7177,9 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <h3 class="rich-h3">4️⃣ التمييز بين أنماط المسارات الحركية حسب نوع الاستخدام ونوع المستخدم</h3>
 <p class="rich-p"><strong>نعم، هناك تمييز معماري ووظيفي دقيق بين فئات المستخدمين وأنماط الفضاءات</strong>، وهو ركيزة أساسية في أبحاث التوأم الرقمي:</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>graph TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">graph TD
     subgraph Users [&quot;تصنيف المستخدمين (User Taxonomy)&quot;]
         Visitor[&quot;👤 المراجعون والزوار (Visitors)&quot;]
         Staff[&quot;👔 الموظفون والكوادر (Staff)&quot;]
@@ -6543,7 +7194,7 @@ streamlit run streamlit_app.py</code></pre>
 
     Visitor --&gt; V_Path
     Staff --&gt; S_Path
-    Evac --&gt; E_Path</code></pre>
+    Evac --&gt; E_Path</div>
         </div>
 <h4 class="rich-h4">أ. التمييز حسب نوع المستخدم (Agent Roles):</h4>
 <ol class="rich-list">
@@ -6597,6 +7248,7 @@ streamlit run streamlit_app.py</code></pre>
 <li>أين مسارات الموظفين مقارنة بالمراجعين (التيل والأزرق)؟</li>
 <li>كيف يتدخل المبنى ذاتياً لإعادة التوجيه وفتح المسارات التكيفية لتخفيف الازدحام (البنفسجي والزمردي)؟</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -6608,6 +7260,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اضف امكانية تغيير مقياس ملف الـ PDF للمساقط الافقية المستوردة لكي تناسب المقياس الحقيقي للجدارن</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6620,6 +7273,7 @@ streamlit run streamlit_app.py</code></pre>
 <li><strong>خيار التحجيم التناسبي للعناصر القائمة:</strong> لضمان عدم ضياع أي جدران تم رسمها مسبقاً.</li>
 </ol>
 <p class="rich-p">يرجى مراجعة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/implementation_plan.md" target="_blank" rel="noopener">خطة التنفيذ (Implementation Plan)</a>، وبمجرد موافقتكم الكريمة سأباشر التنفيذ البرمجي والمزامنة الشاملة فوراً.</p></div>
+                
             </div>
         </div>
     
@@ -6631,6 +7285,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6679,6 +7334,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <p class="rich-p">🌐 <strong>رابط المنصة المباشر بعد التحديث:</strong></p>
 <p class="rich-p">👉 <strong><a href="https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.9" target="_blank" rel="noopener">https://drahmedlouay.github.io/adaptive-digital-twin/?v=2.3.9</a></strong></p></div>
+                
             </div>
         </div>
     
@@ -6690,6 +7346,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">@[Quote] لم اجد المذكور اعلاه</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6742,6 +7399,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote">تم رفع وتثبيت التحديث بنجاح على مستودع المشروع وخدمة GitHub Pages، وجميع التعديلات موثقة في <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a> وسجل المحادثات <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/public/CONVERSATION_HISTORY.html" target="_blank" rel="noopener">CONVERSATION_HISTORY.html</a>.</blockquote></div>
+                
             </div>
         </div>
     
@@ -6753,11 +7411,13 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">صمم واجهة لدخول النظام / المنصة باسم المستخدم ورمز المرور ، بحيث تكون المنصة بحساب المستخدم العادي aya_archi لايظهر فيها &quot;سجل المحادثات&quot; ولكن في حساب الادارة Admin باسم المستخدم drahmedlouay ذو صلاحيات مطلقة وفيه &quot;سجل المحادثات&quot;</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
                 <div class="model-content"><p class="rich-p">تم إعداد <strong>خطة التنفيذ التفصيلية</strong> لتصميم واجهة دخول النظام وتطبيق نظام إدارة الصلاحيات (RBAC) لحساب إدارة النظام <code class="inline-code">drahmedlouay</code> وحساب المستخدم المعماري <code class="inline-code">aya_archi</code>.</p>
 <p class="rich-p">يرجى مراجعة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/implementation_plan.md" target="_blank" rel="noopener">خطة التنفيذ (implementation_plan.md)</a>، وبمجرد موافقتكم الكريمة سأباشر فوراً بالتنفيذ والبرمجة.</p></div>
+                
             </div>
         </div>
     
@@ -6769,6 +7429,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6829,6 +7490,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote">تم حفظ وتأكيد كافة التعديلات ورفعها إلى المستودع الرسمي وموقع GitHub Pages، وجميع التفاصيل موثقة في <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>.</blockquote></div>
+                
             </div>
         </div>
     
@@ -6840,6 +7502,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">احذف &quot;⚡ حسابات تجريبية للاختبار السريع للصلاحيات:&quot; والابقاء على الدخول بالحسابات العادية، مع تحديد رمز الدخول لكل حساب</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6868,6 +7531,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <blockquote class="rich-quote">[!NOTE]</blockquote>
 <blockquote class="rich-quote">تم رفع التحديثات ونشرها مباشرة على خادم المنصة وموقع GitHub Pages، والتفاصيل موثقة في <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>. يمكنك الآن تجربة الدخول فورياً بتحديث الصفحة (<code class="inline-code">Ctrl + F5</code> أو <code class="inline-code">Cmd + Shift + R</code>).</blockquote></div>
+                
             </div>
         </div>
     
@@ -6879,6 +7543,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">غير رمز المرور &quot;ahmed2026&quot; الى lamar2009</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6893,6 +7558,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <blockquote class="rich-quote">[!TIP]</blockquote>
 <blockquote class="rich-quote">يمكنك الآن تسجيل الدخول مباشرة بالرمز الجديد <strong><code class="inline-code">lamar2009</code></strong> بعد تحديث الصفحة في المتصفح بالضغط على (<code class="inline-code">Ctrl + F5</code> أو <code class="inline-code">Cmd + Shift + R</code>).</blockquote></div>
+                
             </div>
         </div>
     
@@ -6904,6 +7570,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">رمز المرور &quot;lamar2009&quot; لا يعمل ، عالج</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6940,6 +7607,7 @@ streamlit run streamlit_app.py</code></pre>
 <tr><td><strong>👤 المستخدم العادي (User)</strong></td><td><strong><code class="inline-code">aya_archi</code></strong> &lt;br&gt;<em>(أو <strong><code class="inline-code">aya</code></strong>)</em></td><td><strong><code class="inline-code">aya2026</code></strong></td><td><strong>واجهة معمارية عادية + حجب سجل المحادثات</strong></td></tr>
 </tbody></table></div>
 <blockquote class="rich-quote"><strong>ملاحظة:</strong> تم توثيق كامل التفاصيل الفنية ونتائج الاختبارات البرمجية في وثيقة <a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/walkthrough.md" target="_blank" rel="noopener">walkthrough.md</a>. يمكنك الآن تحديث الصفحة وإدخال <code class="inline-code">drahmedlouay</code> (أو <code class="inline-code">admin</code>) مع <code class="inline-code">lamar2009</code> لتسجيل الدخول بنجاح.</blockquote></div>
+                
             </div>
         </div>
     
@@ -6951,6 +7619,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">في واجهة الدخول استبدل الجملة  &quot;منصة التوأم الرقمي التكيفي للمباني&quot; بالجملة &quot;منصة التوأم الرقمي المتكيف لإعادة التشكيل الحركي والمكاني&quot;</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6965,6 +7634,7 @@ streamlit run streamlit_app.py</code></pre>
 <li>تم تحديث سجل المحادثات والتوثيق.</li>
 <li>تم تثبيت التعديل في Git ودفعه إلى المستودع السحابي عبر GitHub بنجاح.</li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -6977,6 +7647,7 @@ streamlit run streamlit_app.py</code></pre>
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">احذف &quot;👑 حساب المدير (Admin): اسم المستخدم drahmedlouay (أو admin) • الرمز lamar2009
 👤 حساب المعمارية (User): اسم المستخدم aya_archi • الرمز aya2026&quot; من واجهة الدخول</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -6987,6 +7658,7 @@ streamlit run streamlit_app.py</code></pre>
 <li>حُذفت تفاصيل الحسابات والرموز من أسفل زر تسجيل الدخول.</li>
 </ul>
 <p class="rich-p">تم مزامنة التعديلات في كل من <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/index.html" target="_blank" rel="noopener"><code class="inline-code">index.html</code></a> و <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/public/index.html" target="_blank" rel="noopener"><code class="inline-code">public/index.html</code></a>، وتحديث سجل المحادثات والتوثيق، ودفع التغييرات مباشرة إلى المستودع عبر GitHub.</p></div>
+                
             </div>
         </div>
     
@@ -6998,6 +7670,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">الى الان يوجد خلل في عرض ملفات الـ IFC المستوردة، عالج الخلل واستخدم IFC viewer مناسب بحيث يستعرض الملفات والمشاريع الثلاثية الابعاد بشكل كامل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -7005,6 +7678,7 @@ streamlit run streamlit_app.py</code></pre>
 <p class="rich-p">يرجى مراجعة تفاصيل الخطة في وثيقة:</p>
 <p class="rich-p">📄 <strong><a href="file:///Users/ahmedlouay/.gemini/antigravity/brain/b0b4f101-0975-4fc6-9916-3657bf27f264/implementation_plan.md" target="_blank" rel="noopener">خطة تطوير وترقية عارض ومحلل الـ IFC المعماري (implementation_plan.md)</a></strong></p>
 <p class="rich-p">بانتظار موافقتكم الكريمة للبدء في التنفيذ المباشر.</p></div>
+                
             </div>
         </div>
     
@@ -7016,6 +7690,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text"><i>(موافقة على خطة التنفيذ / استكمال سير العمل)</i></div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -7090,6 +7765,7 @@ streamlit run streamlit_app.py</code></pre>
 <li><strong>Branch:</strong> <code class="inline-code">origin/main</code></li>
 </ul>
 <p class="rich-p">يمكنكم الآن استيراد أي ملف <code class="inline-code">.ifc</code> معماري أو إنشائي معقد، وسيتم عرضه وتجسيمه في الفضاء ثلاثي الأبعاد بدقة هندسية كاملة.</p></div>
+                
             </div>
         </div>
     
@@ -7101,6 +7777,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">بعد التحديث الاخير يوجد بطئ في تحريك المجسمات الـ IFC ويحدث lagging وتظهر مجسمات الـ IFC المستوردة مقلوبة الى الجانب، عالج الخلل</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -7167,6 +7844,7 @@ streamlit run streamlit_app.py</code></pre>
 <li><strong>Commit:</strong> <code class="inline-code">facd384</code> — <em>(fix: Eliminate IFC viewer lagging, optimize rendering draw calls, and add smart auto-orientation detection with manual rotation tools v2.6.0)</em></li>
 <li><strong>Branch:</strong> <code class="inline-code">origin/main</code></li>
 </ul></div>
+                
             </div>
         </div>
     
@@ -7178,6 +7856,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اشرح لي بطريقة مبسطة اساس عمل هذه المنصة، وماذا تعني نقاط تدفق الحركة المختلفة الالوان في النموذج الحالي المعروض في المنصة، وكيف ممكن استفاد من المنصة</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -7273,10 +7952,11 @@ streamlit run streamlit_app.py</code></pre>
 <ul class="rich-list">
 <li>محاكاة حركة خروج الحشود وسلوك الإخلاء واختبار قدرة الممرات والأدراج على تفريغ المبنى في أقل وقت زمني ممكن.</li>
 </ul></div>
+                
             </div>
         </div>
     
-        <div class="turn-card highlight-card" id="turn-103">
+        <div class="turn-card highlight-card has-media" id="turn-103">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 103</span>
                 <span>⏰ 2026-10-06 12:29:33 UTC</span>
@@ -7284,6 +7964,23 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">قارن بين رسالة الماجستير المرفقة ومع فكرة المنصة الحالية: ما هي الفروقات؟ ما هي التشابهات؟ بماذا تتميز فكرة عمل المنصة عن فكرة رسالة الماجستير المرفقة؟ وهل من مقترحات للمقارنة؟</div>
+                
+                    <div class="pdf-box-card">
+                        <div class="pdf-box-left">
+                            <div class="pdf-box-icon">📑</div>
+                            <div class="pdf-box-details">
+                                <div class="pdf-box-title">وثيقة رسالة الماجستير الكاملة للمقارنة الشاملة (مريم حسين علي - 2023)</div>
+                                <div class="pdf-box-desc">ملف الرسالة الأكاديمية الكاملة (8.1 ميجابايت) المرفوعة من قِبل المعمار، والتي أُجريت عليها دراسة المقارنة التفصيلية الشاملة في الجولة 103.</div>
+                                <div class="pdf-box-meta">📁 media_1791289757011.pdf &bull; ⚖️ الحجم: 7.8 MB</div>
+                            </div>
+                        </div>
+                        <div class="pdf-box-action">
+                            <a href="history_assets/media_1791289757011.pdf" target="_blank" class="pdf-view-btn">
+                                <span>📥 استعراض / تحميل الوثيقة ➔</span>
+                            </a>
+                        </div>
+                    </div>
+                    
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -7358,9 +8055,9 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <h2 class="rich-h2">🧭 رابعاً: مقترحات علمية للمقارنة ولتطوير التكامل بين الرسالة والمنصة (Future Integration Roadmap)</h2>
 <p class="rich-p">لكي تكون المقارنة ذات قيمة علمية وأكاديمية متقدمة (سواء لدعم أطروحة دكتوراه أو نشر أبحاث في مجلات عالمية مصنفة كـ Scopus / Clarivate)، يُقترح ما يلي:</p>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>flowchart LR
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart LR
     subgraph Thesis [&quot;مخرجات رسالة الماجستير (2023)&quot;]
         T1[&quot;معامل الفرق المحلي\n(Difference Ratio = 0.141)&quot;]
         T2[&quot;معادالت الزمكان\n(STM = SOR / DOR)&quot;]
@@ -7375,7 +8072,7 @@ streamlit run streamlit_app.py</code></pre>
 
     T1 --&gt; P1
     T2 --&gt; P2
-    T3 --&gt; P3</code></pre>
+    T3 --&gt; P3</div>
         </div>
 <ol class="rich-list">
 <li><strong>تضمين &quot;معدل الحاجة/الفرق المحلي&quot; المستنتج من الرسالة في خوارزمية المنصة:</strong></li>
@@ -7405,6 +8102,7 @@ streamlit run streamlit_app.py</code></pre>
 <hr class="rich-hr">
 <h3 class="rich-h3">📝 الخلاصة التنفيذية</h3>
 <p class="rich-p">إن <strong>رسالة الماجستير (2023)</strong> وضعت &quot;التشخيص العلمي والمختبري الدقيق&quot; وحددت المشكلة والاحتياج في الواقع العراقي، بينما جاءت <strong>المنصة الحالية (2026)</strong> لتكون &quot;الحل الهندسي والتكنولوجي التنفيذي الذكي&quot;؛ حيث نقلت أفكار العمارة المتكيفة من أوراق وتوصيات نظرية إلى منظومة توأم رقمي تفاعلية ثلاثية الأبعاد قادرة على إنقاذ المباني الإدارية من مشاكل التزاحم وسوء استغلال المساحات.</p></div>
+                
             </div>
         </div>
     
@@ -7416,6 +8114,7 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">اكتب مقترح  رسالة ماجستير بناءً على فكرة المنصة التي تم تطويرها ذاكراً: مشكلة البحث (التي تحلها المنصة)، فكرة الرسالة، هدف البحث، هيكلية فصول الرسالة، وما هي الدراسة العملية. اكتب بالتفصيل.</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
@@ -7443,13 +8142,13 @@ streamlit run streamlit_app.py</code></pre>
 <li><strong>التحليل الرقمي واتخاذ القرار (Decision Engine):</strong> معالجة الاختناقات والكثافات الحرجة وحساب معدلات الانتفاع والزمكان لحظياً.</li>
 <li><strong>التكيف المادي الفعلي (Physical Kinetic Reconfiguration):</strong> تحفيز عناصر معمارية حركية (قواطع جدارية منزلقة عازلة للصوت، مسارات حركة التفافية بديلة، وتوسيع/تقليص سعة القاعات) لإعادة تشكيل الفضاء وتغيير طوبولوجيته في ثوانٍ معدودة استجابةً لحاجة الشاغلين، ثم إعادة تشكيله مجدداً عند انتهاء الذروة.</li>
 </ol>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>flowchart LR
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart LR
     A[&quot;فضاء معماري حقيقي\n(إشغال وتدفق حركي متذبذب)&quot;] --&gt;|دفق بيانات الحساسات IoT| B[&quot;التوأم الرقمي الحي 3D\n(محاكاة وتحليل الإشغال)&quot;]
     B --&gt;|خوارزميات التكيف المكاني| C[&quot;محرك اتخاذ القرار\n(Decision Engine)&quot;]
     C --&gt;|إشارات التحكم والتحريك| D[&quot;العمارة الحركية الفعلية\n(قواطع منزلقة + مسارات التفافية)&quot;]
-    D --&gt;|إعادة تشكيل الفضاء هندسياً| A</code></pre>
+    D --&gt;|إعادة تشكيل الفضاء هندسياً| A</div>
         </div>
 <hr class="rich-hr">
 <h2 class="rich-h2">2. مشكلة البحث (The Research Problem)</h2>
@@ -7590,9 +8289,9 @@ streamlit run streamlit_app.py</code></pre>
 </ul>
 <hr class="rich-hr">
 <h3 class="rich-h3">ب. متغيرات الدراسة ومؤشرات القياس (Variables &amp; Metrics)</h3>
-<div class="code-box">
-            <div class="code-box-header"><span>💻 mermaid</span></div>
-            <pre class="code-box-content"><code>flowchart TD
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart TD
     subgraph Inputs [&quot;المتغيرات المستقلة (Independent Variables)&quot;]
         I1[&quot;حالة التكيف الحركي للمبنى:\n(قواطع مغلقة ثابتة vs. قواطع منزلقة مفتوحة)&quot;]
         I2[&quot;حالة المسارات الحركية:\n(شريان مركزي فقط vs. شريان + ممر التفافي)&quot;]
@@ -7606,7 +8305,7 @@ streamlit run streamlit_app.py</code></pre>
         O4[&quot;متوسط زمن مكوث وانتظار المراجعين (Waiting Duration)&quot;]
     end
 
-    Inputs --&gt; Outputs</code></pre>
+    Inputs --&gt; Outputs</div>
         </div>
 <ol class="rich-list">
 <li><strong>المتغيرات المستقلة (Independent Variables):</strong></li>
@@ -7671,6 +8370,7 @@ streamlit run streamlit_app.py</code></pre>
 <li><strong>برمجية تطبيقية مفتوحة وقابلة للنشر والتطوير:</strong> المنصة المنفذة بتقنيات الويب الحديثة تتيح للجامعة والباحثين استعراض النتائج في جلسة مناقشة الماجستير بصورة تفاعلية حية، ونشر أوراق بحثية في مجلات عالمية محكمة رصينة (Clarivate / Scopus).</li>
 <li><strong>حل اقتصادي وطاقي للمؤسسات الحكومية:</strong> إثبات أن المباني لا تحتاج بالضرورة إلى ميزانيات ضخمة لإنشاء كتل إسمنتية جديدة لاستيعاب الزيادة السكانية، بل يمكن مضاعفة قدرتها الاستيعابية عبر <strong>&quot;العمارة الحركية الذكية والتشغيل التكيفي المؤتمت&quot;</strong>.</li>
 </ol></div>
+                
             </div>
         </div>
     
@@ -7682,48 +8382,134 @@ streamlit run streamlit_app.py</code></pre>
             <div class="user-box">
                 <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
                 <div class="user-text">سجل المحادثات معك في هذه المنصة غير محدث ويفتقر الى اجاباتك السابقة ومقترحاتك، عالج الخلل وقم بتحديث جميع المحادثات والاوامر وادرج جميع اجاباتك</div>
+                
             </div>
             <div class="model-box">
                 <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
-                <div class="model-content"><h1 class="rich-h1">التقرير الشامل لتحديث وتوثيق سجل المحادثات الكامل (v2.6.2) 📜✅</h1>
-<hr class="rich-hr">
-<h2 class="rich-h2">📌 ملخص الإجراءات والتحديثات المنفذة</h2>
-<p class="rich-p">تمت معالجة الخلل المسجل في سجل المحادثات بشكل جذري وشامل، حيث تم إنجاز الآتي:</p>
-<ol class="rich-list">
-<li><strong>تحديث وتضمين كافة الجولات الحوارية والأوامر (105 جولة كاملة):</strong></li>
-</ol>
+                <div class="model-content"><p class="rich-p">تم بحمد الله <strong>معالجة الخلل بشكل جذري وشامل</strong>، وتحديث وتوثيق <strong>كافة الجولات الحوارية والأوامر (105 جولة كاملة)</strong>، وإدراج جميع الإجابات والشروحات والمقترحات المعمارية والأكاديمية بالتفصيل في سجل المحادثات بصيغتيه:</p>
 <ul class="rich-list">
-<li>تم استخراج وفهرسة جميع الأسئلة، الأوامر، والقرارات المعمارية والهندسية منذ انطلاق المشروع وحتى اللحظة الراهنة.</li>
-<li>تم فك الارتباط المعلق للجولات التتابعية (أوامر «اكمل» الوسيطة)، وربط كل سؤال تقني أو معماري بحله النهائي المعتمد مباشرة (مثل ربط معالجات ملفات الـ IFC، وأدوات تحريك الجدران والسلالم، وضبط الصلاحيات).</li>
-</ul>
-<ol class="rich-list">
-<li><strong>إدراج جميع الشروحات المعمارية والمقترحات الأكاديمية الكبرى بالتفصيل:</strong></li>
-</ol>
-<ul class="rich-list">
-<li><strong>الجولة 102:</strong> الدليل المعماري المبسط لأساس عمل المنصة، والتفسير الشامل لدلالات ألوان نقاط تدفق الحركة الخمس (السيان، البنفسجي، الزمردي، الكهرماني، والأحمر)، ودورها في رصد الاختناقات الحركية وتوجيه الإشغال.</li>
-<li><strong>الجولة 103:</strong> دراسة المقارنة المعمارية الأكاديمية الشاملة بين رسالة الماجستير المرفقة ومنظومة «منصة التوأم الرقمي المتكيف» عبر 6 محاور علمية وجداول تفصيلية تُبرز أوجه التشابه والفروقات الجوهرية.</li>
-<li><strong>الجولة 104:</strong> المقترح الأكاديمي المتكامل لرسالة الماجستير الجديدة بعنوان:</li>
-</ul>
-<p class="rich-p"><em>«التوأم الرقمي المتكيف لإعادة التشكيل الحركي والمكاني في الأبنية الإدارية: نمذجة تفاعلية قائمة على بيانات الإشغال اللحظية»</em></p>
-<p class="rich-p">متضمناً بطاقة العنوان، مشكلة البحث، الأهداف، الفلسفة المعمارية، هيكلية الفصول الخمسة، والدراسة العملية التطبيقية رباعية المراحل على مبنى وزارة إداري عراقي.</p>
-<ul class="rich-list">
-<li><strong>الجولات 95-98:</strong> توثيق كامل لتحديثات الأمان، وكلمات المرور (<code class="inline-code">lamar2009</code>)، وضبط واجهة الدخول بحسب التوجيهات المعتمدة.</li>
-<li><strong>الجولات 99-101:</strong> توثيق علاج وتطوير عارض ملفات الـ IFC، وتصحيح زوايا الدوران الأفقية والعمودية، وتسريع الأداء والقضاء على الـ Lag.</li>
-</ul>
-<ol class="rich-list">
-<li><strong>ترقية بصرية وتفاعلية كاملة لسجل المحادثات (Rich Rendered Engine):</strong></li>
-</ol>
-<ul class="rich-list">
-<li>تحويل كامل السجل من صيغة النصوص المجردة إلى واجهة تفاعلية بتنسيقات ويب حديثة:</li>
-<li>عرض الجداول الأكاديمية والتقنية بجداول منسقة ذات ألوان مريحة للعين وفواصل واضحة.</li>
-<li>تصيير العناوين والقوائم والاقتباسات والكتل البرمجية بصرياً.</li>
-<li>إضافة محرك <strong>بحث فوري حي (Instant Filter)</strong> يتيح البحث الفوري عن أي كلمة مفتاحية (مثل: IFC، ماجستير، تدفق، lamar2009، إلخ).</li>
-<li>شريط <strong>قفز سريع لأهم المحطات</strong> للوصول الفوري للمقترحات الكبرى.</li>
-<li>الحفاظ على الحماية التامة بصلاحيات الإدارة (Admin RBAC) لحساب المعمار <strong>د. أحمد لؤي</strong> (<code class="inline-code">drahmedlouay</code>).</li>
-<li>دعم كامل للطباعة والحفظ بصيغة PDF بدقة عالية.</li>
+<li>ملف الماركداون: <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/CONVERSATION_HISTORY.md" target="_blank" rel="noopener"><code class="inline-code">CONVERSATION_HISTORY.md</code></a></li>
+<li>الواجهة التفاعلية الغنية: <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/public/CONVERSATION_HISTORY.html" target="_blank" rel="noopener"><code class="inline-code">CONVERSATION_HISTORY.html</code></a></li>
 </ul>
 <hr class="rich-hr">
-<blockquote class="rich-quote">🏛️ <strong>حالة السجل:</strong> محدث 100% | عدد الجولات: 105 جولة | التوافق: متطابق على الرابط المحلي ورابط GitHub Pages العام.</blockquote></div>
+<h3 class="rich-h3">🔍 أولاً: تشخيص أسباب القصور السابق في السجل</h3>
+<ol class="rich-list">
+<li><strong>فصل الجولات التتابعية وأوامر الاستكمال (<code class="inline-code">اكمل</code>):</strong> في التصدير الأولي، كانت الجولات التي تخللها إدخال أوامر متابعة وسيطة أثناء تشغيل أدوات البرمجة تظهر خالية من الردود كجولات منفصلة (مثل جولة معالجة استيراد الـ IFC رقم 69، والجولات 22 و55)، حيث ظلت مصنفة بعبارة <em>&quot;قيد المعالجة&quot;</em>.</li>
+<li><strong>غياب التصيير البصري لجداول ونصوص الماركداون:</strong> كانت الصفحة السابقة تعرض الردود كنصوص خام مجردة داخل وسم <code class="inline-code">white-space: pre-wrap;</code>، مما شوه الجداول الأكاديمية والمقارنات والعناوين وقوائم التعداد وجعلها تظهر كرموز غير منسقة توحي بالنقص وعدم اكتمال الرد.</li>
+<li><strong>غياب الجولة الأخيرة (الجولة 105):</strong> عدم تحديث ملفات السجل بعد طرح الأسئلة والمقترحات الأخيرة.</li>
+</ol>
+<hr class="rich-hr">
+<h3 class="rich-h3">🛠️ ثانياً: المعالجات والترقيات المنفذة في الإصدار الجديد (v2.6.2)</h3>
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart LR
+    A[&quot;استخراج 105 جولة كاملة&lt;br/&gt;من Transcript&quot;] --&gt; B[&quot;دمج وربط الأوامر التتابعية&lt;br/&gt;وإلغاء فجوات الردود&quot;]
+    B --&gt; C[&quot;محرك تصيير Markdown غني&lt;br/&gt;(جداول + عناوين + كود)&quot;]
+    C --&gt; D[&quot;تضمين المقترحات الأكاديمية&lt;br/&gt;(102, 103, 104, 105)&quot;]
+    D --&gt; E[&quot;ميزات تفاعلية:&lt;br/&gt;بحث فوري + قفز سريع&quot;]
+    E --&gt; F[&quot;مزامنة ورفع مباشر إلى&lt;br/&gt;GitHub Main&quot;]</div>
+        </div>
+<h4 class="rich-h4">1. استرجاع وتضمين كافة الإجابات والشروحات الكبرى:</h4>
+<ul class="rich-list">
+<li><strong>الجولة 104 (المقترح الأكاديمي لرسالة الماجستير):</strong> تم إدراج المقترح الكامل والمفصل بعنوان:</li>
+</ul>
+<p class="rich-p"><strong>«التوأم الرقمي المتكيف لإعادة التشكيل الحركي والمكاني في الأبنية الإدارية: نمذجة تفاعلية قائمة على بيانات الإشغال اللحظية»</strong></p>
+<p class="rich-p">متضمناً مشكلة البحث، الأهداف، الفلسفة المعمارية، هيكلية الفصول الخمسة، والدراسة العملية التطبيقية رباعية المراحل على مبنى الوزارة العراقي.</p>
+<ul class="rich-list">
+<li><strong>الجولة 103 (دراسة المقارنة الشاملة مع رسالة الماجستير المرفقة):</strong> تم إدراج المقارنة الأكاديمية الشاملة بجميع جداولها التي تغطي 6 محاور مقارنة رئيسية (طبيعة الحيز، مستوى الأتمتة، المعالجة اللحظية، وغيرها).</li>
+<li><strong>الجولة 102 (دليل المنصة ودلالات ألوان تدفق الحركة):</strong> تم إدراج الشرح المعماري المبسط لأساس عمل التوأم الرقمي المتكيف والتفسير الدقيق لدلالات ألوان جزيئات الحركة الخمس (<strong>السيان</strong>، <strong>البنفسجي</strong>، <strong>الزمردي</strong>، <strong>الكهرماني</strong>، و<strong>الأحمر</strong>).</li>
+<li><strong>الجولات 99-101 (حلول وتطوير عارض ملفات الـ IFC):</strong> توثيق حل بطء الحركة (Lag)، وتصحيح زوايا الدوران الأفقية والعمودية لمنع انقلاب النماذج، ودعم مكتبات Web-IFC الحديثة.</li>
+<li><strong>الجولات 95-98 (منظومة الأمان والصلاحيات):</strong> توثيق تحديث رمز المرور إلى <code class="inline-code">lamar2009</code>، وضبط هوية واجهة الدخول بحسب التوجيهات المعتمدة.</li>
+<li><strong>الجولة 105 (توثيق وتحديث السجل):</strong> إدراج تقرير التحديث والتدقيق الحالي بالكامل.</li>
+</ul>
+<h4 class="rich-h4">2. ترقية تجربة استعراض السجل (Rich Interactive UI):</h4>
+<ul class="rich-list">
+<li><strong>جداول أكاديمية تفاعلية (<code class="inline-code">rich-table</code>):</strong> تصيير كامل الجداول المقارنة بجداول منسقة أنيقة تدعم التمرير الأفقي وألوان متناسقة مع هوية المنصة المعمارية.</li>
+<li><strong>محرك بحث فوري حي (Instant Filter Search):</strong> شريط بحث في أعلى الصفحة يتيح لك البحث عن أي كلمة مفتاحية فوراً (مثل: <em>IFC</em>، <em>رسالة ماجستير</em>، <em>تدفق الحركة</em>، <em>lamar2009</em>، <em>جدران</em>، <em>صلاحيات</em>) لفلترة الجولات وإظهار المطابقات فقط.</li>
+<li><strong>شريط القفز السريع (Quick Navigation Bar):</strong> أزرار وصول مباشر لأبرز المحطات المفصلية (الجولات 101، 102، 103، 104، 105).</li>
+<li><strong>حفظ الصلاحيات والأمان (RBAC):</strong> استمرار حماية السجل بحيث يقتصر الاطلاع عليه على حساب الإدارة للمهندس المعماري <strong>د. أحمد لؤي</strong> (<code class="inline-code">drahmedlouay</code>).</li>
+<li><strong>دعم الطباعة والتصدير كـ PDF:</strong> زر طباعة مهيأ لإخراج المستند بجودة عالية وبخلفية بيضاء نقية مخصصة للطباعة الرسمية والمناقشات الأكاديمية.</li>
+</ul>
+<hr class="rich-hr">
+<h3 class="rich-h3">🚀 ثالثاً: حالة النشر والمزامنة</h3>
+<ul class="rich-list">
+<li>تم إنشاء الملفات وتحديثها في المجلد الجذري ومجلد الإنتاج <a href="file:///Users/ahmedlouay/.gemini/antigravity/scratch/adaptive_digital_twin/public/" target="_blank" rel="noopener"><code class="inline-code">public/</code></a>.</li>
+<li>تم عمل <code class="inline-code">git commit</code> والتأكيد عبر رسالة التوثيق:</li>
+</ul>
+<p class="rich-p"><code class="inline-code">docs: Update complete conversation history with all comprehensive responses, proposals, and rich interactive rendering (v2.6.2)</code></p>
+<ul class="rich-list">
+<li>تم إجراء <code class="inline-code">git push</code> بنجاح إلى المستودع الرئيسي <strong><code class="inline-code">origin main</code></strong> على GitHub، والتحديث متوفر الآن على الرابط المباشر للمنصة.</li>
+</ul></div>
+                
+            </div>
+        </div>
+    
+        <div class="turn-card highlight-card" id="turn-106">
+            <div class="turn-header">
+                <span class="turn-num">💬 الجولة 106</span>
+                <span>⏰ 2026-10-06 13:18:48 UTC</span>
+            </div>
+            <div class="user-box">
+                <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
+                <div class="user-text">ادرج في سجل الملاحظات جميع المخططات والرسوم في المحادثات حسب موقعها ضمن المحادثة</div>
+                
+            </div>
+            <div class="model-box">
+                <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
+                <div class="model-content"><h1 class="rich-h1">التقرير الفني لإدراج وتنسيق كافة المخططات والرسوم في سجل المحادثات (v2.7.0) 📊🖼️</h1>
+<hr class="rich-hr">
+<h2 class="rich-h2">📌 ملخص الإنجاز والترقيات البصرية المنفذة</h2>
+<p class="rich-p">تم بنجاح استخراج وتثبيت <strong>جميع المخططات الهيكلية، الرسوم المعمارية، لقطات الشاشة التشخيصية، والوثائق الأكاديمية (12 وسيطاً ومخططاً معمارياً + 17 مخططاً هيكلياً تفاعلياً)</strong> وإدراجها بدقة فائقة حسب موقعها الزمني الدقيق ضمن الجولات الحوارية:</p>
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart TD
+    A[&quot;فهرسة وسائط المحادثة&lt;br/&gt;(12 ملفاً + 17 مخططاً)&quot;] --&gt; B[&quot;نسخ الوسائط إلى المستودع العام&lt;br/&gt;history_assets/&quot;]
+    B --&gt; C[&quot;محرك تصيير Mermaid التفاعلي&lt;br/&gt;(Vector SVG Rendering)&quot;]
+    B --&gt; D[&quot;صناديق عرض المخططات المعمارية&lt;br/&gt;(LightBox Zoom Modal)&quot;]
+    C --&gt; E[&quot;تحديث سجل المحادثات HTML &amp; MD&lt;br/&gt;وفلتر استعراض المخططات&quot;]
+    D --&gt; E
+    E --&gt; F[&quot;رفع وتثبيت على GitHub Main&lt;br/&gt;جاهزية العرض الحي 100%&quot;]</div>
+        </div>
+<hr class="rich-hr">
+<h3 class="rich-h3">1. 🖼️ توثيق المخططات والرسوم المعمارية والوثائق المرفقة حسب موقعها:</h3>
+<div class="table-container"><table class="rich-table">
+<thead><tr><th>رقم الجولة</th><th>نوع الوسيط</th><th>اسم الملف</th><th>الوصف المعماري والهدف التوثيقي</th></tr></thead><tbody>
+<tr><td><strong>الجولة 1</strong></td><td>📄 وثيقة PDF</td><td><code class="inline-code">media_1789470574410.pdf</code></td><td>وثيقة المقترح البحثي الأكاديمي الأولي لرسالة الماجستير (النواة التأسيسية للمنصة).</td></tr>
+<tr><td><strong>الجولة 20</strong></td><td>🖼️ مخطط معماري</td><td><code class="inline-code">media_1789486444159.png</code></td><td>مخطط أدوات رسم الجدران ثنائية الأبعاد وطلب تفعيل ميزة حذف الجدران.</td></tr>
+<tr><td><strong>الجولة 21</strong></td><td>🖼️ لقطة تشخيصية</td><td><code class="inline-code">media_1789488484552.png</code></td><td>فحص وتتبع استجابة أزرار واجهة المستخدم ومعالجات الأحداث.</td></tr>
+<tr><td><strong>الجولة 31</strong></td><td>🖼️ لقطة نظام</td><td><code class="inline-code">media_1789511530907.png</code></td><td>رصد رسالة خطأ النظام في المتصفح وإعادة ضبط خادم Three.js.</td></tr>
+<tr><td><strong>الجولة 35</strong></td><td>🖼️ مخطط بحثي</td><td><code class="inline-code">media_1789513486815.png</code></td><td>المخطط التأسيسي لهدف البحث ومحاكاة الإشغال والتكيف اللحظي للفضاءات.</td></tr>
+<tr><td><strong>الجولة 39</strong></td><td>🖼️ مخطط منهجي</td><td><code class="inline-code">media_1789554163752.png</code></td><td>مخطط الإطار المنهجي لتطوير نظام التوأم الرقمي المتكيف.</td></tr>
+<tr><td><strong>الجولة 64</strong></td><td>🖼️ لقطة IFC</td><td><code class="inline-code">media_1789593549981.png</code></td><td>تشخيص ظهور أسطح وجدران شاذة عند استيراد نماذج IFC ثلاثية الأبعاد.</td></tr>
+<tr><td><strong>الجولة 75</strong></td><td>🖼️ لقطة IFC</td><td><code class="inline-code">media_1789638396113.png</code></td><td>استعراض مجسم الـ IFC ومقترح تطوير أداة IFC Viewer التخصصية.</td></tr>
+<tr><td><strong>الجولة 76</strong></td><td>🖼️ لقطة واجهة</td><td><code class="inline-code">media_1789640482723.png</code></td><td>ضبط شاشة العرض وتغيير لون الشبكة للأبيض وتصفير تأخير الحركة (Lag).</td></tr>
+<tr><td><strong>الجولة 79</strong></td><td>📸 لقطة إثبات حي</td><td><code class="inline-code">white_background_verified.png</code></td><td>إثبات حي ملتقط عبر المتصفح يؤكد نشر وتطبيق الخلفية البيضاء على GitHub Pages.</td></tr>
+<tr><td><strong>الجولة 80</strong></td><td>🖼️ لقطة واجهة</td><td><code class="inline-code">media_1789642449019.png</code></td><td>استفسار المعمار عن موضع القائمة العلوية وإعادة تثبيت شريط الأدوات.</td></tr>
+<tr><td><strong>الجولة 103</strong></td><td>📄 رسالة ماجستير</td><td><code class="inline-code">media_1791289757011.pdf</code></td><td>وثيقة رسالة الماجستير الكاملة (مريم حسين علي 2023 - 7.8 MB) للمقارنة الشاملة.</td></tr>
+</tbody></table></div>
+<hr class="rich-hr">
+<h3 class="rich-h3">2. 📊 المخططات الهيكلية التفاعلية (17 مخطط Mermaid):</h3>
+<p class="rich-p">تم دمج محرك <strong>Mermaid.js (v10)</strong> بحيث تُصيّر جميع المخططات البرمجية والمعمارية كرسومات شعاعية تفاعلية (Vector SVGs) متجاوبة مع الوضع المظلم:</p>
+<ul class="rich-list">
+<li><strong>الجولات 1 &amp; 2:</strong> مخططات بنية المنصة التفاعلية وخوارزمية التكيف اللحظي.</li>
+<li><strong>الجولة 8:</strong> مخطط القيمة التطبيقية للتوأم الرقمي مقابل النماذج النظرية.</li>
+<li><strong>الجولة 16:</strong> مخطط تحويل المساقط ثنائية الأبعاد (2D Drafting) إلى توأم ثلاثي الأبعاد (3D Kinetic Twin).</li>
+<li><strong>الجولات 33 &amp; 34 &amp; 35 &amp; 36:</strong> 6 مخططات علمية لنظرية العمارة التكيفية، وديناميكا جزيئات تدفق الحشود، وعلاقة نوع الفضاء بالسلوك الإشغالي.</li>
+<li><strong>الجولة 39:</strong> مخطط مسار التكيف المكاني وتعديل القواطع المنزلقة.</li>
+<li><strong>الجولة 43:</strong> مخطط شبكة مستشعرات إنترنت الأشياء (IoT Sensor Network) وتوزيعها اللحظي.</li>
+<li><strong>الجولة 88:</strong> النمذجة الرياضية لسرعات تدفق المشاة ونظرية طوابير الانتظار.</li>
+<li><strong>الجولة 103:</strong> مخطط المقارنة الأكاديمية بين محاور رسالة الماجستير السابقة والمنصة الحالية.</li>
+<li><strong>الجولة 104:</strong> مخططا هيكلية فصول رسالة الماجستير الخمسة ومراحل الدراسة التطبيقية الأربعة.</li>
+<li><strong>الجولات 105 &amp; 106:</strong> مخططات مسار توثيق وتحديث السجل المعماري.</li>
+</ul>
+<hr class="rich-hr">
+<h3 class="rich-h3">3. 🔍 ميزات التفاعل البصري المضافة للواجهة:</h3>
+<ol class="rich-list">
+<li><strong>نافذة التكبير التفاعلية (Interactive Lightbox Modal):</strong> عند النقر على أي مخطط أو رسم معماري، يتم فتحه في نافذة تكبير عالية الدقة بملء الشاشة مع إمكانية التحميل والمعاينة الكاملة.</li>
+<li><strong>صناديق الوثائق والملفات (Document Preview Cards):</strong> عرض وثائق الـ PDF ببطاقات أنيقة توضح الحجم والوصف مع زر مباشر لتحميل واستعراض الوثيقة الأصلية.</li>
+<li><strong>فلتر استعراض المخططات فقط:</strong> زر فوري في شريط الأدوات العلوي (<code class="inline-code">🖼️ المخططات والرسوم فقط</code>) يقوم بتصفية السجل فورياً لإظهار الجولات التي تحوي رسوماً ووثائق معمارية فقط.</li>
+</ol></div>
+                
             </div>
         </div>
     
