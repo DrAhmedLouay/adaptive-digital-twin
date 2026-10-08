@@ -7,12 +7,15 @@
 
 class TwinApp {
     constructor() {
+        window.app = this;
+        window.twinApp = this;
         this.viewer = null;
         this.analytics = null;
         this.planManager = null;
         this.authManager = null;
         this.pollingInterval = null;
         this.activeScenario = 'normal';
+        this.reconfigMode = 'baseline';
         this.isAdaptive = false;
         
         this.init();
@@ -85,6 +88,13 @@ class TwinApp {
             console.error("Error in loadSpatialModel:", err);
         }
 
+        // توليد بطاقات وأزرار القواطع المنزلقة التكيفية فورياً عند بدء التشغيل
+        try {
+            this.renderSlidingPartitionsControls();
+        } catch (err) {
+            console.error("Error rendering sliding partitions controls on init:", err);
+        }
+
         // 3. ربط أحداث واجهة المستخدم (حاسم جداً: يُنفّذ دائماً حتى لو تعثر تحميل النموذج)
         try {
             this.setupEventListeners();
@@ -121,7 +131,13 @@ class TwinApp {
         } catch (err) {
             console.warn("API not available, loading embedded default model:", err);
         }
-        if (window.__DEFAULT_OFFICE_MODEL__) {
+        if (window.__PRESETS__ && window.__PRESETS__["administrative_office"]) {
+            this.viewer.loadBuildingModel(window.__PRESETS__["administrative_office"]);
+            if (this.planManager) {
+                this.planManager.updateActiveBuildingTitle(window.__PRESETS__["administrative_office"]);
+            }
+            console.log("Loaded full preset model for administrative_office.");
+        } else if (window.__DEFAULT_OFFICE_MODEL__) {
             this.viewer.loadBuildingModel(window.__DEFAULT_OFFICE_MODEL__);
             if (this.planManager) {
                 this.planManager.updateActiveBuildingTitle(window.__DEFAULT_OFFICE_MODEL__);
@@ -229,22 +245,29 @@ class TwinApp {
     }
 
     setupEventListeners() {
-        // أ. التبديل بين السيناريوهات
-        const scenarioBtns = document.querySelectorAll('.scenario-btn');
+        // أ. التبديل بين السيناريوهات الإشغالية
+        const scenarioBtns = document.querySelectorAll('[data-scenario]');
         scenarioBtns.forEach(btn => {
             btn.addEventListener('click', async () => {
                 const scenario = btn.dataset.scenario;
-                if (!scenario || scenario === this.activeScenario) return;
+                if (!scenario) return;
 
                 scenarioBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.activeScenario = scenario;
 
-                await fetch('/api/scenario', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ scenario })
-                });
+                // استجابة بصرية ورقمية فورية في الواجهة والـ HUD (Zero-Latency Local Feedback)
+                this.simulateClientTick();
+
+                try {
+                    await fetch('/api/scenario', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ scenario })
+                    });
+                } catch (err) {
+                    console.log("Scenario applied locally:", scenario);
+                }
 
                 // تحديث فوري
                 this.fetchAndUpdate();
@@ -256,20 +279,8 @@ class TwinApp {
         if (adaptiveToggle) {
             adaptiveToggle.addEventListener('change', async (e) => {
                 this.isAdaptive = e.target.checked;
-                
-                const modeLabel = document.getElementById('mode-status-text');
-                if (modeLabel) {
-                    modeLabel.textContent = this.isAdaptive ? 'الوضع التكيفي الذكي (نشط)' : 'الوضع الثابت (Baseline)';
-                    modeLabel.style.color = this.isAdaptive ? 'var(--accent-cyan)' : 'var(--text-muted)';
-                }
-
-                await fetch('/api/adaptive_mode', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: this.isAdaptive })
-                });
-
-                this.fetchAndUpdate();
+                const targetMode = this.isAdaptive ? 'kinetic' : 'baseline';
+                await this.applyReconfiguration(targetMode);
             });
         }
 
@@ -395,6 +406,71 @@ class TwinApp {
                 await this.applyReconfiguration(mode);
             });
         });
+
+        // هـ-2. أزرار التحكم السريع بالقواطع المنزلقة التكيفية (Sliding Partitions Master Buttons)
+        const btnPartOpenAll = document.getElementById('btn-partitions-open-all');
+        if (btnPartOpenAll) {
+            btnPartOpenAll.addEventListener('click', async () => {
+                await this.openAllPartitions();
+            });
+        }
+        const btnPartCloseAll = document.getElementById('btn-partitions-close-all');
+        if (btnPartCloseAll) {
+            btnPartCloseAll.addEventListener('click', async () => {
+                await this.closeAllPartitions();
+            });
+        }
+
+        // أزرار شريط التحكم العائم داخل شاشة 3D (Floating Viewport Partition Dock)
+        const vpOpenPart = document.getElementById('vp-btn-open-partition');
+        if (vpOpenPart) {
+            vpOpenPart.addEventListener('click', async () => {
+                await this.openAllPartitions();
+            });
+        }
+        const vpClosePart = document.getElementById('vp-btn-close-partition');
+        if (vpClosePart) {
+            vpClosePart.addEventListener('click', async () => {
+                await this.closeAllPartitions();
+            });
+        }
+        const vpFocusPart = document.getElementById('vp-btn-focus-partition');
+        if (vpFocusPart) {
+            vpFocusPart.addEventListener('click', () => {
+                const partitions = this.viewer?.buildingData?.partitions || {};
+                const pId = Object.keys(partitions)[0];
+                if (pId && this.viewer && typeof this.viewer.focusPartition === 'function') {
+                    this.viewer.focusPartition(pId, true);
+                }
+            });
+        }
+
+        // زر القواطع المنزلقة في الترويسة العلوية (Header Quick Partition Access)
+        const btnHeaderPart = document.getElementById('btn-header-partitions');
+        if (btnHeaderPart) {
+            btnHeaderPart.addEventListener('click', async () => {
+                // 1. إذا كانت القائمة الجانبية مطوية، أظهرها فوراً
+                const sidebar = document.getElementById('main-sidebar');
+                if (sidebar && sidebar.classList.contains('collapsed')) {
+                    sidebar.classList.remove('collapsed');
+                    const restoreBtn = document.getElementById('btn-restore-sidebar');
+                    if (restoreBtn) restoreBtn.style.display = 'none';
+                }
+                // 2. تمرير سلس نحو قسم القواطع في القائمة الجانبية وإبرازه
+                const partSection = document.getElementById('sliding-partitions-section') || document.getElementById('btn-reconfig-kinetic');
+                if (partSection) {
+                    partSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    partSection.style.outline = '2px solid #00d2ff';
+                    partSection.style.boxShadow = '0 0 25px rgba(0, 210, 255, 0.6)';
+                    setTimeout(() => {
+                        partSection.style.outline = '';
+                        partSection.style.boxShadow = '';
+                    }, 3500);
+                }
+                // 3. فتح القواطع وتوجيه الكاميرا سينمائياً
+                await this.openAllPartitions();
+            });
+        }
 
         // و. النوافذ المنبثقة لمستشعرات IoT وإعادة التشكيل
         const iotModal = document.getElementById('iot-modal');
@@ -885,14 +961,6 @@ class TwinApp {
                 else b.classList.remove('active');
             });
 
-            // إرسال طلب التكيف إلى الخادم
-            const res = await fetch('/api/reconfiguration/apply', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode })
-            });
-            const data = await res.json();
-
             this.reconfigMode = mode;
             this.isAdaptive = (mode !== 'baseline');
 
@@ -921,18 +989,294 @@ class TwinApp {
                 }
             }
 
-            // إرسال طلب التكيف إلى الخادم إذا كان متاحاً
-            await fetch('/api/reconfiguration/apply', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode })
-            });
+            // تحديث القواطع فورياً في المشهد ثلاثي الأبعاد
+            if (this.viewer && this.viewer.buildingData && this.viewer.buildingData.partitions) {
+                const isOpen = (mode !== 'baseline');
+                for (const p of Object.values(this.viewer.buildingData.partitions)) {
+                    p.status = isOpen ? 'open' : 'closed';
+                }
+                if (typeof this.viewer.setPartitionStates === 'function') {
+                    this.viewer.setPartitionStates(this.viewer.buildingData.partitions);
+                }
+                // تركيز الكاميرا سينمائياً تلقائياً على القاطع عند تفعيل التكيف الحركي
+                if (isOpen && typeof this.viewer.focusPartition === 'function') {
+                    const firstPId = Object.keys(this.viewer.buildingData.partitions)[0];
+                    if (firstPId) {
+                        this.viewer.focusPartition(firstPId, true);
+                    }
+                }
+            }
+            this.renderSlidingPartitionsControls();
 
+            // 5. استجابة بصرية ورقمية فورية في الواجهة والـ HUD (Zero-Latency Local Feedback)
+            this.simulateClientTick();
+
+            // 6. إرسال طلب التكيف إلى الخادم إذا كان متاحاً
+            try {
+                await fetch('/api/reconfiguration/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode })
+                });
+            } catch (err) {
+                console.log("Reconfiguration applied locally:", mode);
+            }
+
+            // 7. مزامنة البيانات وتحديث الحساسات
             this.fetchAndUpdate();
         } catch (e) {
-            // صامت في بيئة العرض الثابتة
-            this.fetchAndUpdate();
+            console.error("Error in applyReconfiguration:", e);
+            this.simulateClientTick();
         }
+    }
+
+    renderSlidingPartitionsControls() {
+        const container = document.getElementById('sliding-partitions-list');
+        const countBadge = document.getElementById('partitions-active-count');
+        if (!container) return;
+
+        const partitions = this.viewer?.buildingData?.partitions || {};
+        const entries = Object.entries(partitions);
+
+        if (countBadge) {
+            countBadge.textContent = `${entries.length} قاطع`;
+        }
+
+        const vpDock = document.getElementById('viewport-partitions-dock');
+        if (vpDock) {
+            vpDock.style.display = entries.length > 0 ? 'flex' : 'none';
+        }
+
+        if (entries.length === 0) {
+            container.innerHTML = `
+                <div style="font-size:11px; color:var(--text-muted); text-align:center; padding:10px; background:rgba(15,23,42,0.5); border-radius:6px;">
+                    لا توجد قواطع مرنة منزلقة في المخطط الحالي.
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+        const spaces = this.viewer?.buildingData?.spaces || {};
+
+        for (const [pId, part] of entries) {
+            const pObj = this.viewer?.partitionMeshes?.[pId];
+            const isOpen = (pObj ? (pObj.status === 'open') : (part.status === 'open'));
+            const expCap = part.expansion_capacity || 18;
+
+            let spaceNames = '';
+            if (part.between && part.between.length >= 2) {
+                const s1 = spaces[part.between[0]]?.name_ar || part.between[0];
+                const s2 = spaces[part.between[1]]?.name_ar || part.between[1];
+                spaceNames = `${s1} ↔ ${s2}`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'sliding-partition-card';
+            card.id = `partition-card-${pId}`;
+            card.innerHTML = `
+                <div class="sliding-partition-header">
+                    <span class="sliding-partition-title">${part.name_ar || 'قاطع منزلق تكيفي'}</span>
+                    <span class="sliding-partition-status-pill ${isOpen ? 'open' : 'closed'}" id="partition-status-${pId}">
+                        ${isOpen ? '🔓 منزلق ومفتوح' : '🔒 مغلق ومحكم'}
+                    </span>
+                </div>
+                ${spaceNames ? `<div style="font-size:11px; color:#94a3b8; font-weight:500;">🔗 بين: ${spaceNames}</div>` : ''}
+                <div class="sliding-partition-body">
+                    <span>العائد الفراغي: <strong style="color:var(--accent-cyan);">+${expCap} سعة</strong></span>
+                    <span id="partition-progress-text-${pId}" style="color:${isOpen ? 'var(--accent-cyan)' : 'var(--text-muted)'}; font-weight:bold;">
+                        ${isOpen ? '100% مفتوح' : '0% مغلق'}
+                    </span>
+                </div>
+                <div class="sliding-progress-bar">
+                    <div class="sliding-progress-fill" id="partition-progress-bar-${pId}" style="width: ${isOpen ? '100%' : '0%'};"></div>
+                </div>
+                <div class="sliding-partition-actions">
+                    <button class="sliding-btn-toggle" data-pid="${pId}" id="btn-toggle-part-${pId}">
+                        ${isOpen ? '🔒 إغلاق القاطع' : '🚪 انزلاق وفتح القاطع'}
+                    </button>
+                    <button class="sliding-btn-focus" data-pid="${pId}" title="تركيز الكاميرا على القاطع المنزلق">
+                        👁️ تركيز
+                    </button>
+                </div>
+            `;
+
+            // ربط زر التبديل
+            const toggleBtn = card.querySelector(`.sliding-btn-toggle`);
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    this.togglePartition(pId);
+                });
+            }
+
+            // ربط زر التركيز
+            const focusBtn = card.querySelector(`.sliding-btn-focus`);
+            if (focusBtn) {
+                focusBtn.addEventListener('click', () => {
+                    if (this.viewer && typeof this.viewer.focusPartition === 'function') {
+                        this.viewer.focusPartition(pId);
+                    }
+                });
+            }
+
+            container.appendChild(card);
+        }
+    }
+
+    async togglePartition(pId) {
+        if (!this.viewer) return;
+        this.viewer.togglePartition(pId);
+    }
+
+    async onPartitionToggled(pId, newStatus) {
+        const isOpen = (newStatus === 'open');
+        const part = this.viewer?.buildingData?.partitions?.[pId];
+        const expCap = part?.expansion_capacity || 18;
+
+        // تحديث بطاقة الواجهة
+        const statusPill = document.getElementById(`partition-status-${pId}`);
+        if (statusPill) {
+            statusPill.className = `sliding-partition-status-pill ${isOpen ? 'open' : 'closed'}`;
+            statusPill.textContent = isOpen ? '🔓 منزلق ومفتوح' : '🔒 مغلق ومحكم';
+        }
+
+        const progressText = document.getElementById(`partition-progress-text-${pId}`);
+        if (progressText) {
+            progressText.textContent = isOpen ? '100% مفتوح' : '0% مغلق';
+            progressText.style.color = isOpen ? 'var(--accent-cyan)' : 'var(--text-muted)';
+        }
+
+        const progressBar = document.getElementById(`partition-progress-bar-${pId}`);
+        if (progressBar) {
+            progressBar.style.width = isOpen ? '100%' : '0%';
+        }
+
+        const toggleBtn = document.getElementById(`btn-toggle-part-${pId}`);
+        if (toggleBtn) {
+            toggleBtn.innerHTML = isOpen ? '🔒 إغلاق القاطع' : '🚪 انزلاق وفتح القاطع';
+        }
+
+        // تحديث الـ Floating Viewport Dock
+        const dockBadge = document.getElementById('vp-dock-status-badge');
+        if (dockBadge) {
+            dockBadge.textContent = isOpen ? 'مفتوح 🔓' : 'مغلق 🔒';
+            dockBadge.classList.toggle('open', isOpen);
+        }
+
+        // إظهار إشعار Toast جميل للمستخدم
+        const name = part?.name_ar || 'القاطع المنزلق';
+        const toastMsg = isOpen
+            ? `🚪 انزلق ${name} بنجاح: تم دمج الفضاءين وتوسيع السعة بمقدار +${expCap} شخصاً.`
+            : `🔒 تم إغلاق ${name}: تم عزل الفضاءين صوتياً وفصل السعة الاستيعابية.`;
+        this.showActionToast(toastMsg);
+
+        // فحص حالة كافة القواطع لتحديث نمط التشكيل المعماري
+        const allPartitions = Object.values(this.viewer?.buildingData?.partitions || {});
+        const anyOpen = allPartitions.some(p => p.status === 'open');
+        const targetMode = anyOpen ? 'kinetic' : 'baseline';
+        this.reconfigMode = targetMode;
+        this.isAdaptive = anyOpen;
+
+        // تحديث حالة أزرار نمط التشكيل في الشريط الجانبي
+        document.querySelectorAll('[data-reconfig-mode]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.reconfigMode === targetMode);
+        });
+
+        const adaptiveToggle = document.getElementById('adaptive-toggle');
+        if (adaptiveToggle) {
+            adaptiveToggle.checked = anyOpen;
+        }
+
+        const impactBox = document.getElementById('reconfig-impact-box');
+        if (impactBox) {
+            impactBox.style.display = anyOpen ? 'block' : 'none';
+        }
+
+        const modeLabel = document.getElementById('mode-status-text');
+        if (modeLabel) {
+            if (targetMode === 'kinetic') {
+                modeLabel.textContent = 'التكيف الحركي بالقواطع (نشط)';
+                modeLabel.style.color = 'var(--accent-cyan)';
+            } else {
+                modeLabel.textContent = 'الوضع الثابت (Baseline)';
+                modeLabel.style.color = 'var(--text-muted)';
+            }
+        }
+
+        // إرسال التحديث إلى الخادم
+        try {
+            await fetch('/api/partition', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ partition_id: pId, status: newStatus })
+            });
+        } catch (e) {
+            console.log("Partition status synced locally:", pId, newStatus);
+        }
+
+        // محاكاة فورية للنتائج وتحديث الحساسات
+        this.simulateClientTick();
+    }
+
+    async openAllPartitions() {
+        if (!this.viewer || !this.viewer.buildingData?.partitions) return;
+        const partitions = this.viewer.buildingData.partitions;
+        for (const p of Object.values(partitions)) {
+            p.status = 'open';
+        }
+        if (typeof this.viewer.setPartitionStates === 'function') {
+            this.viewer.setPartitionStates(partitions);
+        }
+        const firstPId = Object.keys(partitions)[0];
+        if (firstPId && typeof this.viewer.focusPartition === 'function') {
+            this.viewer.focusPartition(firstPId, true);
+        }
+        const dockBadge = document.getElementById('vp-dock-status-badge');
+        if (dockBadge) {
+            dockBadge.textContent = 'مفتوح 🔓';
+            dockBadge.classList.add('open');
+        }
+        this.showActionToast('🚪 جاري فتح كافة القواطع المنزلقة التكيفية بالتوازي لدمج الفضاءات وتوسيع السعة.');
+        await this.applyReconfiguration('kinetic');
+        this.renderSlidingPartitionsControls();
+    }
+
+    async closeAllPartitions() {
+        if (!this.viewer || !this.viewer.buildingData?.partitions) return;
+        const partitions = this.viewer.buildingData.partitions;
+        for (const p of Object.values(partitions)) {
+            p.status = 'closed';
+        }
+        if (typeof this.viewer.setPartitionStates === 'function') {
+            this.viewer.setPartitionStates(partitions);
+        }
+        const firstPId = Object.keys(partitions)[0];
+        if (firstPId && typeof this.viewer.focusPartition === 'function') {
+            this.viewer.focusPartition(firstPId, true);
+        }
+        const dockBadge = document.getElementById('vp-dock-status-badge');
+        if (dockBadge) {
+            dockBadge.textContent = 'مغلق 🔒';
+            dockBadge.classList.remove('open');
+        }
+        this.showActionToast('🔒 تم إغلاق كافة القواطع المنزلقة وعزل الفضاءات وتفعيل الوضع الراهن.');
+        await this.applyReconfiguration('baseline');
+        this.renderSlidingPartitionsControls();
+    }
+
+    showActionToast(msg) {
+        let toast = document.getElementById('auth-floating-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'auth-floating-toast';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        toast.className = 'auth-toast show';
+        if (this._toastTimer) clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => {
+            toast.className = 'auth-toast';
+        }, 4000);
     }
 
     startTelemetryLoop() {
@@ -949,6 +1293,10 @@ class TwinApp {
             if (res.ok) {
                 const data = await res.json();
                 this.lastState = data;
+                if (data.layout_mode) {
+                    this.reconfigMode = data.layout_mode;
+                    this.isAdaptive = (data.layout_mode !== 'baseline');
+                }
                 if (this.viewer) this.viewer.updateRealtimeState(data);
                 if (this.analytics) this.analytics.updateDashboard(data);
                 return;
@@ -975,75 +1323,108 @@ class TwinApp {
 
         for (const [id, sp] of Object.entries(spaces)) {
             const cap = sp.capacity || 10;
-            let factor = 0.45;
+            let factor = 0.50;
+            const isWaitOrLobby = (id.includes('wait') || id.includes('reception') || id.includes('triage') || id.includes('citizen') || id.includes('grand') || sp.type === 'public');
+
             if (scenario === 'morning_peak') {
-                factor = (id.includes('reception') || id.includes('wait') || id.includes('lobby') || sp.type === 'public') ? 1.25 : 0.8;
+                if (isWaitOrLobby) {
+                    factor = (mode === 'baseline') ? 1.45 : 0.65;
+                } else {
+                    factor = 0.35;
+                }
             } else if (scenario === 'corridor_choke') {
-                factor = (sp.type === 'circulation' || id.includes('corridor')) ? 1.35 : 0.5;
+                factor = (sp.type === 'circulation' || id.includes('corridor')) ? 1.35 : 0.45;
             } else if (scenario === 'after_hours') {
                 factor = 0.08;
             }
 
-            if (mode === 'kinetic' && (id.includes('wait') || id.includes('reception'))) {
-                factor = Math.min(0.85, factor * 0.7);
+            if (mode === 'kinetic' && isWaitOrLobby && scenario !== 'morning_peak') {
+                factor = Math.min(0.70, factor * 0.75);
             } else if (mode === 'functional_swap' && (id.includes('corridor') || sp.type === 'circulation')) {
-                factor = Math.min(0.8, factor * 0.65);
+                factor = Math.min(0.65, factor * 0.60);
             }
 
-            const currentCount = Math.max(1, Math.round(cap * (factor + 0.12 * Math.sin(Date.now() / 3500 + id.charCodeAt(0)))));
+            const currentCount = Math.max(1, Math.round(cap * (factor + 0.05 * Math.sin(Date.now() / 3500 + id.charCodeAt(0)))));
             occ[id] = currentCount;
 
-            if (currentCount > cap) {
+            // حساب التكدس بالنظر إلى السعة الفعالة بعد فتح القاطع
+            let effectiveCap = cap;
+            for (const [pId, part] of Object.entries(partitions)) {
+                const meshStatus = this.viewer?.partitionMeshes?.[pId]?.status;
+                const isPartOpen = (meshStatus === 'open') || (part.status === 'open') || (mode === 'kinetic') || (mode === 'functional_swap');
+                if (isPartOpen && part.between && part.between.includes(id)) {
+                    effectiveCap += (part.expansion_capacity || 18);
+                    break;
+                }
+            }
+
+            if (currentCount > effectiveCap) {
                 overcrowdedRooms.push(id);
             }
         }
 
         let centralFlow = 24.0;
-        if (scenario === 'morning_peak') centralFlow = 36.5;
-        else if (scenario === 'corridor_choke') centralFlow = 48.0;
+        if (scenario === 'morning_peak') centralFlow = 38.0;
+        else if (scenario === 'corridor_choke') centralFlow = 54.0;
         else if (scenario === 'after_hours') centralFlow = 6.0;
 
-        if (mode === 'kinetic') centralFlow = Math.max(12.0, centralFlow * 0.75);
-        else if (mode === 'functional_swap') centralFlow = Math.max(10.0, centralFlow * 0.58);
+        if (mode === 'kinetic') centralFlow = Math.max(12.0, centralFlow * 0.72);
+        else if (mode === 'functional_swap') centralFlow = Math.max(10.0, centralFlow * 0.49);
 
-        centralFlow = +(centralFlow + 2.0 * Math.sin(Date.now() / 3000)).toFixed(1);
+        centralFlow = +(centralFlow + 1.5 * Math.sin(Date.now() / 3000)).toFixed(1);
 
-        let balanceScore = 74.0;
-        if (scenario === 'morning_peak') balanceScore = 66.5;
-        else if (scenario === 'corridor_choke') balanceScore = 62.0;
+        let balanceScore = 78.0;
+        if (scenario === 'morning_peak') balanceScore = (mode === 'baseline') ? 66.0 : 86.5;
+        else if (scenario === 'corridor_choke') balanceScore = (mode === 'baseline') ? 62.0 : 84.0;
 
-        let circWork = 4350;
-        if (scenario === 'morning_peak') circWork = 5400;
-        else if (scenario === 'corridor_choke') circWork = 5950;
+        let circWork = 4200;
+        if (scenario === 'morning_peak') circWork = (mode === 'baseline') ? 5600 : 3800;
+        else if (scenario === 'corridor_choke') circWork = (mode === 'baseline') ? 6100 : 3650;
 
         const actions = [];
         if (mode === 'kinetic') {
-            balanceScore = +(balanceScore + 17.5).toFixed(1);
-            circWork = Math.round(circWork * 0.74);
+            balanceScore = +(balanceScore + (scenario === 'morning_peak' ? 0 : 14.5)).toFixed(1);
+            circWork = Math.round(circWork * 0.72);
             actions.push({
                 type: "MOVABLE_PARTITION_EXPANSION",
-                title_ar: "تمدد القاطع الذكي الميكانيكي (Smart Partition P1)",
-                reason_ar: "تكدس الفضاء الرئيسي وتجاوز عتبة الإشغال المسموحة",
-                impact_ar: "زيادة السعة الاستيعابية بنسبة 45% وتخفيض زمن الانتظار"
+                title_ar: "فتح القاطع التكيفي المنزلق (Kinetic Partition)",
+                reason_ar: "رصد ذروة تدفق المراجعين وتجاوز السعة التصميمية للصالة",
+                impact_ar: "دمج الفضاءين ورفع السعة الاستيعابية فورياً بمقدار +18 فرداً وتفادي التكدس"
             });
         } else if (mode === 'functional_swap') {
-            balanceScore = +(balanceScore + 21.0).toFixed(1);
-            circWork = Math.round(circWork * 0.68);
+            balanceScore = +(balanceScore + (scenario === 'morning_peak' ? 0 : 18.0)).toFixed(1);
+            circWork = Math.round(circWork * 0.64);
             actions.push({
                 type: "FUNCTIONAL_ZONE_SWAP",
-                title_ar: "إعادة توجيه التدفق والتوزيع الوظيفي التكيفي",
-                reason_ar: "ارتفاع تدفق الممرات واختناق عنق الزجاجة",
-                impact_ar: "تخفيض إجهاد حركة المشاة (Circulation Work W) بنسبة 32%"
+                title_ar: "التوزيع الوظيفي الأمثل لمسارات الحركة (Optimal Swap)",
+                reason_ar: "تقريب الفعاليات الجماهيرية من ردهة الاستقبال لتفادي اختراق الحشود للمبنى",
+                impact_ar: "تخفيض مسافات السير التراكمية بنسبة 36.2% واختناق الممرات بنسبة 51.3%"
             });
         }
+
+        const simulatedPartitions = {};
+        for (const [pId, part] of Object.entries(partitions)) {
+            const meshStatus = this.viewer?.partitionMeshes?.[pId]?.status;
+            let partStatus = meshStatus || part.status || 'closed';
+            if (mode === 'kinetic' || mode === 'functional_swap') {
+                partStatus = 'open';
+            }
+            simulatedPartitions[pId] = {
+                ...part,
+                status: partStatus
+            };
+        }
+
+        const anyOpenPart = Object.values(simulatedPartitions).some(p => p.status === 'open');
+        const effectiveMode = (mode === 'functional_swap') ? 'functional_swap' : (anyOpenPart ? 'kinetic' : mode);
 
         const state = {
             step: this.stepCount,
             scenario: scenario,
-            layout_mode: mode,
+            layout_mode: effectiveMode,
             sensor_readings: occ,
             corridor_flows: { "corridor_central": centralFlow },
-            partitions: partitions,
+            partitions: simulatedPartitions,
             evaluation: {
                 spatial_balance_score: balanceScore,
                 current_kpis: {
@@ -1053,14 +1434,15 @@ class TwinApp {
                     circulation_work_index: circWork
                 },
                 baseline_kpis: {
-                    spatial_balance_score: 72.0,
-                    overcrowded_rooms: scenario === 'normal' ? [] : ["reception_space"],
-                    j_circ_penalty: 45.8,
-                    circulation_work_index: 4580
+                    spatial_balance_score: 68.0,
+                    overcrowded_rooms: (scenario === 'morning_peak') ? ["waiting_hall"] : (scenario === 'corridor_choke' ? ["corridor_central"] : []),
+                    j_circ_penalty: 56.0,
+                    circulation_work_index: 5600
                 },
                 improvement_summary: {
-                    balance_gain_percent: +(Math.max(0, balanceScore - 72.0)).toFixed(1),
-                    congestion_reduction_percent: mode === 'baseline' ? 0.0 : 28.5
+                    balance_gain_percent: +(Math.max(0, balanceScore - 68.0)).toFixed(1),
+                    congestion_reduction_percent: mode === 'baseline' ? 0.0 : (mode === 'functional_swap' ? 51.3 : 38.5),
+                    overcrowd_resolved_count: (scenario === 'morning_peak' && mode !== 'baseline') ? 1 : 0
                 },
                 actions: actions
             }

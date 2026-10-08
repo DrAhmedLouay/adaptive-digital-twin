@@ -44,12 +44,31 @@ class TwinServerHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         elif path == "/api/state":
+            active_mode = getattr(self.spatial_model, "active_layout_mode", None)
+            if not active_mode and self.iot_engine:
+                active_mode = getattr(self.iot_engine, "active_layout_mode", "baseline")
+            active_mode = active_mode or "baseline"
+
             iot_data = self.iot_sim.tick()
             eval_result = self.engine.evaluate_and_adapt(iot_data["occupancy"], iot_data["flows"])
-            
+            if isinstance(eval_result, dict):
+                eval_result["layout_mode"] = active_mode
+
+            any_open = any(p.get("status") == "open" for p in self.spatial_model.partitions.values())
+            if active_mode in ["kinetic", "functional_swap"]:
+                for p_id in self.spatial_model.partitions:
+                    self.spatial_model.set_partition_state(p_id, "open")
+            elif any_open:
+                active_mode = "kinetic"
+                self.spatial_model.active_layout_mode = "kinetic"
+
+            if isinstance(eval_result, dict):
+                eval_result["layout_mode"] = active_mode
+
             response = {
                 "step": iot_data["step"],
                 "scenario": iot_data["scenario"],
+                "layout_mode": active_mode,
                 "sensor_readings": iot_data["occupancy"],
                 "corridor_flows": iot_data["flows"],
                 "partitions": self.spatial_model.partitions,
@@ -152,10 +171,15 @@ class TwinServerHandler(http.server.SimpleHTTPRequestHandler):
                 res = self.iot_engine.apply_reconfiguration_mode(mode)
             else:
                 res = {"status": "ok", "active_mode": mode}
+            self.spatial_model.active_layout_mode = mode
             if mode in ["kinetic", "functional_swap"]:
                 self.engine.toggle_adaptive_mode(True)
+                for p_id in self.spatial_model.partitions:
+                    self.spatial_model.set_partition_state(p_id, "open")
             else:
                 self.engine.toggle_adaptive_mode(False)
+                for p_id in self.spatial_model.partitions:
+                    self.spatial_model.set_partition_state(p_id, "closed")
             self.send_json_response(res)
             return
 
@@ -171,7 +195,13 @@ class TwinServerHandler(http.server.SimpleHTTPRequestHandler):
             p_id = data.get("partition_id")
             status = data.get("status", "closed")
             success = self.spatial_model.set_partition_state(p_id, status)
-            self.send_json_response({"status": "ok" if success else "error"})
+            if success:
+                any_open = any(p.get("status") == "open" for p in self.spatial_model.partitions.values())
+                new_mode = "kinetic" if any_open else "baseline"
+                self.spatial_model.active_layout_mode = new_mode
+                if self.iot_engine:
+                    self.iot_engine.active_layout_mode = new_mode
+            self.send_json_response({"status": "ok" if success else "error", "layout_mode": getattr(self.spatial_model, "active_layout_mode", "baseline")})
             return
 
         elif path == "/api/model/switch":

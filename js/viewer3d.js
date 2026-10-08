@@ -47,6 +47,7 @@ class Twin3DViewer {
         this.controls = null;
         this.roomMeshes = {};
         this.partitionMeshes = {};
+        this.partitionBadges = {};
         this.labelSprites = {};
         this.labelsVisible = true;
         this.particleSystem = null;
@@ -345,6 +346,7 @@ class Twin3DViewer {
         }
         this.roomMeshes = {};
         this.partitionMeshes = {};
+        this.partitionBadges = {};
         this.labelSprites = {};
         this.wallMeshes = {};
         this.openingMeshes = {};
@@ -547,13 +549,14 @@ class Twin3DViewer {
             const hasRealWalls = modelData.walls && Object.keys(modelData.walls).length > 0;
             const isImportedBim = (modelData.building_type === 'imported_bim') || hasRealSlabs || hasRealWalls;
 
-            // أ. بلاطة الأرضية (Floor Slab) - شبه شفافة مع المخطط المعماري
+            // أ. بلاطة الأرضية (Floor Slab) - شبه شفافة كخريطة حرارية تفاعلية
             const floorMat = new THREE.MeshStandardMaterial({
                 color: this.getOccupancyColor(0.5),
                 roughness: 0.25,
                 metalness: 0.1,
                 transparent: true,
-                opacity: hasBlueprint ? this.spacesOpacity : (hasRealSlabs ? 0.35 : 0.85)
+                opacity: hasBlueprint ? this.spacesOpacity : 0.65,
+                depthWrite: false
             });
             const floorMesh = new THREE.Mesh(floorGeo, floorMat);
             floorMesh.position.set(centerX, baseElev + 0.08, centerZ);
@@ -576,9 +579,11 @@ class Twin3DViewer {
             }));
             floorMesh.add(edgeLine);
 
-            // في نماذج الـ BIM، تُحجب كتل الفضاءات المصمتة افتراضياً حتى لا تشوه بلاطات الطوابق والأسقف الأصلية
-            if (isImportedBim || space.is_fallback) {
+            // إظهار بلاطة الفضاء كخريطة حرارية تفاعلية واضحة للرصد اللحظي
+            if (space.is_fallback) {
                 floorMesh.visible = false;
+            } else {
+                floorMesh.visible = true;
             }
 
             const spaceParent = (space.storey_id && this.storeyGroups[space.storey_id]) || this.buildingGroup;
@@ -606,26 +611,226 @@ class Twin3DViewer {
             this.createRoomBadge(id, space, centerX, centerZ);
         }
 
-        // إنشاء القواطع المرنة التكيفية (Movable Partitions)
+        // إنشاء القواطع المرنة التكيفية المنزلقة (Architectural Kinetic Sliding Partitions)
         for (const [pId, part] of Object.entries(modelData.partitions || {})) {
             const p = part.position;
-            const pGeo = new THREE.BoxGeometry(p.width, 2.8, p.depth);
-            const pMat = new THREE.MeshStandardMaterial({
-                color: 0x2ecc71,
-                roughness: 0.2,
-                metalness: 0.8,
-                emissive: 0x1a452a,
-                emissiveIntensity: 0.3
-            });
-            const pMesh = new THREE.Mesh(pGeo, pMat);
-            pMesh.position.set(p.x, 1.4, p.z + p.depth / 2);
-            pMesh.castShadow = true;
-            this.buildingGroup.add(pMesh);
-            this.partitionMeshes[pId] = {
-                mesh: pMesh,
-                defaultZ: p.z + p.depth / 2,
-                openZ: (p.z + p.depth / 2) + p.depth // sliding animation target
+            const isOpen = (part.status === 'open');
+            const isZAxis = (p.depth >= p.width);
+            const totalLength = isZAxis ? p.depth : p.width;
+            const thickness = isZAxis ? Math.max(0.20, p.width) : Math.max(0.20, p.depth);
+            const height = p.height || 3.0;
+
+            const partGroup = new THREE.Group();
+            partGroup.userData = {
+                type: 'partition',
+                partitionId: pId,
+                partData: part
             };
+
+            // 1. سكة التعليق العلوية المعمارية (Top Suspension Rail Track)
+            const railGeo = isZAxis
+                ? new THREE.BoxGeometry(thickness + 0.10, 0.14, totalLength + 0.08)
+                : new THREE.BoxGeometry(totalLength + 0.08, 0.14, thickness + 0.10);
+            const railMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                metalness: 0.85,
+                roughness: 0.25
+            });
+            const railMesh = new THREE.Mesh(railGeo, railMat);
+            if (isZAxis) {
+                railMesh.position.set(p.x, height - 0.07, p.z + totalLength / 2);
+            } else {
+                railMesh.position.set(p.x + totalLength / 2, height - 0.07, p.z);
+            }
+            railMesh.castShadow = true;
+            railMesh.userData = { type: 'partition', partitionId: pId };
+            partGroup.add(railMesh);
+
+            // شريط إضاءة LED متوهج في السكة لإيضاح حالة الانزلاق الفراغي
+            const ledGeo = isZAxis
+                ? new THREE.BoxGeometry(0.04, 0.02, totalLength)
+                : new THREE.BoxGeometry(totalLength, 0.02, 0.04);
+            const ledMat = new THREE.MeshStandardMaterial({
+                color: isOpen ? 0x00d2ff : 0x10b981,
+                emissive: isOpen ? 0x00d2ff : 0x059669,
+                emissiveIntensity: 0.85
+            });
+            const ledMesh = new THREE.Mesh(ledGeo, ledMat);
+            if (isZAxis) {
+                ledMesh.position.set(p.x, height - 0.145, p.z + totalLength / 2);
+            } else {
+                ledMesh.position.set(p.x + totalLength / 2, height - 0.145, p.z);
+            }
+            partGroup.add(ledMesh);
+
+            // 2. المجرى الأرضي التوجيهي (Floor Guide Track / Brass Threshold)
+            const floorGeo = isZAxis
+                ? new THREE.BoxGeometry(thickness + 0.06, 0.035, totalLength)
+                : new THREE.BoxGeometry(totalLength, 0.035, thickness + 0.06);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0xd97706,
+                metalness: 0.75,
+                roughness: 0.25,
+                emissive: isOpen ? 0x00d2ff : 0x78350f,
+                emissiveIntensity: isOpen ? 0.35 : 0.1
+            });
+            const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            if (isZAxis) {
+                floorMesh.position.set(p.x, 0.018, p.z + totalLength / 2);
+            } else {
+                floorMesh.position.set(p.x + totalLength / 2, 0.018, p.z);
+            }
+            floorMesh.userData = { type: 'partition', partitionId: pId };
+            partGroup.add(floorMesh);
+
+            // 3. عمود الجيب المعماري عند طرف الانزلاق (Wall Pocket Column)
+            const pocketW = isZAxis ? (thickness + 0.12) : 0.45;
+            const pocketD = isZAxis ? 0.45 : (thickness + 0.12);
+            const pocketGeo = new THREE.BoxGeometry(pocketW, height, pocketD);
+            const pocketMat = new THREE.MeshStandardMaterial({
+                color: 0x334155,
+                metalness: 0.45,
+                roughness: 0.35
+            });
+            const pocketMesh = new THREE.Mesh(pocketGeo, pocketMat);
+            if (isZAxis) {
+                pocketMesh.position.set(p.x, height / 2, p.z + 0.22);
+            } else {
+                pocketMesh.position.set(p.x + 0.22, height / 2, p.z);
+            }
+            pocketMesh.castShadow = true;
+            pocketMesh.userData = { type: 'partition', partitionId: pId };
+            partGroup.add(pocketMesh);
+
+            // عمود القفل المقابل (Receiver Strike Jamb)
+            const strikeMesh = new THREE.Mesh(pocketGeo, pocketMat);
+            if (isZAxis) {
+                strikeMesh.position.set(p.x, height / 2, p.z + totalLength - 0.22);
+            } else {
+                strikeMesh.position.set(p.x + totalLength - 0.22, height / 2, p.z);
+            }
+            strikeMesh.castShadow = true;
+            strikeMesh.userData = { type: 'partition', partitionId: pId };
+            partGroup.add(strikeMesh);
+
+            // 4. الألواح التلسكوبية المنزلقة (Sliding Telescopic Panels)
+            // 4 ألواح معمارية متتالية تنزلق وتتداخل عند الفتح في جيب التخزين
+            const numPanels = 4;
+            const usableLength = totalLength - 0.50;
+            const panelLen = usableLength / numPanels;
+            const panelH = height - 0.20;
+            const panelThick = thickness * 0.75;
+
+            const panels = [];
+            const panelMat = new THREE.MeshStandardMaterial({
+                color: isOpen ? 0x0284c7 : 0x059669,
+                roughness: 0.2,
+                metalness: 0.5,
+                transparent: true,
+                opacity: 0.90,
+                emissive: isOpen ? 0x0369a1 : 0x064e3b,
+                emissiveIntensity: 0.35
+            });
+
+            const glassMat = new THREE.MeshStandardMaterial({
+                color: isOpen ? 0x38bdf8 : 0x34d399,
+                roughness: 0.1,
+                metalness: 0.3,
+                transparent: true,
+                opacity: 0.65,
+                emissive: isOpen ? 0x0284c7 : 0x059669,
+                emissiveIntensity: 0.25
+            });
+
+            const handleMat = new THREE.MeshStandardMaterial({
+                color: 0xf8fafc,
+                metalness: 0.95,
+                roughness: 0.15
+            });
+
+            for (let i = 0; i < numPanels; i++) {
+                const panelGroup = new THREE.Group();
+                panelGroup.userData = {
+                    type: 'partition_panel',
+                    partitionId: pId,
+                    panelIndex: i
+                };
+
+                // إطار اللوح المعماري
+                const frameGeo = isZAxis
+                    ? new THREE.BoxGeometry(panelThick, panelH, panelLen * 0.97)
+                    : new THREE.BoxGeometry(panelLen * 0.97, panelH, panelThick);
+                const frameMesh = new THREE.Mesh(frameGeo, panelMat);
+                frameMesh.position.set(0, panelH / 2 + 0.04, 0);
+                frameMesh.castShadow = true;
+                frameMesh.userData = { type: 'partition_panel', partitionId: pId, panelIndex: i };
+                panelGroup.add(frameMesh);
+
+                // نافذة الزجاج الذكي العازل للصوت في وسط اللوح
+                const glassW = isZAxis ? (panelThick * 0.4) : (panelLen * 0.72);
+                const glassH = panelH * 0.76;
+                const glassD = isZAxis ? (panelLen * 0.72) : (panelThick * 0.4);
+                const glassGeo = new THREE.BoxGeometry(glassW, glassH, glassD);
+                const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+                glassMesh.position.set(0, panelH / 2 + 0.04, 0);
+                glassMesh.userData = { type: 'partition_panel', partitionId: pId, panelIndex: i };
+                panelGroup.add(glassMesh);
+
+                // مقبض رأسي لسحب اللوح
+                const handleGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.9, 12);
+                const handleMesh = new THREE.Mesh(handleGeo, handleMat);
+                if (isZAxis) {
+                    handleMesh.position.set(panelThick / 2 + 0.02, panelH / 2 + 0.04, 0);
+                } else {
+                    handleMesh.position.set(0, panelH / 2 + 0.04, panelThick / 2 + 0.02);
+                }
+                handleMesh.userData = { type: 'partition_panel', partitionId: pId, panelIndex: i };
+                panelGroup.add(handleMesh);
+
+                // حساب مواضع الإغلاق ومواضع الفتح (التخزين التلسكوبي في الجيب)
+                const closedOffset = 0.25 + (i + 0.5) * panelLen;
+                const openOffset = 0.28 + i * 0.09;
+
+                panels.push({
+                    group: panelGroup,
+                    frameMesh: frameMesh,
+                    glassMesh: glassMesh,
+                    closedOffset: closedOffset,
+                    openOffset: openOffset
+                });
+
+                const initOffset = isOpen ? openOffset : closedOffset;
+                if (isZAxis) {
+                    panelGroup.position.set(p.x, 0, p.z + initOffset);
+                } else {
+                    panelGroup.position.set(p.x + initOffset, 0, p.z);
+                }
+
+                partGroup.add(panelGroup);
+            }
+
+            this.buildingGroup.add(partGroup);
+
+            this.partitionMeshes[pId] = {
+                group: partGroup,
+                panels: panels,
+                ledMesh: ledMesh,
+                floorMesh: floorMesh,
+                panelMat: panelMat,
+                glassMat: glassMat,
+                isZAxis: isZAxis,
+                baseX: p.x,
+                baseZ: p.z,
+                totalLength: totalLength,
+                status: part.status || 'closed',
+                progress: isOpen ? 1.0 : 0.0,
+                targetProgress: isOpen ? 1.0 : 0.0,
+                partData: part
+            };
+
+            const defaultMidZ = isZAxis ? (p.z + totalLength / 2) : p.z;
+            const defaultMidX = isZAxis ? p.x : (p.x + totalLength / 2);
+            this.createPartitionBadge(pId, part, defaultMidX, defaultMidZ, isOpen);
         }
 
         // 3. بناء وتجسيم البلاطات المعمارية (Floor Slabs & Roof Slabs)
@@ -651,6 +856,11 @@ class Twin3DViewer {
 
         // 6. توسيط وضبط الكاميرا بدقة على منتصف الشبكة المحورية للشاشة (0, 0, 0) وتأطير المشهد
         this.frameBuildingInView(modelData);
+
+        // 7. تحديث لوحة التحكم بالقواطع المنزلقة التكيفية في واجهة المستخدم
+        if (window.app && typeof window.app.renderSlidingPartitionsControls === 'function') {
+            window.app.renderSlidingPartitionsControls();
+        }
     }
 
     createRoomBadge(id, space, x, z) {
@@ -693,7 +903,60 @@ class Twin3DViewer {
         this.labelSprites[id] = { sprite, canvas, ctx, texture, space };
     }
 
-    updateRoomBadge(id, currentOcc, maxCap) {
+    createPartitionBadge(pId, part, x, z, isOpen) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 96;
+        const ctx = canvas.getContext('2d');
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.set(x, 4.0, z);
+        sprite.scale.set(5.2, 1.6, 1);
+        sprite.userData = { type: 'partition', partitionId: pId };
+        sprite.visible = this.labelsVisible !== false;
+        this.buildingGroup.add(sprite);
+
+        this.partitionBadges[pId] = { sprite, canvas, ctx, texture, part };
+        this.updatePartitionBadge(pId, isOpen);
+    }
+
+    updatePartitionBadge(pId, isOpen) {
+        const badge = this.partitionBadges[pId];
+        if (!badge) return;
+
+        const { canvas, ctx, texture, part } = badge;
+        ctx.clearRect(0, 0, 300, 96);
+
+        ctx.fillStyle = isOpen ? 'rgba(8, 47, 73, 0.95)' : 'rgba(23, 23, 23, 0.92)';
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(8, 8, 284, 80, 10);
+        } else {
+            ctx.rect(8, 8, 284, 80);
+        }
+        ctx.fill();
+
+        ctx.strokeStyle = isOpen ? '#00d2ff' : '#10b981';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        ctx.fillStyle = isOpen ? '#38bdf8' : '#e2e8f0';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        const expCap = part.expansion_capacity || 18;
+        const text = isOpen ? `🚪 قاطع منزلق مفتوح 🔓 (+${expCap})` : `🚪 قاطع منزلق مغلق 🔒`;
+        ctx.fillText(text, 150, 42);
+
+        ctx.fillStyle = isOpen ? '#a7f3d0' : '#94a3b8';
+        ctx.font = '13px sans-serif';
+        const subText = isOpen ? `انقر للإغلاق وعزل الفضاءات` : `انقر للفتح والانزلاق التلسكوبي`;
+        ctx.fillText(subText, 150, 70);
+
+        texture.needsUpdate = true;
+    }
+
+    updateRoomBadge(id, currentOcc, maxCap, layoutMode) {
         const badge = this.labelSprites[id];
         if (!badge) return;
 
@@ -714,14 +977,51 @@ class Twin3DViewer {
         else if (ratio < 0.25) strokeColor = '#3498db';
         else strokeColor = '#2ecc71';
 
+        let title = space.name_ar;
+        if (layoutMode === 'functional_swap') {
+            // Case Study 1: المبنى الإداري
+            if (id === 'waiting_hall') {
+                title = 'صالة المراجعين (قرب المدخل) 🔄';
+                strokeColor = '#10b981';
+            } else if (id === 'multi_hall_b') {
+                title = 'مكاتب وأبحاث هادئة (داخلي) 🔄';
+                strokeColor = '#a855f7';
+            } else if (id === 'multi_hall_a') {
+                title = 'قاعة التدريب المشتركة 🔄';
+                strokeColor = '#10b981';
+            }
+            // Case Study 2: مجمع الرعاية الصحية
+            else if (id === 'waiting_patients') {
+                title = 'صالة المرضى (موقع أمثل) 🔄';
+                strokeColor = '#10b981';
+            } else if (id === 'clinic_suites') {
+                title = 'عيادات استشارية هادئة (داخلي) 🔄';
+                strokeColor = '#a855f7';
+            } else if (id === 'overflow_clinic') {
+                title = 'ردهة الفحص السريع (موسعة) 🔄';
+                strokeColor = '#10b981';
+            }
+            // Case Study 3: دائرة الأحوال المدنية
+            else if (id === 'citizen_grand_hall') {
+                title = 'صالة المراجعين الكبرى (مباشرة للمدخل) 🔄';
+                strokeColor = '#10b981';
+            } else if (id === 'counters_workzone') {
+                title = 'كاونترات المعاملات (قرب الردهة) 🔄';
+                strokeColor = '#10b981';
+            } else if (id === 'archive_server') {
+                title = 'الأرشيف والسجلات (داخلي آمن) 🔄';
+                strokeColor = '#a855f7';
+            }
+        }
+
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 4;
         ctx.stroke();
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 20px sans-serif';
+        ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(space.name_ar, 128, 44);
+        ctx.fillText(title, 128, 44);
 
         ctx.fillStyle = strokeColor;
         ctx.font = 'bold 24px sans-serif';
@@ -1657,11 +1957,128 @@ class Twin3DViewer {
         }
     }
 
+    setPartitionStates(partitions) {
+        if (!partitions) return;
+        for (const [pId, partData] of Object.entries(partitions)) {
+            const pObj = this.partitionMeshes[pId];
+            if (pObj) {
+                const isOpen = (partData.status === 'open');
+                pObj.status = partData.status;
+                pObj.targetProgress = isOpen ? 1.0 : 0.0;
+                if (pObj.panelMat) {
+                    pObj.panelMat.color.setHex(isOpen ? 0x0284c7 : 0x059669);
+                    pObj.panelMat.emissive.setHex(isOpen ? 0x0369a1 : 0x064e3b);
+                }
+                if (pObj.glassMat) {
+                    pObj.glassMat.color.setHex(isOpen ? 0x38bdf8 : 0x34d399);
+                    pObj.glassMat.emissive.setHex(isOpen ? 0x0284c7 : 0x059669);
+                }
+                if (pObj.ledMesh) {
+                    pObj.ledMesh.material.color.setHex(isOpen ? 0x00d2ff : 0x10b981);
+                    pObj.ledMesh.material.emissive.setHex(isOpen ? 0x00d2ff : 0x059669);
+                }
+                if (pObj.floorMesh) {
+                    pObj.floorMesh.material.emissive.setHex(isOpen ? 0x00d2ff : 0x78350f);
+                }
+                if (pObj.mesh && pObj.mesh.material) {
+                    pObj.targetZ = isOpen ? pObj.openZ : pObj.defaultZ;
+                    pObj.targetScaleZ = isOpen ? 0.12 : 1.0;
+                    pObj.mesh.material.color.setHex(isOpen ? 0x00d2ff : 0x10b981);
+                    pObj.mesh.material.emissive.setHex(isOpen ? 0x0891b2 : 0x064e3b);
+                }
+                this.updatePartitionBadge(pId, isOpen);
+            }
+        }
+    }
+
+    togglePartition(pId, autoFocus = true) {
+        const pObj = this.partitionMeshes[pId];
+        if (!pObj) return;
+        const newStatus = (pObj.status === 'open') ? 'closed' : 'open';
+        pObj.status = newStatus;
+        pObj.targetProgress = (newStatus === 'open') ? 1.0 : 0.0;
+        if (this.buildingData?.partitions?.[pId]) {
+            this.buildingData.partitions[pId].status = newStatus;
+        }
+        if (pObj.panelMat) {
+            pObj.panelMat.color.setHex(newStatus === 'open' ? 0x0284c7 : 0x059669);
+            pObj.panelMat.emissive.setHex(newStatus === 'open' ? 0x0369a1 : 0x064e3b);
+        }
+        if (pObj.glassMat) {
+            pObj.glassMat.color.setHex(newStatus === 'open' ? 0x38bdf8 : 0x34d399);
+            pObj.glassMat.emissive.setHex(newStatus === 'open' ? 0x0284c7 : 0x059669);
+        }
+        if (pObj.ledMesh) {
+            pObj.ledMesh.material.color.setHex(newStatus === 'open' ? 0x00d2ff : 0x10b981);
+            pObj.ledMesh.material.emissive.setHex(newStatus === 'open' ? 0x00d2ff : 0x059669);
+        }
+        if (pObj.floorMesh) {
+            pObj.floorMesh.material.emissive.setHex(newStatus === 'open' ? 0x00d2ff : 0x78350f);
+        }
+        this.updatePartitionBadge(pId, newStatus === 'open');
+
+        // تركيز الكاميرا سينمائياً تلقائياً ليرى المستخدم حركة الانزلاق فورياً بوضوح تام
+        if (autoFocus) {
+            this.focusPartition(pId, true);
+        }
+
+        // تحديث مسارات التدفق الحركي
+        if (this.circulationRoutes) {
+            for (const route of this.circulationRoutes) {
+                if (route.partitionId === pId) {
+                    route.active = (newStatus === 'open');
+                }
+            }
+        }
+
+        // إشعار التطبيق الخارجي لمزامنة الواجهة وتحديث السعات
+        if (window.app && typeof window.app.onPartitionToggled === 'function') {
+            window.app.onPartitionToggled(pId, newStatus);
+        }
+    }
+
+    focusPartition(pId, smooth = true) {
+        const pObj = this.partitionMeshes[pId];
+        if (!pObj) return;
+        const isZ = pObj.isZAxis;
+        const targetX = isZ ? pObj.baseX : pObj.baseX + pObj.totalLength / 2;
+        const targetZ = isZ ? pObj.baseZ + pObj.totalLength / 2 : pObj.baseZ;
+        const targetY = 1.6;
+
+        const dist = Math.max(9.5, (pObj.totalLength || 8.0) * 1.35);
+        // تموضع كاميرا دراماتيكي معماري من زاوية مائلة تظهر كلا الغرفتين ومسار الانزلاق
+        const newCamPos = isZ
+            ? new THREE.Vector3(targetX + dist * 0.82, targetY + dist * 0.68, targetZ + dist * 0.65)
+            : new THREE.Vector3(targetX + dist * 0.65, targetY + dist * 0.68, targetZ + dist * 0.82);
+
+        const targetLookAt = new THREE.Vector3(targetX, targetY, targetZ);
+
+        if (!smooth) {
+            this.camera.position.copy(newCamPos);
+            if (this.controls) {
+                this.controls.target.copy(targetLookAt);
+                this.controls.update();
+            }
+            return;
+        }
+
+        // طيران كاميرا سينمائي سلس فائق النعومة (Cinematic Smooth Flight)
+        this.cameraTween = {
+            startPos: this.camera.position.clone(),
+            endPos: newCamPos,
+            startTarget: this.controls ? this.controls.target.clone() : new THREE.Vector3(0, 0, 0),
+            endTarget: targetLookAt,
+            progress: 0,
+            duration: 0.95
+        };
+    }
+
     updateRealtimeState(state) {
         if (!state) return;
         const readings = state.sensor_readings || {};
         const partitions = state.partitions || {};
         const flows = state.corridor_flows || {};
+        const layoutMode = state.layout_mode || (state.evaluation?.layout_mode) || 'baseline';
         this.corridorFlowState = flows;
 
         // 1. تحديث الألوان الحرارية والشارات للغرف
@@ -1669,24 +2086,25 @@ class Twin3DViewer {
             const mesh = this.roomMeshes[id];
             const space = this.buildingData?.spaces?.[id];
             if (mesh && space) {
-                const effectiveCap = (id === 'waiting_hall' && partitions['p_waiting_multi']?.status === 'open')
-                    ? space.capacity + 18
-                    : space.capacity;
+                let effectiveCap = space.capacity;
+                for (const [pId, part] of Object.entries(this.buildingData?.partitions || {})) {
+                    if (part.between && part.between.includes(id)) {
+                        const pStatus = partitions[pId]?.status || part.status;
+                        if (pStatus === 'open') {
+                            effectiveCap += (part.expansion_capacity || 18);
+                            break;
+                        }
+                    }
+                }
                 const ratio = count / Math.max(1, effectiveCap);
                 mesh.material.color.set(this.getOccupancyColor(ratio));
-                this.updateRoomBadge(id, count, effectiveCap);
+                mesh.material.opacity = (ratio > 1.0) ? 0.78 : (this.blueprintMesh ? this.spacesOpacity : 0.60);
+                this.updateRoomBadge(id, count, effectiveCap, layoutMode);
             }
         }
 
-        // 2. تحديث حركة القواطع المرنة (انزلاق تدريجي)
-        for (const [pId, partData] of Object.entries(partitions)) {
-            const pObj = this.partitionMeshes[pId];
-            if (pObj) {
-                const targetZ = partData.status === 'open' ? pObj.openZ : pObj.defaultZ;
-                pObj.mesh.position.z += (targetZ - pObj.mesh.position.z) * 0.1;
-                pObj.mesh.material.color.set(partData.status === 'open' ? 0x00d2ff : 0x2ecc71);
-            }
-        }
+        // 2. تحديث حركة وشارات القواطع المرنة
+        this.setPartitionStates(partitions);
 
         // 3. تحديث مسارات التدفق الحركي التكيفية استناداً إلى حالة القواطع والازدحام وسلامة الأبواب
         if (this.circulationRoutes && this.circulationRoutes.length > 0) {
@@ -2060,6 +2478,64 @@ class Twin3DViewer {
         requestAnimationFrame(() => this.animate());
 
         const delta = Math.min(this.clock.getDelta(), 0.08);
+
+        // 0. معالجة الطيران الانسيابي السلس للكاميرا (Smooth Cinematic Camera Flight)
+        if (this.cameraTween) {
+            this.cameraTween.progress += delta / this.cameraTween.duration;
+            const t = Math.min(1.0, this.cameraTween.progress);
+            // Ease-out cubic: 1 - (1 - t)^3
+            const ease = 1 - Math.pow(1 - t, 3);
+            this.camera.position.lerpVectors(this.cameraTween.startPos, this.cameraTween.endPos, ease);
+            if (this.controls) {
+                this.controls.target.lerpVectors(this.cameraTween.startTarget, this.cameraTween.endTarget, ease);
+                this.controls.update();
+            }
+            if (t >= 1.0) {
+                this.cameraTween = null;
+            }
+        }
+
+        // تحريك القواطع المنزلقة التكيفية بتلسكوبية فيزيائية وسلاسة 60 إطاراً في الثانية
+        for (const [pId, pObj] of Object.entries(this.partitionMeshes || {})) {
+            if (pObj && pObj.panels) {
+                const target = pObj.targetProgress !== undefined ? pObj.targetProgress : (pObj.status === 'open' ? 1.0 : 0.0);
+                if (Math.abs(pObj.progress - target) > 0.0005) {
+                    pObj.progress += (target - pObj.progress) * 0.12;
+
+                    // تحديث مواضع الألواح المتداخلة المنزلقة
+                    for (const panel of pObj.panels) {
+                        const curOffset = panel.closedOffset * (1.0 - pObj.progress) + panel.openOffset * pObj.progress;
+                        if (pObj.isZAxis) {
+                            panel.group.position.z = pObj.baseZ + curOffset;
+                        } else {
+                            panel.group.position.x = pObj.baseX + curOffset;
+                        }
+                    }
+
+                    // تحديث حي فوري لنسب وأشرطة التقدم في الواجهة والـ Dock
+                    const progPct = Math.round(pObj.progress * 100);
+                    const progBarEl = document.getElementById(`partition-progress-bar-${pId}`);
+                    if (progBarEl) progBarEl.style.width = `${progPct}%`;
+                    const progTxtEl = document.getElementById(`partition-progress-text-${pId}`);
+                    if (progTxtEl) {
+                        progTxtEl.textContent = `${progPct}% ${pObj.status === 'open' ? 'مفتوح' : 'مغلق'}`;
+                    }
+                    const dockProgEl = document.getElementById('vp-dock-progress-fill');
+                    if (dockProgEl) dockProgEl.style.width = `${progPct}%`;
+                    const dockBadgeEl = document.getElementById('vp-dock-status-badge');
+                    if (dockBadgeEl) {
+                        dockBadgeEl.textContent = pObj.status === 'open' ? `${progPct}% مفتوح` : `${100 - progPct}% مغلق`;
+                        if (progPct > 50) dockBadgeEl.classList.add('open');
+                        else dockBadgeEl.classList.remove('open');
+                    }
+                }
+            } else if (pObj && pObj.mesh) {
+                const targetZ = pObj.targetZ !== undefined ? pObj.targetZ : pObj.defaultZ;
+                const targetScaleZ = pObj.targetScaleZ !== undefined ? pObj.targetScaleZ : 1.0;
+                pObj.mesh.position.z += (targetZ - pObj.mesh.position.z) * 0.15;
+                pObj.mesh.scale.z += (targetScaleZ - pObj.mesh.scale.z) * 0.15;
+            }
+        }
 
         // تحريك وتحديث جسيمات التدفق الحركي المعماري عبر شبكة المسارات
         if (this.particleSystem && this.particleAgents && this.particleAgents.length > 0 && this.circulationRoutes.length > 0) {
@@ -3283,6 +3759,40 @@ class Twin3DViewer {
         const totalWallCount = Object.keys(walls).length;
         const isHugeModel = (totalWallCount > 250);
 
+        // التحقق الهندسي الدقيق من عدم رسم جدار مصمت فوق مسار القاطع المرن المنزلق
+        const activePartitions = this.buildingData?.partitions || {};
+        const isWallOnPartition = (w) => {
+            if (!w || !w.start || !w.end) return false;
+            const wx1 = w.start[0], wz1 = w.start[1];
+            const wx2 = w.end[0], wz2 = w.end[1];
+            const wMinX = Math.min(wx1, wx2), wMaxX = Math.max(wx1, wx2);
+            const wMinZ = Math.min(wz1, wz2), wMaxZ = Math.max(wz1, wz2);
+
+            for (const part of Object.values(activePartitions)) {
+                if (!part.position) continue;
+                const p = part.position;
+                const isZ = (p.depth >= p.width);
+                const pLen = isZ ? p.depth : p.width;
+                const pMinX = isZ ? (p.x - 0.45) : p.x;
+                const pMaxX = isZ ? (p.x + 0.45) : (p.x + pLen);
+                const pMinZ = isZ ? p.z : (p.z - 0.45);
+                const pMaxZ = isZ ? (p.z + pLen) : (p.z + 0.45);
+
+                if (isZ) {
+                    if (Math.abs(wx1 - p.x) < 0.45 && Math.abs(wx2 - p.x) < 0.45) {
+                        const overlap = Math.max(0, Math.min(wMaxZ, pMaxZ) - Math.max(wMinZ, pMinZ));
+                        if (overlap > 1.5) return true;
+                    }
+                } else {
+                    if (Math.abs(wz1 - p.z) < 0.45 && Math.abs(wz2 - p.z) < 0.45) {
+                        const overlap = Math.max(0, Math.min(wMaxX, pMaxX) - Math.max(wMinX, pMinX));
+                        if (overlap > 1.5) return true;
+                    }
+                }
+            }
+            return false;
+        };
+
         // تعطيل الظلال الثقيلة للموديلات المعمارية الضخمة لضمان تدوير وتحريك فائق السلاسة (60 FPS)
         if (isHugeModel && this.renderer) {
             this.renderer.shadowMap.enabled = false;
@@ -3293,7 +3803,7 @@ class Twin3DViewer {
             // دمج جدران كل طابق في مجسم BufferGeometry واحد لتقليص أوامر الرسم والـ Draw Calls بنسبة 99.9%
             const storeyWallBoxes = {};
             for (const [wId, wall] of Object.entries(walls)) {
-                if (!wall.start || !wall.end) continue;
+                if (!wall.start || !wall.end || isWallOnPartition(wall)) continue;
                 const stId = wall.storey_id || 'st_g';
                 if (!storeyWallBoxes[stId]) storeyWallBoxes[stId] = [];
 
@@ -3351,6 +3861,10 @@ class Twin3DViewer {
         }
 
         for (const [wId, wall] of Object.entries(walls)) {
+            if (isWallOnPartition(wall)) {
+                // تخطي رسم الجدار المصمت لوجود قاطع مرن منزلق مكانه
+                continue;
+            }
             const x1 = wall.start[0], z1 = wall.start[1];
             const x2 = wall.end[0], z2 = wall.end[1];
             const dx = x2 - x1, dz = z2 - z1;
@@ -4328,6 +4842,22 @@ class Twin3DViewer {
             this.raycaster.setFromCamera(this.mouse, this.camera);
             const intersects = this.raycaster.intersectObjects(this.buildingGroup.children, true);
 
+            // 1. فحص النقر المباشر على القواطع المنزلقة أو شاراتها التفاعلية
+            for (const hit of intersects) {
+                if (hit.object && hit.object.userData && (hit.object.userData.type === 'partition' || hit.object.userData.type === 'partition_panel') && hit.object.userData.partitionId) {
+                    this.togglePartition(hit.object.userData.partitionId);
+                    return;
+                }
+                let c = hit.object;
+                while (c && c !== this.buildingGroup) {
+                    if (c.userData && (c.userData.type === 'partition' || c.userData.type === 'partition_panel') && c.userData.partitionId) {
+                        this.togglePartition(c.userData.partitionId);
+                        return;
+                    }
+                    c = c.parent;
+                }
+            }
+
             let selectedHit = null;
             for (const hit of intersects) {
                 if (hit.object.isLine || hit.object.isSprite || hit.object === this.blueprintMesh) continue;
@@ -4368,6 +4898,35 @@ class Twin3DViewer {
                 this.selectElement(selectedHit);
             } else {
                 this.clearSelection();
+            }
+        });
+
+        this.renderer.domElement.addEventListener('pointermove', (e) => {
+            const rect = this.renderer.domElement.getBoundingClientRect();
+            this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            const hits = this.raycaster.intersectObjects(this.buildingGroup.children, true);
+            let isHoveringPartition = false;
+            for (const hit of hits) {
+                if (hit.object && hit.object.userData && (hit.object.userData.type === 'partition' || hit.object.userData.type === 'partition_panel')) {
+                    isHoveringPartition = true;
+                    break;
+                }
+                let c = hit.object;
+                while (c && c !== this.buildingGroup) {
+                    if (c.userData && (c.userData.type === 'partition' || c.userData.type === 'partition_panel')) {
+                        isHoveringPartition = true;
+                        break;
+                    }
+                    c = c.parent;
+                }
+                if (isHoveringPartition) break;
+            }
+            if (isHoveringPartition) {
+                this.renderer.domElement.style.cursor = 'pointer';
+            } else if (this.renderer.domElement.style.cursor === 'pointer') {
+                this.renderer.domElement.style.cursor = 'default';
             }
         });
     }

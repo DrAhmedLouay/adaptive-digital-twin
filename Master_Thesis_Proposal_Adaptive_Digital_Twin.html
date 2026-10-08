@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مقترح رسالة ماجستير في علوم هندسة العمارة | التوأم الرقمي المتكيف</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap');
+
+        @page {
+            size: A4;
+            margin: 20mm 15mm 20mm 15mm;
+            @top-right {
+                content: "الجامعة التكنولوجية – قسم هندسة العمارة";
+                font-family: 'Cairo', sans-serif;
+                font-size: 8pt;
+                color: #94a3b8;
+            }
+            @bottom-center {
+                content: "صفحة " counter(page);
+                font-family: 'Cairo', sans-serif;
+                font-size: 8.5pt;
+                color: #64748b;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.7;
+            color: #1e293b;
+            background: #ffffff;
+            direction: rtl;
+            text-align: right;
+        }
+
+        .header-banner {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-right: 6px solid #0284c7;
+            border-radius: 10px;
+            padding: 22px 25px;
+            color: #ffffff;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            page-break-inside: avoid;
+        }
+
+        .header-banner .univ-name {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #38bdf8;
+            margin-bottom: 4px;
+        }
+
+        .header-banner h1 {
+            font-size: 17pt;
+            font-weight: 900;
+            color: #ffffff;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .header-banner .sub-track {
+            font-size: 9.5pt;
+            color: #cbd5e1;
+        }
+
+        .section-title {
+            font-size: 13pt;
+            font-weight: 800;
+            color: #0284c7;
+            margin: 22px 0 10px 0;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #e2e8f0;
+            page-break-after: avoid;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        p {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        .quote-box {
+            background: #fff1f2;
+            border-right: 4px solid #e11d48;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin: 14px 0;
+            color: #9f1239;
+            font-size: 10pt;
+            line-height: 1.6;
+            page-break-inside: avoid;
+        }
+        .quote-box strong {
+            color: #e11d48;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .info-table, .chapter-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 9.5pt;
+            page-break-inside: avoid;
+        }
+
+        .info-table td, .chapter-table td, .chapter-table th {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            vertical-align: top;
+        }
+
+        .info-table td.label-col {
+            background: #f1f5f9;
+            font-weight: 700;
+            width: 28%;
+            color: #0f172a;
+        }
+
+        .info-table td.val-col {
+            background: #ffffff;
+            color: #1e293b;
+        }
+
+        .chapter-table th {
+            background: #0f172a;
+            color: #ffffff;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .chapter-table td.ch-num {
+            background: #f8fafc;
+            color: #0284c7;
+            font-weight: 700;
+            text-align: center;
+            width: 22%;
+        }
+
+        .chapter-block {
+            margin-bottom: 12px;
+            page-break-inside: avoid;
+        }
+
+        .chapter-block h4 {
+            font-size: 11pt;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 4px;
+            background: #f8fafc;
+            padding: 4px 8px;
+            border-right: 3px solid #0284c7;
+            border-radius: 4px;
+        }
+
+        .chapter-block ul {
+            list-style: none;
+            padding-right: 12px;
+        }
+
+        .chapter-block ul li {
+            position: relative;
+            margin-bottom: 4px;
+            font-size: 9.5pt;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .chapter-block ul li::before {
+            content: "•";
+            color: #0284c7;
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-right: -1em;
+        }
+
+        .bullet-list {
+            margin-right: 18px;
+            margin-bottom: 10px;
+        }
+
+        .bullet-list li {
+            margin-bottom: 6px;
+        }
+
+        .highlight-badge {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 9pt;
+        }
+
+        .math-code {
+            direction: ltr;
+            display: inline-block;
+            font-family: 'Fira Code', monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #0f766e;
+            font-weight: 600;
+            font-size: 9.5pt;
+        }
+
+        .impact-card {
+            background: #fffbeb;
+            border-right: 4px solid #f59e0b;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            font-size: 9.5pt;
+            page-break-inside: avoid;
+        }
+        .impact-card strong {
+            color: #b45309;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-banner">
+        <div class="univ-name">الجامعة التكنولوجية – قسم هندسة العمارة</div>
+        <h1>مقترح رسالة ماجستير في علوم هندسة العمارة 🏛️📋</h1>
+        <div class="sub-track">التخصص الدقيق: تصميم معماري / العمارة الرقمية والذكية وتكنولوجيا البناء (Smart & Computational Architecture)</div>
+    </div>
+
+    <!-- بطاقة المعلومات -->
+    <div class="section-title">📑 بطاقة المعلومات التمهيدية للمقترح</div>
+    <table class="info-table">
+        <tr>
+            <td class="label-col">العنوان باللغة العربية:</td>
+            <td class="val-col"><strong>«التوأم الرقمي المتكيف لإعادة التشكيل الحركي والمكاني في الأبنية الإدارية: نمذجة تفاعلية قائمة على بيانات الإشغال اللحظية»</strong></td>
+        </tr>
+        <tr>
+            <td class="label-col">العنوان باللغة الإنجليزية:</td>
+            <td class="val-col" style="direction: ltr; text-align: left;"><strong>“Adaptive Digital Twin for Kinetic and Spatial Reconfiguration in Office Buildings: An Interactive Modelling Approach Based on Real-Time Occupancy Data”</strong></td>
+        </tr>
+        <tr>
+            <td class="label-col">الجهة الأكاديمية المانحة:</td>
+            <td class="val-col">الجامعة التكنولوجية – قسم هندسة العمارة (العراق – بغداد)</td>
+        </tr>
+        <tr>
+            <td class="label-col">المجال المعرفي والتطبيقي:</td>
+            <td class="val-col">العمارة السيبرانية-الفيزيائية المتكيفة • نمذجة معلومات البناء (BIM/IFC) • إنترنت الأشياء (IoT) • النحو الفضائي (Space Syntax)</td>
+        </tr>
+    </table>
+
+    <!-- 1. فكرة الرسالة -->
+    <div class="section-title">1. فكرة الرسالة وفلسفتها المعمارية (Research Concept)</div>
+    <p>تطرح الرسالة رؤية معمارية رائدة تتجاوز مفهوم <span class="highlight-badge" style="background:#ffe4e6; color:#be123c;">العمارة الساكنة (Static Architecture)</span> التي يُصمم فيها المبنى ككتلة جامدة ذات جدران وفضاءات ثابتة الحدود، نحو <span class="highlight-badge" style="background:#ccfbf1; color:#0f766e;">العمارة السيبرانية-الفيزيائية المتكيفة (Adaptive Cyber-Physical Architecture)</span> من خلال بناء توأم رقمي (Digital Twin) متصل بنظام الفضاء المعماري الحقيقي.</p>
+    <p><strong>تقوم الفكرة على إنشاء حلقة تفاعلية مغلقة (Closed-Loop System) ثلاثية المراحل:</strong></p>
+    <ul class="bullet-list">
+        <li><strong>الرصد والاستشعار (Sensing):</strong> التقاط وتحليل تدفقات حركة وإشغال المستخدمين اللحظية (موظفين ومراجعين) عبر حساسات إنترنت الأشياء (IoT) ومحاكاة الوكلاء (Agent-Based Simulation).</li>
+        <li><strong>التحليل الرقمي واتخاذ القرار (Decision Engine):</strong> معالجة الاختناقات والكثافات الحرجة وحساب معدلات الانتفاع والزمكان لحظياً استناداً إلى دالة خفض إجهاد الحركة التراكمي.</li>
+        <li><strong>التكيف المادي الفعلي (Physical Kinetic Reconfiguration):</strong> تحفيز عناصر معمارية حركية (قواطع جدارية منزلقة عازلة للصوت، مسارات حركة التفافية بديلة، وتوسيع/تقليص سعة القاعات) لإعادة تشكيل الفضاء وتغيير طوبولوجيته في ثوانٍ معدودة استجابةً لحاجة الشاغلين، ثم استعادة التشكيل مجدداً عند انتهاء الذروة.</li>
+    </ul>
+
+    <!-- 2. مشكلة البحث -->
+    <div class="section-title">2. مشكلة البحث (The Research Problem)</div>
+    <div class="quote-box">
+        <strong>الصياغة المركزية للمشكلة المعمارية:</strong>
+        «القصور الوظيفي والتشغيلي الناجم عن الجمود الفضائي للأبنية الإدارية في مواجهة التذبذب الزماني-المكاني لإشغال المستخدمين؛ حيث تفشل برامج التصميم المعماري الإستاتيكية السابقة في استيعاب التزاحم الحرج في فضاءات الحركة والانتظار المشتركة خلال ساعات الذروة، بالتزامن مع هدر فراغي وطاقي في فضاءات العمل والتدريب المجاورة غير المستغلة، في ظل غياب منظومة توأم رقمي تكيفية قادرة على إعادة التشكيل الحركي والمكاني المؤتمت في الزمن الحقيقي».
+    </div>
+    <p><strong>الأبعاد التفصيلية للمشكلة:</strong></p>
+    <ul class="bullet-list">
+        <li><strong>1. فجوة البرمجة المعمارية (Programming Gap):</strong> يتم تصميم المباني الإدارية وفق معايير مساحية إحصائية مفترضة وثابتة (Standard Norms)، بينما يثبت الواقع الإشغالي الميداني وجود طفرات كثافة وتزاحم عشوائي غير متوقع للمراجعين يتجاوز الطاقة الاستيعابية بمرات عديدة.</li>
+        <li><strong>2. الجمود المكاني والهدر الفضائي المزدوج (Dual Inefficiency):</strong> في نفس اللحظة التي تختنق فيها ردهة الاستقبال والممرات وصالات الانتظار بنسب تزاحم مفرطة، تكون قاعات الاجتماعات أو التدريب المجاورة شاغرة ومغلقة بسبب الجدران المصمتة الفاصلة.</li>
+        <li><strong>3. العجز عن التدخل اللحظي (Lagged Response):</strong> تقتصر الحلول التقليدية على توسيع المبنى أفقياً أو بناء ملحقات باهظة التكلفة، أو وضع حلول تنظيمية متأخرة لا تستجيب للزمن الحقيقي.</li>
+    </ul>
+
+    <!-- 3. أهداف البحث -->
+    <div class="section-title">3. أهداف البحث (Research Objectives)</div>
+    <p><strong>الهدف الرئيس (Main Objective):</strong> تطوير واختبار نموذج معماري لـ توأم رقمي متكيف (Adaptive Digital Twin) قادر على رصد ديناميكيات الإشغال والحركة في الأبنية الإدارية، وتوليد قرارات إعادة التشكيل المكاني والحركي المؤتمت (Kinetic Spatial Reconfiguration) لتحقيق التوازن بين الكثافة الاجتماعية وسعة الحيز الفيزيائي في الزمن الحقيقي.</p>
+    <p><strong>الأهداف الثانوية والتفصيلية:</strong></p>
+    <ul class="bullet-list">
+        <li><strong>تأصيل الإطار النظري:</strong> بناء قاعدة معرفية تدمج بين نظريات السلوك الاجتماعي-الحيزي (Socio-Spatial Behavior)، ونحو الفضاء (Space Syntax)، وتقنيات التوأم الرقمي (Digital Twin)، والعمارة الحركية (Kinetic Architecture).</li>
+        <li><strong>حوسبة مؤشرات الإشغال والحركة:</strong> تحويل المفاهيم المعمارية والاجتماعية (الكثافة، التزاحم، مضاعف الزمكان STM، قابلية المشي، انسيابية التدفق) إلى خوارزميات ومعادلات برمجية قابلة للقياس الرقمي اللحظي.</li>
+        <li><strong>تطوير المحرك التوليدي للتكيف (Reconfiguration Engine):</strong> صياغة قواعد برمجية (Rule-based Decision System) تقرر متى وكيف تتحرك القواطع المرنة وتُفتح الممرات البديلة بناءً على تخطي عتبات التكدس الحرجة.</li>
+        <li><strong>التكامل مع نماذج الـ BIM:</strong> تمكين المنظومة من قراءة ومعالجة نماذج البناء ثلاثية الأبعاد المصدرة بصيغ عالمية مفتوحة (IFC / OpenBIM) ومساقط الـ PDF الهندسية عبر الويب.</li>
+        <li><strong>التحقق التجريبي والمقارنة (Validation):</strong> تطبيق المنظومة على دراسات حالة لأبنية إدارية محلية وإجراء مقارنة علمية دقيقة (Before vs. After) لإثبات جدوى وكفاءة الحلول التكيفية.</li>
+    </ul>
+
+    <!-- 4. فرضيات البحث -->
+    <div class="section-title">4. فرضيات البحث (Research Hypotheses)</div>
+    <ul class="bullet-list">
+        <li><strong>الفرضية الأولى:</strong> «يؤدي توظيف التوأم الرقمي المعتمد على بيانات الإشغال اللحظية إلى خفض معدلات التزاحم وزمن الانتظار في الفضاءات المشتركة بنسبة لا تقل عن 35% مقارنة بالتصميم الإستاتيكي الثابت».</li>
+        <li><strong>الفرضية الثانية:</strong> «إن إعادة التشكيل المكاني عبر القواطع الحركية المرنة ترفع من مؤشر كفاءة الانتفاع الفضائي ومضاعف الزمكان (STM) للفضاءات نادرة الاستخدام لتصل إلى المعدل المتوازن (<span class="math-code">STM ≈ 1.0</span>) دون الحاجة لزيادة المساحة البنائية الكلية للمبنى».</li>
+        <li><strong>الفرضية الثالثة:</strong> «تفعيل مسارات الحركة الالتفافية التكيفية في المنظور ثلاثي الأبعاد يمنع تشكل نقاط الاختناق الحرجة (Bottlenecks) ويحافظ على انسيابية تدفق المشاة عند مستوى الخدمة المريح».</li>
+    </ul>
+
+    <!-- 5. هيكلية فصول الرسالة -->
+    <div class="section-title">5. هيكلية فصول الرسالة (Thesis Structure & Outline)</div>
+    <table class="chapter-table">
+        <tr>
+            <th>الفصل</th>
+            <th>عنوان وموضوع الفصل</th>
+        </tr>
+        <tr>
+            <td class="ch-num">الفصل الأول</td>
+            <td>الخلفية المفاهيمية: التوأم الرقمي والعمارة الاستجابية الحركية</td>
+        </tr>
+        <tr>
+            <td class="ch-num">الفصل الثاني</td>
+            <td>الإطار النظري: الأبعاد السلوكية-الحيزية وآليات إعادة التشكيل المكاني</td>
+        </tr>
+        <tr>
+            <td class="ch-num">الفصل الثالث</td>
+            <td>الإطار المنهجي: بناء وهندسة منظومة التوأم الرقمي التكيفية</td>
+        </tr>
+        <tr>
+            <td class="ch-num">الفصل الرابع</td>
+            <td>الدراسة التطبيقية والعملية: المحاكاة، الاختبار، ومقارنة السيناريوهات</td>
+        </tr>
+        <tr>
+            <td class="ch-num">الفصل الخامس</td>
+            <td>مناقشة النتائج، الاستنتاجات العامة، والتوصيات التطبيقية</td>
+        </tr>
+    </table>
+
+    <!-- تفصيل الفصول -->
+    <div class="chapter-block">
+        <h4>📖 الفصل الأول: مدخل تعريفي ومفاهيمي (العمارة الاستجابية وتقنيات التوأم الرقمي)</h4>
+        <ul>
+            <li>1-1 تمهيد ومشكلة البحث وأهدافه.</li>
+            <li>1-2 التحول من العمارة الثابتة إلى العمارة الاستجابية: نشأة وتطور العمارة التفاعلية والحركية، وأنماط الحركة المعمارية (الانزلاق، الطي، والدوران).</li>
+            <li>1-3 ماهية التوأم الرقمي في البيئة المبنية: الفرق بين 3D CAD و BIM والتوأم الرقمي الحي، والبنية التحتية للأنظمة السيبرانية-الفيزيائية (CPS).</li>
+            <li>1-4 إنترنت الأشياء (IoT) والاستشعار الإشغالي والبيئي: حساسات PIR، عدادات الأبواب، وكاميرات الرؤية الحاسوبية، وحساسات CO2.</li>
+            <li>1-5 مراجعة الدراسات السابقة وتحديد الفجوة المعرفية.</li>
+            <li>1-6 خلاصة الفصل الأول.</li>
+        </ul>
+    </div>
+
+    <div class="chapter-block">
+        <h4>📖 الفصل الثاني: الإطار النظري (الأبعاد الاجتماعية-الحيزية ونظريات إعادة التشكيل المكاني)</h4>
+        <ul>
+            <li>2-1 تمهيد.</li>
+            <li>2-2 السلوك الاجتماعي-الحيزي في بيئات العمل الإدارية: نظرية التقارب والمجال الشخصي (Edward T. Hall)، والتشكيل الحيزي للجماعات (F-Formations).</li>
+            <li>2-3 ديناميكيات الكثافة والتزاحم: الكثافة الحيزية مقابل الاجتماعية، ونظريات علم النفس الإيكولوجي (Overload Theory).</li>
+            <li>2-4 مسارات الحركة وتدفق المشاة: النحو الفضائي (Space Syntax)، التكامل والاختيار، ونقاط الاختناق (Bottlenecks).</li>
+            <li>2-5 استراتيجيات إعادة التشكيل المكاني: الدمج الفضائي، التقسيم، والتوجيه البديل، ومعادلات مضاعف الزمكان (STM).</li>
+            <li>2-6 صياغة مصفوفة الإطار النظري ومؤشرات القياس.</li>
+        </ul>
+    </div>
+
+    <div class="chapter-block">
+        <h4>📖 الفصل الثالث: الإطار المنهجي (بناء وهندسة منصة التوأم الرقمي التكيفية)</h4>
+        <ul>
+            <li>3-1 تمهيد وخريطة منهجية البحث.</li>
+            <li>3-2 بنية النظام البرمجي: استقبال ملفات IFC عبر WebAssembly، وطبقة التصيير ثلاثي الأبعاد WebGL/Three.js لمنع الـ Lagging.</li>
+            <li>3-3 محرك محاكاة تدفق المشاة القائم على الوكلاء (Agent-Based Simulation) وتصنيف مسارات الحركة.</li>
+            <li>3-4 محرك اتخاذ قرار التكيف وإعادة التشكيل: شروط التحفيز (Trigger Thresholds) وميكانيكا حركة القواطع المنزلقة.</li>
+            <li>3-5 واجهة المستخدم التفاعلية (HUD): أدوات التدوير والاستقامة (Auto-Orientation)، وفحص عناصر BIM بالـ Raycasting.</li>
+            <li>3-6 خلاصة الفصل الثالث.</li>
+        </ul>
+    </div>
+
+    <div class="chapter-block">
+        <h4>📖 الفصل الرابع: الدراسة التطبيقية والعملية (المحاكاة، الاختبار، ومقارنة السيناريوهات)</h4>
+        <ul>
+            <li>4-1 تمهيد ومنهجية الدراسة العملية.</li>
+            <li>4-2 انتخاب عينات الدراسة: عينة معيارية مصممة (Benchmark)، وعينة حكومية محلية (هيأة التقاعد الوطنية أو دائرة الضريبة في بغداد).</li>
+            <li>4-3 إعداد النماذج ثلاثية الأبعاد (IFC/CAD/PDF) ومعايرة المقاييس الهندسية (1:1 Calibration).</li>
+            <li>4-4 تطبيق ومحاكاة السيناريوهات: الوضع الراهن الثابت (Baseline) مقابل التوأم الرقمي المتكيف (Adaptive Reconfiguration).</li>
+            <li>4-5 استخراج وتحليل البيانات المقارنة: الكثافة، زمن الانتظار، وسرعة تفريغ الممرات، ومضاعف الزمكان (STM).</li>
+            <li>4-6 اختبار الفرضيات البحثية والتحقق الإحصائي.</li>
+        </ul>
+    </div>
+
+    <div class="chapter-block">
+        <h4>📖 الفصل الخامس: مناقشة النتائج، الاستنتاجات، والتوصيات</h4>
+        <ul>
+            <li>5-1 تمهيد ومناقشة النتائج العامة في ضوء الإطار النظري.</li>
+            <li>5-2 الاستنتاجات النظرية: مساهمة التوأم الرقمي في تطوير نظريات البرمجة المعمارية المعاصرة.</li>
+            <li>5-3 الاستنتاجات التطبيقية: الأثر الإيجابي لإعادة التشكيل الحركي على مرونة الفضاءات الإدارية.</li>
+            <li>5-4 المساهمة المعرفية والتطبيقية للأطروحة.</li>
+            <li>5-5 التوصيات المعمارية والتشغيلية الموجهة للمصممين والمؤسسات الحكومية.</li>
+            <li>5-6 آفاق البحث المستقبلية (Future Research Horizons).</li>
+        </ul>
+    </div>
+
+    <!-- 6. الدراسة العملية -->
+    <div class="section-title">6. تفاصيل الدراسة العملية والمنهجية التطبيقية (Empirical Study)</div>
+    <p>تعتمد الدراسة العملية على المنهج التجريبي المقارن القائم على المحاكاة الرقمية المتقدمة وفق الخطوات الآتية:</p>
+
+    <p><strong>أ. عينات الدراسة ومجتمع البحث:</strong></p>
+    <ul class="bullet-list">
+        <li><strong>عينة معيارية مصممة (Benchmark Administrative Model):</strong> مبنى إداري يحتوي على ردهة استقبال، صالة انتظار، قاعات تدريب مرنة متعددة الأغراض، شريان حركي مركزي، ممر التفافي جنوبي، ومكاتب عمل جماعية.</li>
+        <li><strong>عينة واقعية محلية (Local Government Case Study):</strong> مبنى حكومي عراقي يعاني من اختناق حاد في حركة المراجعين (مثل فضاءات هيأة التقاعد الوطنية في الكرخ/بغداد أو إحدى دوائر الضريبة).</li>
+    </ul>
+
+    <p><strong>ب. متغيرات الدراسة ومؤشرات القياس:</strong></p>
+    <ul class="bullet-list">
+        <li><strong>المتغيرات المستقلة:</strong> النمط التكويني للفضاء (إستاتيكي مغلق مقابل تكيفي ديناميكي)، شبكة المسارات (أحادي مركزي مقابل ثنائي ديناميكي بممر التفافي)، ومستوى ضغط الإشغال (100%، 150%، و 200%).</li>
+        <li><strong>المتغيرات التابعة ومؤشرات الأداء:</strong> الكثافة الحيزية الفعلية (<span class="math-code">m²/person</span>)، مضاعف الزمكان (<span class="math-code">STM = SOR / DOR</span>)، معامل الاختناق (<span class="math-code">Bottleneck Severity %</span>)، ومعدل الانتفاع الفضائي (<span class="math-code">Utilisation Rate = Freq × Occupancy</span>).</li>
+    </ul>
+
+    <p><strong>ج. مراحل إجراء التجربة والمحاكاة عبر المنصة:</strong></p>
+    <ul class="bullet-list">
+        <li><strong>المرحلة 1 (تهيئة النموذج ومعايرته):</strong> استيراد ملف IFC وتوليد الكتل ثلاثية الأبعاد، وتشغيل خوارزمية الاستقامة التلقائية (Auto-Leveling)، وتعيين القواطع المنزلقة (p_waiting_multi) والممرات الالتفافية.</li>
+        <li><strong>المرحلة 2 (اختبار السيناريو المرجعي - Static Baseline):</strong> ضخ المراجعين بمعدلات الذروة (>500 مراجع)، إبقاء القواطع مغلقة، ورصد مؤشرات التكدس (اكتظاظ صالة الانتظار 160%، وتلون التدفق بالأحمر).</li>
+        <li><strong>المرحلة 3 (اختبار سيناريو التوأم الرقمي المتكيف):</strong> عند بلوغ عتبة 85% إشغال، يطلق النظام أمراً آلياً لفتح القاطع المنزلق لمضاعفة سعة الانتظار من 22 إلى 42 شخصاً، وتفعيل الممر الالتفافي لتشتيت 35% من المشاة.</li>
+        <li><strong>المرحلة 4 (المقارنة الإحصائية والتحقق العلمي):</strong> استخراج تقارير وجداول بيانية تثبت انخفاض التكدس بنسبة تفوق 45%، وارتفاع كفاءة استغلال قاعات التدريب من 15% إلى 78%، وعودة انسيابية الحركة.</li>
+    </ul>
+
+    <!-- 7. القيمة المضافة -->
+    <div class="section-title">7. القيمة المضافة والمخرجات المتوقعة (Expected Contribution & Impact)</div>
+    <div class="impact-card">
+        <strong>🌟 إضافة علمية للمكتبة المعمارية العراقية والعربية:</strong>
+        يُعد البحث من أوائل الدراسات الأكاديمية التي تنقل مفهوم «التوأم الرقمي» (Digital Twin) من الإطار النظري أو الهندسة الميكانيكية والصناعية إلى صميم التصميم المعماري الداخلي وإدارة الفضاءات الحركية التكيفية.
+    </div>
+    <div class="impact-card">
+        <strong>🌟 برمجية تطبيقية مفتوحة وقابلة للنشر والتطوير:</strong>
+        المنصة المنفذة بتقنيات الويب الحديثة تتيح للجامعة والباحثين استعراض النتائج في جلسة مناقشة الماجستير بصورة تفاعلية حية، ونشر أوراق بحثية في مجلات عالمية محكمة رصينة (Clarivate / Scopus).
+    </div>
+    <div class="impact-card">
+        <strong>🌟 حل اقتصادي وطاقي للمؤسسات الحكومية:</strong>
+        إثبات أن المباني لا تحتاج بالضرورة إلى ميزانيات ضخمة لإنشاء كتل إسمنتية جديدة لاستيعاب الزيادة السكانية، بل يمكن مضاعفة قدرتها الاستيعابية عبر «العمارة الحركية الذكية والتشغيل التكيفي المؤتمت».
+    </div>
+
+</body>
+</html>

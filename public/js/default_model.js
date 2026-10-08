@@ -375,21 +375,6 @@ window.__DEFAULT_OFFICE_MODEL__ = {
       "thickness": 0.2,
       "height": 3.0,
       "type": "interior"
-    },
-    "w_div_multi_ab": {
-      "id": "w_div_multi_ab",
-      "name_ar": "جدار فاصل (القاعة أ - القاعة ب)",
-      "start": [
-        18,
-        -14
-      ],
-      "end": [
-        18,
-        -6
-      ],
-      "thickness": 0.2,
-      "height": 3.0,
-      "type": "interior"
     }
   },
   "openings": {

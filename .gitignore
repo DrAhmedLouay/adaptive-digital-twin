@@ -25,3 +25,4 @@ Thumbs.db
 .user_uploaded/
 backups/
 *.log
+pylib/

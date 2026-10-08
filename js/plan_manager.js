@@ -329,13 +329,29 @@ class PlanManager {
 
     async switchPreset(presetId) {
         console.log("Switching to preset:", presetId);
-        const targetModel = this.fallbackPresets[presetId];
+        let targetModel = (window.__PRESETS__ && window.__PRESETS__[presetId]) || this.fallbackPresets[presetId];
 
-        // 1. تحديث محلي فوري ثلاثي الأبعاد في المتصفح
+        // 1. تحديث محلي فوري ثلاثي الأبعاد بالنموذج المعماري الكامل
         if (targetModel) {
             this.app.viewer.loadBuildingModel(targetModel);
             this.updateActiveBuildingTitle(targetModel);
             this.renderPresetsList();
+            if (this.app.viewer && typeof this.app.viewer.fitCameraToBuilding === 'function') {
+                this.app.viewer.fitCameraToBuilding(targetModel);
+            }
+            if (this.app.analytics) {
+                this.app.analytics.updateSensorTargetOptions();
+                this.app.analytics.fetchAndUpdateSensorsInventory();
+            }
+            if (this.app && typeof this.app.renderSlidingPartitionsControls === 'function') {
+                this.app.renderSlidingPartitionsControls();
+            }
+            if (typeof this.app.simulateClientTick === 'function') {
+                this.app.simulateClientTick();
+            }
+            if (typeof this.app.fetchAndUpdate === 'function') {
+                this.app.fetchAndUpdate();
+            }
         }
 
         // 2. إبلاغ الخادم بالتبديل للحفاظ على التزامن
@@ -346,9 +362,12 @@ class PlanManager {
                 body: JSON.stringify({ preset_id: presetId })
             });
             const data = await res.json();
-            if (data.status === 'ok') {
+            if (data.status === 'ok' && data.model) {
                 this.app.viewer.loadBuildingModel(data.model);
                 this.updateActiveBuildingTitle(data.model);
+                if (this.app && typeof this.app.renderSlidingPartitionsControls === 'function') {
+                    this.app.renderSlidingPartitionsControls();
+                }
             }
         } catch (err) {
             console.log("Server synced locally for preset:", presetId);
@@ -1907,6 +1926,8 @@ class PlanManager {
 
             if (tool === 'wall') {
                 setHint("🧱 انقر النقطة الأولى مباشرة فوق خط الجدار في مسقط الـ PDF لبدء الرسم...");
+            } else if (tool === 'sliding_partition') {
+                setHint("🚪 انقر النقطة الأولى لتحديد بداية القاطع المنزلق المرن بين الفضاءين...");
             } else if (tool === 'door') {
                 setHint("🚪 انقر فوق موقع الباب في المخطط لتفريغ الجدار وتثبيت فتحة الباب وقوس الفتح...");
             } else if (tool === 'window') {
@@ -4521,7 +4542,7 @@ class PlanManager {
                 const pt = getPointOnBlueprint(e.clientX, e.clientY);
                 if (!pt) return;
 
-                if (activeTool === 'wall' && wallStartPoint) {
+                if ((activeTool === 'wall' || activeTool === 'sliding_partition') && wallStartPoint) {
                     const x1 = wallStartPoint[0], z1 = wallStartPoint[1];
                     const snapRes = snapPointToWalls(pt.x, pt.z, this.app.viewer.buildingData?.walls);
                     const x2 = snapRes.point[0], z2 = snapRes.point[1];
@@ -5457,6 +5478,60 @@ class PlanManager {
                                 body: JSON.stringify({ type: 'wall', element: wallObj })
                             });
                         } catch(err) {}
+                    }
+                } else if (activeTool === 'sliding_partition') {
+                    const snapRes = snapPointToWalls(clickX, clickZ, bData.walls);
+                    const snappedPt = snapRes.point;
+
+                    if (!wallStartPoint) {
+                        wallStartPoint = [snappedPt[0], snappedPt[1]];
+                        const dotGeo = new THREE.SphereGeometry(0.4, 16, 16);
+                        const dotMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                        tempMarker = new THREE.Mesh(dotGeo, dotMat);
+                        tempMarker.position.set(snappedPt[0], 0.25, snappedPt[1]);
+                        this.app.viewer.scene.add(tempMarker);
+                        setHint("🚪 تم تحديد بداية القاطع المنزلق. انقر النقطة الثانية لتحديد طول ومسار القاطع بين الفضاءين...");
+                    } else {
+                        const x1 = wallStartPoint[0], z1 = wallStartPoint[1];
+                        const x2 = snappedPt[0], snappedZ = snappedPt[1];
+                        const len = Math.hypot(x2 - x1, snappedZ - z1);
+                        if (len < 0.6) {
+                            setHint("⚠️ طول القاطع قصير جداً، يرجى اختيار نقطة ثانية على مسافة أكبر.");
+                            return;
+                        }
+
+                        cleanupTempVisuals();
+
+                        if (!bData.partitions) bData.partitions = {};
+                        const pId = `p_custom_${Date.now()}`;
+                        const minX = Math.min(x1, x2), minZ = Math.min(z1, snappedZ);
+                        const dx = Math.abs(x2 - x1), dz = Math.abs(snappedZ - z1);
+                        const isZ = dz >= dx;
+
+                        bData.partitions[pId] = {
+                            id: pId,
+                            name_ar: `قاطع منزلق تكيفي (${Object.keys(bData.partitions).length + 1})`,
+                            status: 'closed',
+                            position: {
+                                x: Math.round(minX * 10) / 10,
+                                z: Math.round(minZ * 10) / 10,
+                                width: isZ ? 0.25 : Math.round(Math.max(dx, 1.2) * 10) / 10,
+                                depth: isZ ? Math.round(Math.max(dz, 1.2) * 10) / 10 : 0.25,
+                                height: 3.5
+                            },
+                            expansion_capacity: 18,
+                            between: []
+                        };
+
+                        this.app.viewer.loadBuildingModel(bData);
+                        if (this.app && typeof this.app.renderSlidingPartitionsControls === 'function') {
+                            this.app.renderSlidingPartitionsControls();
+                        }
+                        if (this.app && typeof this.app.simulateClientTick === 'function') {
+                            this.app.simulateClientTick();
+                        }
+                        historyStack.push({ type: 'partition', id: pId });
+                        setHint(`✓ تم رسم وتجسيم القاطع المنزلق (${len.toFixed(1)}م) بنجاح! يمكنك فتحه وانزلاقه الآن من القائمة أو شاشة 3D.`);
                     }
                 } else if (activeTool === 'door' || activeTool === 'window' || activeTool === 'passage') {
                     const wallCount = Object.keys(bData.walls || {}).length;

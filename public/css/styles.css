@@ -831,7 +831,8 @@ input:checked + .slider:before {
   gap: 8px;
 }
 
-.scenario-btn {
+.scenario-btn,
+.reconfig-mode-btn {
   background: rgba(42, 59, 84, 0.4);
   border: 1px solid var(--panel-border);
   color: var(--text-main);
@@ -843,12 +844,14 @@ input:checked + .slider:before {
   transition: all 0.2s ease;
 }
 
-.scenario-btn:hover {
+.scenario-btn:hover,
+.reconfig-mode-btn:hover {
   background: rgba(0, 210, 255, 0.15);
   border-color: var(--accent-cyan);
 }
 
-.scenario-btn.active {
+.scenario-btn.active,
+.reconfig-mode-btn.active {
   background: linear-gradient(135deg, rgba(0, 210, 255, 0.25), rgba(58, 123, 213, 0.25));
   border-color: var(--accent-cyan);
   font-weight: bold;
@@ -1995,6 +1998,257 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   opacity: 1;
 }
 
+/* =========================================================
+   Kinetic Sliding Partitions UI Component
+   ========================================================= */
+.sliding-partition-card {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.25s ease;
+}
 
+.sliding-partition-card:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 4px 15px rgba(0, 210, 255, 0.12);
+}
 
+.sliding-partition-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
 
+.sliding-partition-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+
+.sliding-partition-status-pill {
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sliding-partition-status-pill.open {
+  background: rgba(0, 210, 255, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 210, 255, 0.4);
+}
+
+.sliding-partition-status-pill.closed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.sliding-partition-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.sliding-partition-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.sliding-btn-toggle {
+  flex: 1;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.sliding-btn-toggle:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+}
+
+.sliding-btn-focus {
+  background: rgba(42, 59, 84, 0.4);
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sliding-btn-focus:hover {
+  background: rgba(0, 210, 255, 0.15);
+  border-color: var(--accent-cyan);
+  color: #38bdf8;
+}
+
+.sliding-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.sliding-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #00d2ff);
+  transition: width 0.3s ease;
+}
+
+/* =========================================================
+   Floating Viewport Partition Controller Dock
+   ========================================================= */
+.viewport-partitions-dock {
+  position: absolute;
+  bottom: 64px;
+  right: 16px;
+  left: auto;
+  z-index: 30;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  border-radius: 12px;
+  padding: 10px 14px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 15px rgba(0, 210, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 270px;
+  max-width: 330px;
+  pointer-events: auto;
+  transition: all 0.3s ease;
+}
+
+.vp-dock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vp-dock-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vp-dock-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  white-space: nowrap;
+}
+
+.vp-dock-badge.open {
+  background: rgba(0, 210, 255, 0.2);
+  color: #38bdf8;
+  border-color: rgba(0, 210, 255, 0.5);
+  box-shadow: 0 0 8px rgba(0, 210, 255, 0.3);
+}
+
+.vp-dock-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.vp-dock-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.vp-dock-btn.vp-btn-open {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #a7f3d0;
+}
+.vp-dock-btn.vp-btn-open:hover {
+  background: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.vp-dock-btn.vp-btn-close {
+  background: rgba(42, 59, 84, 0.5);
+  border-color: var(--panel-border);
+  color: var(--text-main);
+}
+.vp-dock-btn.vp-btn-close:hover {
+  background: rgba(42, 59, 84, 0.8);
+}
+
+.vp-dock-btn.vp-btn-focus {
+  background: rgba(0, 210, 255, 0.15);
+  border-color: rgba(0, 210, 255, 0.4);
+  color: #38bdf8;
+}
+.vp-dock-btn.vp-btn-focus:hover {
+  background: rgba(0, 210, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
+}
+
+.vp-dock-progress-wrap {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.vp-dock-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #00d2ff);
+  transition: width 0.1s linear;
+}
+
+.highlight-pulse {
+  animation: pulseCyanGlow 1.2s 2 ease-in-out;
+}
+@keyframes pulseCyanGlow {
+  0% { box-shadow: 0 0 0 rgba(0, 210, 255, 0); }
+  50% { box-shadow: 0 0 25px rgba(0, 210, 255, 0.8), inset 0 0 15px rgba(0, 210, 255, 0.3); border-color: #38bdf8; }
+  100% { box-shadow: 0 0 0 rgba(0, 210, 255, 0); }
+}

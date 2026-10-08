@@ -174,8 +174,10 @@ class AdaptiveOptimizationEngine:
                     "impact_ar": f"دمج الفضاءين وتوسيع الفضاء لاستيعاب التدافع فورياً."
                 })
             elif ratio1 <= 0.85 and ratio2 <= 0.85:
-                # عودة الأوضاع للاعتدال -> غلق القاطع
-                self.spatial_model.set_partition_state(p_id, "closed")
+                # عودة الأوضاع للاعتدال -> غلق القاطع ما لم يكن المستخدم قد اختار التكيف الحركي صراحة
+                active_reconfig = getattr(self.spatial_model, "active_layout_mode", "baseline")
+                if active_reconfig not in ["kinetic", "functional_swap"]:
+                    self.spatial_model.set_partition_state(p_id, "closed")
 
         # ب. معالجة اختناق الممرات وإعادة التوجيه (Circulation Rerouting)
         adapted_corridor_flows = dict(corridor_flows)

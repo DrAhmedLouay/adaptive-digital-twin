@@ -353,6 +353,21 @@
       "height": 3.0,
       "type": "interior"
     },
+    "w_waiting_patients_e": {
+      "id": "w_waiting_patients_e",
+      "name_ar": "جدار شرقي (صالة انتظار المرضى والمراجعين)",
+      "start": [
+        4.0,
+        -14.0
+      ],
+      "end": [
+        4.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
     "w_overflow_clinic_n": {
       "id": "w_overflow_clinic_n",
       "name_ar": "جدار شمالي (ردهة الفحص السريع والملاحظة المرنة)",
@@ -377,6 +392,21 @@
       ],
       "end": [
         16.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_overflow_clinic_w": {
+      "id": "w_overflow_clinic_w",
+      "name_ar": "جدار غربي (ردهة الفحص السريع والملاحظة المرنة)",
+      "start": [
+        4.0,
+        -14.0
+      ],
+      "end": [
+        4.0,
         -6.0
       ],
       "thickness": 0.25,

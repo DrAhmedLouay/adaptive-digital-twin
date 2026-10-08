@@ -552,10 +552,9 @@ class SpatialBuildingModel:
         space = self.spaces.get(space_id)
         if not space:
             return 0
-        cap = space["capacity"]
+        cap = space.get("capacity", 20)
         for p in self.partitions.values():
             if p.get("status") == "open" and space_id in p.get("between", []):
-                # إذا كان الفضاء هو الأول في القاطع، يُضاف له السعة الإضافية
-                if p.get("between", [])[0] == space_id:
-                    cap += p.get("expansion_capacity", 15)
+                cap += p.get("expansion_capacity", 15)
+                break
         return cap

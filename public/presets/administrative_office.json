@@ -370,6 +370,21 @@
       "height": 3.0,
       "type": "interior"
     },
+    "w_waiting_hall_e": {
+      "id": "w_waiting_hall_e",
+      "name_ar": "جدار شرقي (صالة انتظار المراجعين)",
+      "start": [
+        8.0,
+        -14.0
+      ],
+      "end": [
+        8.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
     "w_multi_hall_a_n": {
       "id": "w_multi_hall_a_n",
       "name_ar": "جدار شمالي (القاعة المتعددة المرنة (أ))",
@@ -391,6 +406,36 @@
       "start": [
         8.0,
         -6.0
+      ],
+      "end": [
+        18.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_a_w": {
+      "id": "w_multi_hall_a_w",
+      "name_ar": "جدار غربي (القاعة المتعددة المرنة (أ))",
+      "start": [
+        8.0,
+        -14.0
+      ],
+      "end": [
+        8.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_a_e": {
+      "id": "w_multi_hall_a_e",
+      "name_ar": "جدار شرقي (القاعة المتعددة المرنة (أ))",
+      "start": [
+        18.0,
+        -14.0
       ],
       "end": [
         18.0,
@@ -424,6 +469,21 @@
       ],
       "end": [
         28.0,
+        -6.0
+      ],
+      "thickness": 0.25,
+      "height": 3.0,
+      "type": "interior"
+    },
+    "w_multi_hall_b_w": {
+      "id": "w_multi_hall_b_w",
+      "name_ar": "جدار غربي (قاعة الاجتماعات والتدريب (ب))",
+      "start": [
+        18.0,
+        -14.0
+      ],
+      "end": [
+        18.0,
         -6.0
       ],
       "thickness": 0.25,
