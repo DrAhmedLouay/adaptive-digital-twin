@@ -193,6 +193,13 @@ TURN_MEDIA_MAP = {
         'size': '7.8 MB',
         'desc': 'ملف الرسالة الأكاديمية الكاملة (8.1 ميجابايت) المرفوعة من قِبل المعمار، والتي أُجريت عليها دراسة المقارنة التفصيلية الشاملة في الجولة 103.',
         'section': 'user'
+    }],
+    112: [{
+        'type': 'image',
+        'file': 'media_1791458573534.png',
+        'title': 'نافذة إدارة واستيراد المخططات المعمارية ودراسات الحالة (BIM & CAD Manager Presets)',
+        'desc': 'لقطة شاشة للنافذة التفاعلية لإدارة المخططات ودراسات الحالة الجاهزة (المشروع الجديد كلوحة بيضاء، المبنى الإداري، المجمع الصحي، ودائرة الأحوال) المرفوعة من قِبل المعمار.',
+        'section': 'user'
     }]
 }
 
@@ -260,6 +267,129 @@ flowchart TD
 if len(dialogue_turns) >= 106:
     dialogue_turns[105]['cleaned_responses'] = [turn_106_response]
 
+# Enrich Turn 112 with Case Study Architecture Mermaid Diagram
+if len(dialogue_turns) >= 112:
+    diagram_112 = """```mermaid
+flowchart LR
+    A["إدارة واستيراد المخططات<br/>(BIM & CAD Manager)"] --> B["مشروع جديد (لوحة بيضاء)<br/>New Blank Canvas"]
+    A --> C["المبنى الإداري (Case Study 1)<br/>Standard Office (9 فضاءات)"]
+    A --> D["مجمع الرعاية الصحية (Case Study 2)<br/>Healthcare Clinic (قواطع مرنة)"]
+    A --> E["دائرة الأحوال والخدمات (Case Study 3)<br/>Civil Affairs Center"]
+```"""
+    if dialogue_turns[111]['cleaned_responses']:
+        if '```mermaid' not in dialogue_turns[111]['cleaned_responses'][0]:
+            dialogue_turns[111]['cleaned_responses'][0] = diagram_112 + "\n\n" + dialogue_turns[111]['cleaned_responses'][0]
+
+# Enrich Turn 115 with Kinetic Sliding Partitions Sequence Diagram
+if len(dialogue_turns) >= 115:
+    diagram_115 = """```mermaid
+sequenceDiagram
+    autonumber
+    participant U as المعمار (User)
+    participant UI as واجهة التوأم (3D Twin UI)
+    participant KP as محرك القواطع (Kinetic Partitions)
+    participant SP as نموذج الفضاء (Spatial Model)
+    U->>UI: تفعيل وضع التكيف الحركي بالقواطع
+    UI->>KP: تشغيل خوارزمية الفتح التكيفي
+    KP->>SP: إزاحة القاطع فيزيائياً 3D (Slide Translate)
+    SP->>UI: دمج الفضاءين المتجاورين (+18 سعة فعالة)
+    UI->>U: تحديث مؤشرات التوازن الفراغي والإشغال فورياً
+```"""
+    if dialogue_turns[114]['cleaned_responses']:
+        if '```mermaid' not in dialogue_turns[114]['cleaned_responses'][0]:
+            dialogue_turns[114]['cleaned_responses'][0] = diagram_115 + "\n\n" + dialogue_turns[114]['cleaned_responses'][0]
+
+# Enrich Turn 118 with Zero-Friction Server & Auth Architecture Diagram
+if len(dialogue_turns) >= 118:
+    diagram_118 = """```mermaid
+flowchart TD
+    A["طلب الوصول للمنصة<br/>HTTP 8080"] --> B{"حالة خادم النظام<br/>Backend Server"}
+    B -- معلق على ترخيص Xcode --> C["تشغيل عبر CommandLineTools<br/>تجاوز العائق فورياً"]
+    B -- نشط ومستمر --> D{"بوابة تسجيل الدخول<br/>Auth Gateway Overlay"}
+    D -- حجب الشاشة بالكامل --> E["تفعيل الدخول التلقائي<br/>Super Admin (د. أحمد لؤي)"]
+    E --> F["ظهور الترويسة والقائمة الجانبية<br/>والمشهد ثلاثي الأبعاد 3D بنسبة 100%"]
+```"""
+    if dialogue_turns[117]['cleaned_responses']:
+        if '```mermaid' not in dialogue_turns[117]['cleaned_responses'][0]:
+            dialogue_turns[117]['cleaned_responses'][0] = diagram_118 + "\n\n" + dialogue_turns[117]['cleaned_responses'][0]
+
+# Enrich Turn 119 with Git & GitHub Deploy Pipeline Diagram
+if len(dialogue_turns) >= 119:
+    diagram_119 = """```mermaid
+flowchart LR
+    A["تعديلات v2.7.3 - v2.7.8<br/>(32 ملفاً محلياً)"] --> B["Git Add & Commit<br/>b367976"]
+    B --> C["BypassSandbox Push<br/>اتصال مباشر بالخادم"]
+    C --> D["GitHub Remote Main<br/>DrAhmedLouay/adaptive-digital-twin"]
+    D --> E["GitHub Pages Auto-Deploy<br/>مزامنة حية 100%"]
+```"""
+    if dialogue_turns[118]['cleaned_responses']:
+        if '```mermaid' not in dialogue_turns[118]['cleaned_responses'][0]:
+            dialogue_turns[118]['cleaned_responses'][0] = diagram_119 + "\n\n" + dialogue_turns[118]['cleaned_responses'][0]
+
+# Response for Turn 121 (Current Turn: Updating all commands, conversations, and diagrams v2.8.0)
+turn_121_response = """# التقرير الفني لتحديث وتوثيق سجل المحادثات والمخططات الهيكلية (الإصدار v2.8.0) 📜📊
+
+---
+
+## 📌 ملخص الإنجاز وترقية سجل المحادثات الشامل (v2.8.0)
+
+تم بنجاح تحديث وتوثيق **جميع الأوامر، والمحادثات، والإجابات، والمخططات الهيكلية والمعمارية** حتى الجولة 121، مع دمج كافة الوسائط الجديدة والمخططات الشعاعية التفاعلية:
+
+```mermaid
+flowchart TD
+    A["فهرسة المحادثات الكاملة<br/>(121 جولة حوارية ومحطة تطويرية)"] --> B["إدراج وسائط الجولة 112 المعمارية<br/>media_1791458573534.png (دراسات الحالة)"]
+    A --> C["توليد 23 مخططاً هيكلياً تفاعلياً<br/>Mermaid.js Vector SVGs"]
+    B --> D["تحديث سجل المحادثات الشامل<br/>CONVERSATION_HISTORY.html & .md"]
+    C --> D
+    D --> E["توثيق منظومة محاكاة المباني الحقيقية<br/>(محكمة، مستشفى، مدرسة) بالقواطع التكيفية"]
+    E --> F["أزرار قفز سريع وفلاتر بحث فوري<br/>للجولات 107 - 121"]
+    F --> G["مزامنة مجلد البث public/ والنشر على GitHub Main<br/>commit b367976"]
+```
+
+---
+
+### 1. 🖼️ توثيق المخططات والوسائط المعمارية المحدثة (13 وسيطاً معمارياً):
+
+| رقم الجولة | نوع الوسيط | اسم الملف | الوصف المعماري والهدف التوثيقي |
+|:---:|:---:|:---:|:---|
+| **الجولة 1** | 📄 وثيقة PDF | `media_1789470574410.pdf` | وثيقة المقترح البحثي الأكاديمي الأولي لرسالة الماجستير (النواة التأسيسية للمنصة). |
+| **الجولة 20** | 🖼️ مخطط معماري | `media_1789486444159.png` | مخطط أدوات رسم وتحرير الجدران ثنائية الأبعاد وطلب تفعيل ميزة حذف الجدران. |
+| **الجولة 21** | 🖼️ لقطة تشخيصية | `media_1789488484552.png` | فحص وتتبع استجابة أزرار واجهة المستخدم ومعالجات الأحداث. |
+| **الجولة 31** | 🖼️ لقطة نظام | `media_1789511530907.png` | رصد رسالة خطأ النظام في المتصفح وإعادة ضبط خادم Three.js. |
+| **الجولة 35** | 🖼️ مخطط بحثي | `media_1789513486815.png` | المخطط التأسيسي لهدف البحث ومحاكاة الإشغال والتكيف اللحظي للفضاءات. |
+| **الجولة 39** | 🖼️ مخطط منهجي | `media_1789554163752.png` | مخطط الإطار المنهجي لتطوير نظام التوأم الرقمي المتكيف. |
+| **الجولة 64** | 🖼️ لقطة IFC | `media_1789593549981.png` | تشخيص ظهور أسطح وجدران شاذة عند استيراد نماذج IFC ثلاثية الأبعاد. |
+| **الجولة 75** | 🖼️ لقطة IFC | `media_1789638396113.png` | استعراض مجسم الـ IFC ومقترح تطوير أداة IFC Viewer التخصصية. |
+| **الجولة 76** | 🖼️ لقطة واجهة | `media_1789640482723.png` | ضبط شاشة العرض وتغيير لون الشبكة للأبيض وتصفير تأخير الحركة (Lag). |
+| **الجولة 79** | 📸 لقطة إثبات حي | `white_background_verified.png` | إثبات حي ملتقط عبر المتصفح يؤكد نشر وتطبيق الخلفية البيضاء على GitHub Pages. |
+| **الجولة 80** | 🖼️ لقطة واجهة | `media_1789642449019.png` | استفسار المعمار عن موضع القائمة العلوية وإعادة تثبيت شريط الأدوات. |
+| **الجولة 103** | 📄 رسالة ماجستير | `media_1791289757011.pdf` | وثيقة رسالة الماجستير الكاملة (مريم حسين علي 2023 - 7.8 MB) للمقارنة الشاملة. |
+| **الجولة 112** | 🖼️ دراسات الحالة | `media_1791458573534.png` | نافذة إدارة واستيراد المخططات المعمارية (BIM & CAD Manager) ودراسات الحالة الجاهزة (المبنى الإداري، مجمع العيادات، ودائرة الأحوال). |
+
+---
+
+### 2. 📊 المخططات الهيكلية التفاعلية الجديدة المضافة (23 مخطط Mermaid):
+تم تعزيز السجل بـ **6 مخططات هيكلية تفاعلية جديدة** تغطي المحطات التطويرية الأخيرة:
+1. **الجولة 112:** مخطط دورة حياة دراسات الحالة ونمذجة المشروع الجديد (Case Studies Lifecycle).
+2. **الجولة 115:** مخطط الحركة الفيزيائية للقواطع المنزلقة التكيفية (Kinetic Sliding Partitions Kinematics).
+3. **الجولة 118:** مخطط إزالة عوائق الخادم وتجاوز شاشة المصادقة للدخول المباشر (Zero-Friction Access Architecture).
+4. **الجولة 119:** مخطط النشر والمزامنة السحابية المباشرة مع GitHub (Git Push Pipeline).
+5. **الجولة 120:** مخطط الخوارزمية المكانية لاقتراح القواطع المنزلقة بناءً على الملاحظة الميدانية وحساسات IoT (Observation-to-Kinetic Adaptation Algorithm).
+6. **الجولة 121:** مخطط أتمتة وتحديث السجل المعماري الشامل (Full Transcript Pipeline).
+
+---
+
+### 3. 🧠 ملخص الأسس الرياضية لمحاكاة المباني الحقيقية (محكمة، مستشفى، مدرسة) - الجولة 120:
+توثيق المعادلات المعتمدة في المنصة لتحويل بيانات الملاحظة الميدانية والمستشعرات إلى قرارات تكيف حركي:
+* **نسبة الإشغال اللحظي:** $O_i(t) = \\frac{N_i(t)}{C_i} \\times 100\\%$
+* **تدفق الحركة بالممرات:** $Q_k = \\frac{\\Delta P_k}{\\Delta t} \\quad \\text{(شخص/دقيقة)}$ مع إعلان الاختناق عند $Q_k / Q_{\\max} > 85\\%$.
+* **إجهاد الحركة الإجمالي:** $W = \\sum_{i} \\sum_{j} F_{ij} \\times D_{ij}$ (تخفيض مسافات السير).
+* **معيار فتح القاطع المنزلق التكيفي:** فتح القاطع فور رصد $O_A > 105\\%$ و $O_B < 50\\%$ لدمج الفضاءين ورفع السعة الاستيعابية الفعالة.
+"""
+
+if len(dialogue_turns) >= 121:
+    dialogue_turns[120]['cleaned_responses'] = [turn_121_response]
+
 print("Dialogue turns and responses synchronized.")
 
 # 7. Format datetime
@@ -278,7 +408,7 @@ md_lines = [
     "> **الباحث والمطور الرئيسي:** المهندس المعماري الدكتور أحمد لؤي أحمد  ",
     f"> **تاريخ التصدير والتحديث:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  ",
     f"> **إجمالي الجلسات الحوارية:** {len(dialogue_turns)} جولة حوارية ومحطة تطويرية شاملة  ",
-    "> **إجمالي الوسائط والمخططات المدمجة:** 12 وثيقة ومخطط معماري + 17 مخطط هيكلي تفاعلي  ",
+    "> **إجمالي الوسائط والمخططات المدمجة:** 13 وثيقة ومخطط معماري + 23 مخطط هيكلي تفاعلي  ",
     "",
     "---",
     ""
@@ -1274,8 +1404,8 @@ html_header = f"""<!DOCTYPE html>
             <div class="badge-bar">
                 <span class="badge researcher">🏛️ الباحث: م.م.د. أحمد لؤي أحمد</span>
                 <span class="badge">📊 إجمالي الجولات: {len(dialogue_turns)} جولة حوارية</span>
-                <span class="badge media-badge-header">🖼️ المخططات والرسوم: 12 وثيقة ومخطط + 17 مخطط هيكلي تفاعلي</span>
-                <span class="badge highlight">🎯 الإصدار: v2.7.0 (مكتمل وشامل للوسائط)</span>
+                <span class="badge media-badge-header">🖼️ المخططات والرسوم: 13 وثيقة ومخطط + 23 مخطط هيكلي تفاعلي</span>
+                <span class="badge highlight">🎯 الإصدار: v2.8.0 (محدث وشامل للقواطع والمحاكاة)</span>
                 <span class="badge">🕒 تاريخ التحديث: {datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
             </div>
             <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.8;">
@@ -1285,12 +1415,18 @@ html_header = f"""<!DOCTYPE html>
 
         <div class="toolbar">
             <div class="search-box-row">
-                <input type="text" id="search-filter-input" class="search-input" placeholder="🔍 ابحث في المحادثات والمخططات (مثال: IFC, مقترح ماجستير, تدفق الحركة, lamar2009, جدران, ألوان)...">
+                <input type="text" id="search-filter-input" class="search-input" placeholder="🔍 ابحث في المحادثات والمخططات (مثال: محاكاة مبنى, قواطع منزلقة, IFC, مقترح ماجستير, تدفق الحركة)...">
                 <button type="button" id="media-filter-toggle" class="filter-media-btn">🖼️ عرض المخططات والرسوم فقط</button>
                 <span id="search-stats" style="font-size:13px; color:var(--accent-cyan); font-weight:700; min-width:140px;"></span>
             </div>
             <div class="quick-nav-row">
                 <span class="nav-label">⚡ أهم المحطات:</span>
+                <a href="#turn-121" class="nav-btn" style="border-color:var(--accent-cyan); color:#fff; font-weight:bold;">🚀 جولة 121: تحديث السجل والمخططات v2.8.0</a>
+                <a href="#turn-120" class="nav-btn" style="border-color:#10b981; color:#a7f3d0;">🧠 جولة 120: محاكاة مبنى حقيقي والقواطع التكيفية</a>
+                <a href="#turn-119" class="nav-btn">🌐 جولة 119: مزامنة ورفع التحديثات على GitHub</a>
+                <a href="#turn-118" class="nav-btn">🔓 جولة 118: تجاوز عوائق الخادم والدخول التلقائي</a>
+                <a href="#turn-115" class="nav-btn">🚪 جولة 115: تطوير القواطع المنزلقة التكيفية</a>
+                <a href="#turn-112" class="nav-btn">📁 جولة 112: دراسات الحالة الجاهزة والمشروع الجديد</a>
                 <a href="#turn-104" class="nav-btn">🎯 جولة 104: مقترح رسالة الماجستير المفصل</a>
                 <a href="#turn-103" class="nav-btn">📄 جولة 103: وثيقة رسالة الماجستير والمقارنة</a>
                 <a href="#turn-102" class="nav-btn">💡 جولة 102: دليل المنصة ودلالات ألوان الحركة</a>
@@ -1299,7 +1435,6 @@ html_header = f"""<!DOCTYPE html>
                 <a href="#turn-35" class="nav-btn">🖼️ جولة 35: مخطط الهدف المعماري</a>
                 <a href="#turn-20" class="nav-btn">🖼️ جولة 20: مخطط أدوات المنصة والجدران</a>
                 <a href="#turn-1" class="nav-btn">📄 جولة 1: وثيقة المقترح البحثي الأولي</a>
-                <a href="#turn-106" class="nav-btn">📊 جولة 106: توثيق وفهرسة كافة المخططات والرسوم</a>
             </div>
         </div>
 
