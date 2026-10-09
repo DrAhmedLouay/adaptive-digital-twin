@@ -57,7 +57,15 @@ class TwinApp {
             console.error("Error in PlanManager init:", err);
         }
 
-        // تغليف loadBuildingModel لتحديث شريط الطوابق وعارض IFC تلقائيًا عند كل استدعاء
+        try {
+            if (typeof ObservationManager !== 'undefined') {
+                this.observationManager = new ObservationManager(this);
+            }
+        } catch (err) {
+            console.error("Error in ObservationManager init:", err);
+        }
+
+        // تغليف loadBuildingModel لتحديث شريط الطوابق وعارض IFC ومدخلات الملاحظة تلقائيًا عند كل استدعاء
         if (this.viewer && typeof this.viewer.loadBuildingModel === 'function') {
             const _origLoad = this.viewer.loadBuildingModel.bind(this.viewer);
             this.viewer.loadBuildingModel = (modelData) => {
@@ -76,6 +84,13 @@ class TwinApp {
                         this.refreshIfcViewerUI();
                     } catch (e) {
                         console.warn("Error refreshing IFC viewer UI:", e);
+                    }
+                }
+                if (this.observationManager && typeof this.observationManager.onModelLoaded === 'function') {
+                    try {
+                        this.observationManager.onModelLoaded(modelData);
+                    } catch (e) {
+                        console.warn("Error updating observation manager model:", e);
                     }
                 }
             };

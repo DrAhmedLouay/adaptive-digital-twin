@@ -94,6 +94,13 @@
                 <span>📡</span>
                 <span>مستشعرات IoT</span>
             </button>
+            <button class="btn-plan-manager" id="btn-open-observation-modal"
+                    style="border-color:#10b981; background:rgba(16,185,129,0.18); color:#6ee7b7; font-weight:bold;"
+                    data-tooltip-title="📋 مدخلات الملاحظة الميدانية (Field Observation)"
+                    data-tooltip="إدخال وتغذية بيانات الرصد والملاحظة الميدانية للمبنى بسهولة عبر أشرطة تمرير تفاعلية أو استيراد ملفات CSV/Excel لمشاهدة استجابة القواطع التكيفية فورياً.">
+                <span>📋</span>
+                <span>بيانات الملاحظة</span>
+            </button>
             <button class="btn-plan-manager" id="btn-open-reconfig-modal"
                     data-tooltip-title="محرك إعادة التشكيل والتوزيع الوظيفي"
                     data-tooltip="اختبار خوارزميات التكيف المعماري وإعادة توزيع الفضاءات والمقارنة الإحصائية الدقيقة بين الوضع الراهن والمقترح.">
@@ -731,6 +738,12 @@
                         🌙 بعد الدوام
                     </button>
                 </div>
+                <button class="btn btn-primary" id="btn-sidebar-open-observation" style="width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px; background:linear-gradient(135deg, #059669, #0284c7); border:1px solid #34d399; font-weight:bold; font-size:11.5px; padding:8px 12px; border-radius:8px; cursor:pointer; color:#fff;"
+                        data-tooltip-title="إدخال بيانات الملاحظة الميدانية للمبنى"
+                        data-tooltip="فتح نافذة أشرطة التمرير اليدوية السريعة واستيراد ملفات CSV/Excel للتحكم بأعداد المستخدمين واختبار استجابة القواطع التكيفية فورياً.">
+                    <span>📋</span>
+                    <span>إدخال بيانات الملاحظة (Observation & Sliders)</span>
+                </button>
             </div>
 
             <!-- 3. Adaptive Interventions Feed -->
@@ -1140,6 +1153,160 @@
         </div>
     </div>
 
+    <!-- Field Observation & Survey Data Modal (نافذة مدخلات الملاحظة الميدانية) -->
+    <div id="observation-modal" class="modal-overlay">
+        <div class="modal-window" style="max-width: 960px; max-height: 90vh;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">📋</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px;">مدخلات الملاحظة الميدانية ومحاكاة الإشغال (Field Observation & Survey Importer)</h3>
+                        <span style="font-size: 11px; color: var(--text-muted);">
+                            تغذية بيانات الرصد الميداني الحقيقية (المحاكم، المستشفيات، المدارس، المباني الإدارية) عبر أشرطة تحكم فورية أو استيراد ملفات CSV/Excel
+                        </span>
+                    </div>
+                </div>
+                <button class="modal-close-btn" id="btn-close-observation-modal">&times;</button>
+            </div>
+
+            <div class="modal-body" style="padding: 16px 22px; overflow-y: auto;">
+                
+                <!-- تبويبات طرائق الإدخال (Tabs Bar) -->
+                <div class="obs-tabs-bar">
+                    <button class="obs-tab-btn active" data-obs-tab="sliders">
+                        <span>🎚️</span>
+                        <span>أشرطة التحكم التفاعلية الفورية (Live Sliders)</span>
+                    </button>
+                    <button class="obs-tab-btn" data-obs-tab="csv">
+                        <span>📑</span>
+                        <span>استيراد ملف مجدول (CSV / Excel Import)</span>
+                    </button>
+                    <button class="obs-tab-btn" data-obs-tab="timelapse">
+                        <span>⏱️</span>
+                        <span>محاكاة ساعات الرصد الزمني (Day Playback)</span>
+                    </button>
+                </div>
+
+                <!-- Tab 1: Live Manual Sliders -->
+                <div class="obs-tab-content" id="obs-tab-sliders">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                            اسحب شريط أي فضاء لتعديل عدد المستخدمين فورياً وملاحظة تفاعل النموذج ثلاثي الأبعاد 3D واقتراح القواطع:
+                        </span>
+                        <!-- أزرار السيناريوهات السريعة -->
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button class="obs-quick-preset-btn" id="btn-preset-court-rush" title="محاكاة تدفق كثيف لصالة الانتظار والاستقبال">
+                                ⚡ ذروة المراجعين (120)
+                            </button>
+                            <button class="obs-quick-preset-btn" id="btn-preset-corridor-choke" title="محاكاة اختناق في الممرات">
+                                🚧 اختناق الممرات (85)
+                            </button>
+                            <button class="obs-quick-preset-btn" id="btn-preset-balanced" title="تدفق متوازن معتدل">
+                                🌿 إشغال معتدل (35)
+                            </button>
+                            <button class="obs-quick-preset-btn" id="btn-preset-zero-all" title="تصفير الرصد">
+                                🌙 تصفير
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- قائمة الفضاءات وأشرطة التمرير -->
+                    <div id="obs-spaces-sliders-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; max-height: 48vh; overflow-y: auto; padding: 4px;">
+                        <!-- يتم ملؤها ديناميكياً بواسطة JavaScript -->
+                    </div>
+
+                    <!-- صندوق التوصيات التكيفية الذكية المباشرة -->
+                    <div id="obs-adaptive-recommendation-box" style="margin-top: 14px;">
+                        <!-- يتم تحديثه لحظياً عند رصد أي تكدس -->
+                    </div>
+                </div>
+
+                <!-- Tab 2: CSV / Excel Importer -->
+                <div class="obs-tab-content" id="obs-tab-csv" style="display: none;">
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--panel-border); border-radius: 10px; padding: 16px; margin-bottom: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <h4 style="margin: 0; font-size: 13.5px; color: var(--accent-cyan);">📥 رفع واستيراد ملف بيانات الملاحظة الميدانية (CSV / Excel)</h4>
+                                <span style="font-size: 11px; color: var(--text-muted);">قم برفع ملف الرصد المجدول المسجل ميدانياً لتطبيقه على كافة فضاءات المبنى</span>
+                            </div>
+                            <button class="btn btn-secondary" id="btn-download-obs-template" style="font-size: 11.5px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 5px; border-color: var(--accent-cyan); color: var(--accent-cyan);">
+                                <span>📥</span>
+                                <span>تحميل نموذج CSV الجاهز للمبنى</span>
+                            </button>
+                        </div>
+
+                        <!-- Dropzone Area -->
+                        <div class="obs-csv-dropzone" id="obs-csv-dropzone">
+                            <input type="file" id="obs-csv-file-input" accept=".csv, .txt" style="display: none;">
+                            <div style="font-size: 32px; margin-bottom: 8px;">📊</div>
+                            <div style="font-size: 13px; font-weight: bold; color: var(--text-main);">انقر هنا لاختيار ملف الـ CSV أو اسحب الملف وأفلته مباشرة</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">يدعم الأعمدة: space_id, space_name, observation_hour, visitors_count, staff_count, notes</div>
+                        </div>
+                    </div>
+
+                    <!-- CSV Preview Section -->
+                    <div id="obs-csv-preview-container" style="display: none; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--panel-border); border-radius: 10px; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span id="obs-csv-count-badge" style="font-size: 12px; font-weight: bold; color: var(--accent-cyan);">0 سجل</span>
+                            <button class="btn btn-primary" id="btn-apply-csv-readings" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, #059669, #0284c7); border-color: #34d399;">
+                                <span>🚀</span>
+                                <span>تطبيق بيانات هذا الملف على النموذج 3D الآن</span>
+                            </button>
+                        </div>
+                        <div style="max-height: 38vh; overflow-y: auto;">
+                            <table class="obs-preview-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>الفضاء المعماري</th>
+                                        <th>ساعة الرصد</th>
+                                        <th>المراجعين</th>
+                                        <th>الكوادر</th>
+                                        <th>الإجمالي</th>
+                                        <th>الحالة والتكيف</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="obs-csv-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Time Series Playback -->
+                <div class="obs-tab-content" id="obs-tab-timelapse" style="display: none;">
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--panel-border); border-radius: 10px; padding: 18px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--accent-cyan);">⏱️ محاكاة دورة يوم العمل الكامل استناداً للملاحظة الميدانية</h4>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.6;">
+                            اختبار تدفق الساعات اليومية من بداية الدوام وحتى نهايته؛ لمشاهدة تشكل ذروة الزوار، تكدس صالات الانتظار، واستجابة القواطع المنزلقة التكيفية آلياً:
+                        </p>
+
+                        <!-- Hours Selector Pills -->
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;">
+                            <button class="obs-hour-btn" data-hour="08:00">08:00 ص (بدء الوصول)</button>
+                            <button class="obs-hour-btn active" data-hour="09:00">09:00 ص (تصاعد المراجعين)</button>
+                            <button class="obs-hour-btn" data-hour="10:00" style="border-color:#f43f5e; color:#fca5a5;">10:00 ص (⚡ ذروة الجلسات)</button>
+                            <button class="obs-hour-btn" data-hour="11:00" style="border-color:#f59e0b; color:#fde68a;">11:00 ص (ذروة مستمرة)</button>
+                            <button class="obs-hour-btn" data-hour="12:00">12:00 م (استراحة وهدوء)</button>
+                            <button class="obs-hour-btn" data-hour="13:00">01:00 م (المداولة)</button>
+                            <button class="obs-hour-btn" data-hour="14:00">02:00 م (نهاية الدوام)</button>
+                        </div>
+
+                        <!-- Timelapse Play Button -->
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-primary" id="btn-timelapse-play" style="font-size: 13px; padding: 8px 18px; background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #38bdf8; display: inline-flex; align-items: center; gap: 8px;">
+                                <span>▶️</span>
+                                <span>تشغيل المحاكاة الزمنية المتحركة (Timelapse)</span>
+                            </button>
+                            <span style="font-size: 12px; color: var(--text-muted);">تنتقل المحاكاة بين الساعات كل 2.2 ثانية مع تحديث الـ 3D مباشرة.</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <!-- Spatial Reconfiguration & Layout Optimization Modal -->
     <div id="reconfig-modal" class="modal-overlay">
         <div class="modal-window" style="max-width: 950px;">
@@ -1410,6 +1577,7 @@
     <script src="js/plan_manager.js?v=2.7.8"></script>
     <script src="js/tooltip.js?v=2.7.8"></script>
     <script src="js/auth.js?v=2.7.8"></script>
-    <script src="js/app.js?v=2.7.8"></script>
+    <script src="js/observation_manager.js?v=2.9.3"></script>
+    <script src="js/app.js?v=2.9.3"></script>
 </body>
 </html>

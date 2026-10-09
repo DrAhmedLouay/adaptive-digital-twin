@@ -116,6 +116,25 @@ class TwinServerHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(csv_bytes)
             return
 
+        elif path == "/api/observation/template":
+            spaces = getattr(self.spatial_model, "spaces", {})
+            csv_lines = ["\ufeffspace_id,space_name,observation_hour,visitors_count,staff_count,notes"]
+            for s_id, s_data in spaces.items():
+                name = s_data.get("name_ar", s_data.get("name", s_id))
+                cap = s_data.get("capacity", 20)
+                csv_lines.append(f'"{s_id}","{name}","09:00",{int(cap*0.8)},{max(2, int(cap*0.15))},"رصد ميداني اعتيادي"')
+                csv_lines.append(f'"{s_id}","{name}","10:00",{int(cap*1.4)},{max(2, int(cap*0.15))},"رصد ذروة الصباح"')
+            csv_text = "\n".join(csv_lines)
+            csv_bytes = csv_text.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", 'attachment; filename="field_observation_survey_template.csv"')
+            self.send_header("Content-Length", str(len(csv_bytes)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(csv_bytes)
+            return
+
         super().do_GET()
 
     def do_POST(self):
@@ -130,7 +149,21 @@ class TwinServerHandler(http.server.SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
-        if path == "/api/scenario":
+        if path == "/api/observation/apply":
+            readings = data.get("readings", {})
+            hour = data.get("hour", "09:00")
+            for sp_id, count in readings.items():
+                self.iot_sim.sensor_readings[sp_id] = int(count)
+            eval_res = self.engine.evaluate_and_adapt(self.iot_sim.sensor_readings, self.iot_sim.corridor_flows)
+            self.send_json_response({
+                "status": "ok",
+                "message": f"تم تطبيق قراءات الملاحظة الميدانية لساعة {hour}",
+                "evaluation": eval_res,
+                "readings": self.iot_sim.sensor_readings
+            })
+            return
+
+        elif path == "/api/scenario":
             scenario = data.get("scenario", "normal")
             self.iot_sim.set_scenario(scenario)
             if self.iot_engine:
