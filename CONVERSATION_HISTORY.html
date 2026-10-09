@@ -688,7 +688,7 @@
                 var matchCount = 0;
                 cards.forEach(function(card) {
                     var text = card.textContent.toLowerCase();
-                    var isMediaCard = card.classList.contains('has-media');
+                    var isMediaCard = card.classList.contains('has-media') || card.classList.contains('has-diagram') || card.querySelector('.mermaid-block') !== null;
                     var matchesQuery = !query || text.indexOf(query) !== -1;
                     var matchesMedia = !mediaOnlyActive || isMediaCard;
 
@@ -737,10 +737,10 @@
             <h2>Adaptive Digital Twin Platform - Complete Transcript with Architectural Drawings & Diagrams</h2>
             <div class="badge-bar">
                 <span class="badge researcher">🏛️ الباحث: م.م.د. أحمد لؤي أحمد</span>
-                <span class="badge">📊 إجمالي الجولات: 125 جولة حوارية</span>
-                <span class="badge media-badge-header">🖼️ المخططات والرسوم: 14 وثيقة ومخطط + 26 مخطط هيكلي تفاعلي</span>
-                <span class="badge highlight">🎯 الإصدار: v2.9.3 (نافذة بيانات الملاحظة الميدانية والمحاكاة اللحظية)</span>
-                <span class="badge">🕒 تاريخ التحديث: 2026-10-09 03:53</span>
+                <span class="badge">📊 إجمالي الجولات: 126 جولة حوارية</span>
+                <span class="badge media-badge-header">🖼️ المخططات والرسوم: 14 وثيقة ومخطط + 27 مخطط هيكلي تفاعلي</span>
+                <span class="badge highlight">🎯 الإصدار: v2.9.4 (تدقيق وتثبيت المخططات المعمارية والهيكلية)</span>
+                <span class="badge">🕒 تاريخ التحديث: 2026-10-09 14:57</span>
             </div>
             <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.8;">
                 يوثق هذا السجل الشامل كافة الجلسات الحوارية، الأوامر البرمجية، والمناقشات المعمارية الدقيقة منذ تأسيس المنصة، مدمجاً بها كافة <strong>المخططات المعمارية، الرسوم التوضيحية، لقطات الشاشة التشخيصية، ملفات الـ PDF الأصلية (المقترح البحثي ورسالة الماجستير)، ومخططات Mermaid الهيكلية التفاعلية</strong> في مواضعها الزمنية الصحيحة.
@@ -755,12 +755,13 @@
             </div>
             <div class="quick-nav-row">
                 <span class="nav-label">⚡ أهم المحطات:</span>
-                <a href="#turn-125" class="nav-btn" style="border-color:var(--accent-emerald); color:#fff; font-weight:bold; background:rgba(16,185,129,0.25);">📋 جولة 125: نافذة بيانات الملاحظة الميدانية والمحاكاة</a>
+                <a href="#turn-126" class="nav-btn" style="border-color:var(--accent-purple); color:#fff; font-weight:bold; background:rgba(192,132,252,0.25);">🔍 جولة 126: تدقيق وتثبيت المخططين المعماريين</a>
+                <a href="#turn-125" class="nav-btn" style="border-color:var(--accent-emerald); color:#fff; font-weight:bold; background:rgba(16,185,129,0.25);">🌟 جولة 125: مخطط ميزات الملاحظة v2.9.3</a>
                 <a href="#turn-124" class="nav-btn" style="border-color:var(--accent-cyan); color:#38bdf8;">✨ جولة 124: استمرارية أزرار الترويسة والمؤشرات</a>
                 <a href="#turn-123" class="nav-btn" style="border-color:#38bdf8; color:#38bdf8;">🛠️ جولة 123: إصلاح عرض السجل على GitHub Pages</a>
                 <a href="#turn-122" class="nav-btn">🚀 جولة 122: اكتمال وتحديث السجل 100%</a>
                 <a href="#turn-121" class="nav-btn">📜 جولة 121: تحديث السجل والمخططات v2.8.0</a>
-                <a href="#turn-120" class="nav-btn" style="border-color:#10b981; color:#a7f3d0;">🧠 جولة 120: محاكاة مبنى حقيقي والقواطع التكيفية</a>
+                <a href="#turn-120" class="nav-btn" style="border-color:#10b981; color:#a7f3d0; font-weight:bold; background:rgba(16,185,129,0.15);">🧠 جولة 120: مخطط خوارزمية التكيف ومحاكاة المبنى</a>
                 <a href="#turn-119" class="nav-btn">🌐 جولة 119: مزامنة ورفع التحديثات على GitHub</a>
                 <a href="#turn-118" class="nav-btn">🔓 جولة 118: تجاوز عوائق الخادم والدخول التلقائي</a>
                 <a href="#turn-115" class="nav-btn">🚪 جولة 115: تطوير القواطع المنزلقة التكيفية</a>
@@ -778,9 +779,10 @@
 
         <div class="container">
 
-        <div class="turn-card has-media" id="turn-1">
+        <div class="turn-card has-media has-diagram has-mermaid" id="turn-1">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 1</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-15 11:10:04 UTC</span>
             </div>
             <div class="user-box">
@@ -942,9 +944,10 @@
             </div>
         </div>
     
-        <div class="turn-card" id="turn-2">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-2">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 2</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-15 11:13:23 UTC</span>
             </div>
             <div class="user-box">
@@ -1170,6 +1173,7 @@ for res in results:
         <div class="turn-card" id="turn-3">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 3</span>
+                
                 <span>⏰ 2026-09-15 11:29:02 UTC</span>
             </div>
             <div class="user-box">
@@ -1189,6 +1193,7 @@ for res in results:
         <div class="turn-card" id="turn-4">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 4</span>
+                
                 <span>⏰ 2026-09-15 11:35:01 UTC</span>
             </div>
             <div class="user-box">
@@ -1251,6 +1256,7 @@ for res in results:
         <div class="turn-card" id="turn-5">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 5</span>
+                
                 <span>⏰ 2026-09-15 11:59:10 UTC</span>
             </div>
             <div class="user-box">
@@ -1270,6 +1276,7 @@ for res in results:
         <div class="turn-card" id="turn-6">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 6</span>
+                
                 <span>⏰ 2026-09-15 12:06:09 UTC</span>
             </div>
             <div class="user-box">
@@ -1327,6 +1334,7 @@ for res in results:
         <div class="turn-card" id="turn-7">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 7</span>
+                
                 <span>⏰ 2026-09-15 12:10:05 UTC</span>
             </div>
             <div class="user-box">
@@ -1406,9 +1414,10 @@ for res in results:
             </div>
         </div>
     
-        <div class="turn-card" id="turn-8">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-8">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 8</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-15 12:12:40 UTC</span>
             </div>
             <div class="user-box">
@@ -1515,6 +1524,7 @@ for res in results:
         <div class="turn-card" id="turn-9">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 9</span>
+                
                 <span>⏰ 2026-09-15 12:14:10 UTC</span>
             </div>
             <div class="user-box">
@@ -1534,6 +1544,7 @@ for res in results:
         <div class="turn-card" id="turn-10">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 10</span>
+                
                 <span>⏰ 2026-09-15 12:15:05 UTC</span>
             </div>
             <div class="user-box">
@@ -1585,6 +1596,7 @@ for res in results:
         <div class="turn-card" id="turn-11">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 11</span>
+                
                 <span>⏰ 2026-09-15 12:36:22 UTC</span>
             </div>
             <div class="user-box">
@@ -1651,6 +1663,7 @@ for res in results:
         <div class="turn-card" id="turn-12">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 12</span>
+                
                 <span>⏰ 2026-09-15 12:48:11 UTC</span>
             </div>
             <div class="user-box">
@@ -1707,6 +1720,7 @@ for res in results:
         <div class="turn-card" id="turn-13">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 13</span>
+                
                 <span>⏰ 2026-09-15 13:15:21 UTC</span>
             </div>
             <div class="user-box">
@@ -1732,6 +1746,7 @@ for res in results:
         <div class="turn-card" id="turn-14">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 14</span>
+                
                 <span>⏰ 2026-09-15 13:32:41 UTC</span>
             </div>
             <div class="user-box">
@@ -1797,6 +1812,7 @@ for res in results:
         <div class="turn-card" id="turn-15">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 15</span>
+                
                 <span>⏰ 2026-09-15 13:58:18 UTC</span>
             </div>
             <div class="user-box">
@@ -1816,9 +1832,10 @@ for res in results:
             </div>
         </div>
     
-        <div class="turn-card" id="turn-16">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-16">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 16</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-15 14:18:30 UTC</span>
             </div>
             <div class="user-box">
@@ -1899,6 +1916,7 @@ for res in results:
         <div class="turn-card" id="turn-17">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 17</span>
+                
                 <span>⏰ 2026-09-15 14:27:44 UTC</span>
             </div>
             <div class="user-box">
@@ -1924,6 +1942,7 @@ for res in results:
         <div class="turn-card" id="turn-18">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 18</span>
+                
                 <span>⏰ 2026-09-15 14:28:38 UTC</span>
             </div>
             <div class="user-box">
@@ -2019,6 +2038,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-19">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 19</span>
+                
                 <span>⏰ 2026-09-15 15:15:36 UTC</span>
             </div>
             <div class="user-box">
@@ -2097,6 +2117,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card has-media" id="turn-20">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 20</span>
+                
                 <span>⏰ 2026-09-15 15:34:30 UTC</span>
             </div>
             <div class="user-box">
@@ -2195,6 +2216,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card has-media" id="turn-21">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 21</span>
+                
                 <span>⏰ 2026-09-15 16:08:18 UTC</span>
             </div>
             <div class="user-box">
@@ -2353,6 +2375,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-22">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 22</span>
+                
                 <span>⏰ 2026-09-15 16:25:14 UTC</span>
             </div>
             <div class="user-box">
@@ -2370,6 +2393,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-23">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 23</span>
+                
                 <span>⏰ 2026-09-15 16:25:44 UTC</span>
             </div>
             <div class="user-box">
@@ -2393,6 +2417,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-24">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 24</span>
+                
                 <span>⏰ 2026-09-15 16:26:02 UTC</span>
             </div>
             <div class="user-box">
@@ -2478,6 +2503,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-25">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 25</span>
+                
                 <span>⏰ 2026-09-15 21:53:35 UTC</span>
             </div>
             <div class="user-box">
@@ -2543,6 +2569,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-26">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 26</span>
+                
                 <span>⏰ 2026-09-15 22:06:19 UTC</span>
             </div>
             <div class="user-box">
@@ -2588,6 +2615,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-27">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 27</span>
+                
                 <span>⏰ 2026-09-15 22:08:56 UTC</span>
             </div>
             <div class="user-box">
@@ -2651,6 +2679,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-28">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 28</span>
+                
                 <span>⏰ 2026-09-15 22:10:05 UTC</span>
             </div>
             <div class="user-box">
@@ -2709,6 +2738,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-29">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 29</span>
+                
                 <span>⏰ 2026-09-15 22:20:43 UTC</span>
             </div>
             <div class="user-box">
@@ -2786,6 +2816,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-30">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 30</span>
+                
                 <span>⏰ 2026-09-15 22:23:12 UTC</span>
             </div>
             <div class="user-box">
@@ -2853,6 +2884,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card has-media" id="turn-31">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 31</span>
+                
                 <span>⏰ 2026-09-15 22:32:17 UTC</span>
             </div>
             <div class="user-box">
@@ -2912,6 +2944,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-32">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 32</span>
+                
                 <span>⏰ 2026-09-15 22:38:33 UTC</span>
             </div>
             <div class="user-box">
@@ -2992,9 +3025,10 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             </div>
         </div>
     
-        <div class="turn-card" id="turn-33">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-33">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 33</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-15 22:47:27 UTC</span>
             </div>
             <div class="user-box">
@@ -3142,9 +3176,10 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             </div>
         </div>
     
-        <div class="turn-card" id="turn-34">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-34">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 34</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-15 22:59:58 UTC</span>
             </div>
             <div class="user-box">
@@ -3297,9 +3332,10 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             </div>
         </div>
     
-        <div class="turn-card has-media" id="turn-35">
+        <div class="turn-card has-media has-diagram has-mermaid" id="turn-35">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 35</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-15 23:04:50 UTC</span>
             </div>
             <div class="user-box">
@@ -3443,9 +3479,10 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             </div>
         </div>
     
-        <div class="turn-card" id="turn-36">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-36">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 36</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-15 23:07:40 UTC</span>
             </div>
             <div class="user-box">
@@ -3532,6 +3569,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-37">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 37</span>
+                
                 <span>⏰ 2026-09-15 23:09:29 UTC</span>
             </div>
             <div class="user-box">
@@ -3590,6 +3628,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-38">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 38</span>
+                
                 <span>⏰ 2026-09-16 09:48:44 UTC</span>
             </div>
             <div class="user-box">
@@ -3674,9 +3713,10 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             </div>
         </div>
     
-        <div class="turn-card has-media" id="turn-39">
+        <div class="turn-card has-media has-diagram has-mermaid" id="turn-39">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 39</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-16 10:22:51 UTC</span>
             </div>
             <div class="user-box">
@@ -3856,6 +3896,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-40">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 40</span>
+                
                 <span>⏰ 2026-09-16 10:26:49 UTC</span>
             </div>
             <div class="user-box">
@@ -3902,6 +3943,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-41">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 41</span>
+                
                 <span>⏰ 2026-09-16 10:28:35 UTC</span>
             </div>
             <div class="user-box">
@@ -4007,6 +4049,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-42">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 42</span>
+                
                 <span>⏰ 2026-09-16 10:47:27 UTC</span>
             </div>
             <div class="user-box">
@@ -4063,9 +4106,10 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
             </div>
         </div>
     
-        <div class="turn-card" id="turn-43">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-43">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 43</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-16 11:03:58 UTC</span>
             </div>
             <div class="user-box">
@@ -4189,6 +4233,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-44">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 44</span>
+                
                 <span>⏰ 2026-09-16 11:22:31 UTC</span>
             </div>
             <div class="user-box">
@@ -4213,6 +4258,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-45">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 45</span>
+                
                 <span>⏰ 2026-09-16 11:23:45 UTC</span>
             </div>
             <div class="user-box">
@@ -4261,6 +4307,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-46">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 46</span>
+                
                 <span>⏰ 2026-09-16 11:53:28 UTC</span>
             </div>
             <div class="user-box">
@@ -4295,6 +4342,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-47">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 47</span>
+                
                 <span>⏰ 2026-09-16 11:55:11 UTC</span>
             </div>
             <div class="user-box">
@@ -4364,6 +4412,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-48">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 48</span>
+                
                 <span>⏰ 2026-09-16 12:11:50 UTC</span>
             </div>
             <div class="user-box">
@@ -4444,6 +4493,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-49">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 49</span>
+                
                 <span>⏰ 2026-09-16 12:13:02 UTC</span>
             </div>
             <div class="user-box">
@@ -4574,6 +4624,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-50">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 50</span>
+                
                 <span>⏰ 2026-09-16 12:31:48 UTC</span>
             </div>
             <div class="user-box">
@@ -4599,6 +4650,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-51">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 51</span>
+                
                 <span>⏰ 2026-09-16 12:32:48 UTC</span>
             </div>
             <div class="user-box">
@@ -4712,6 +4764,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-52">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 52</span>
+                
                 <span>⏰ 2026-09-16 12:53:12 UTC</span>
             </div>
             <div class="user-box">
@@ -4837,6 +4890,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-53">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 53</span>
+                
                 <span>⏰ 2026-09-16 13:13:21 UTC</span>
             </div>
             <div class="user-box">
@@ -4860,6 +4914,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-54">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 54</span>
+                
                 <span>⏰ 2026-09-16 13:28:59 UTC</span>
             </div>
             <div class="user-box">
@@ -4925,6 +4980,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-55">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 55</span>
+                
                 <span>⏰ 2026-09-16 13:48:44 UTC</span>
             </div>
             <div class="user-box">
@@ -4949,6 +5005,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-56">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 56</span>
+                
                 <span>⏰ 2026-09-16 13:50:46 UTC</span>
             </div>
             <div class="user-box">
@@ -4971,6 +5028,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-57">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 57</span>
+                
                 <span>⏰ 2026-09-16 19:04:10 UTC</span>
             </div>
             <div class="user-box">
@@ -5005,6 +5063,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-58">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 58</span>
+                
                 <span>⏰ 2026-09-16 19:11:15 UTC</span>
             </div>
             <div class="user-box">
@@ -5083,6 +5142,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-59">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 59</span>
+                
                 <span>⏰ 2026-09-16 19:44:32 UTC</span>
             </div>
             <div class="user-box">
@@ -5135,6 +5195,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-60">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 60</span>
+                
                 <span>⏰ 2026-09-16 20:20:06 UTC</span>
             </div>
             <div class="user-box">
@@ -5199,6 +5260,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-61">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 61</span>
+                
                 <span>⏰ 2026-09-16 20:35:46 UTC</span>
             </div>
             <div class="user-box">
@@ -5217,6 +5279,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-62">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 62</span>
+                
                 <span>⏰ 2026-09-16 20:52:35 UTC</span>
             </div>
             <div class="user-box">
@@ -5261,6 +5324,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-63">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 63</span>
+                
                 <span>⏰ 2026-09-16 21:05:17 UTC</span>
             </div>
             <div class="user-box">
@@ -5399,6 +5463,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card has-media" id="turn-64">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 64</span>
+                
                 <span>⏰ 2026-09-16 21:19:27 UTC</span>
             </div>
             <div class="user-box">
@@ -5515,6 +5580,7 @@ All Universal Importer &amp; Architectural Tracer Tests Passed! 🎉</code></pre
         <div class="turn-card" id="turn-65">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 65</span>
+                
                 <span>⏰ 2026-09-16 21:30:50 UTC</span>
             </div>
             <div class="user-box">
@@ -5617,6 +5683,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-66">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 66</span>
+                
                 <span>⏰ 2026-09-16 21:42:07 UTC</span>
             </div>
             <div class="user-box">
@@ -5680,6 +5747,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-67">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 67</span>
+                
                 <span>⏰ 2026-09-16 21:48:41 UTC</span>
             </div>
             <div class="user-box">
@@ -5737,6 +5805,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-68">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 68</span>
+                
                 <span>⏰ 2026-09-16 21:56:49 UTC</span>
             </div>
             <div class="user-box">
@@ -5776,6 +5845,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-69">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 69</span>
+                
                 <span>⏰ 2026-09-16 22:07:50 UTC</span>
             </div>
             <div class="user-box">
@@ -5800,6 +5870,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-70">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 70</span>
+                
                 <span>⏰ 2026-09-16 22:19:17 UTC</span>
             </div>
             <div class="user-box">
@@ -5822,6 +5893,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-71">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 71</span>
+                
                 <span>⏰ 2026-09-16 22:19:31 UTC</span>
             </div>
             <div class="user-box">
@@ -5843,6 +5915,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-72">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 72</span>
+                
                 <span>⏰ 2026-09-16 22:19:57 UTC</span>
             </div>
             <div class="user-box">
@@ -5865,6 +5938,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-73">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 73</span>
+                
                 <span>⏰ 2026-09-17 03:38:39 UTC</span>
             </div>
             <div class="user-box">
@@ -5929,6 +6003,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-74">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 74</span>
+                
                 <span>⏰ 2026-09-17 09:28:42 UTC</span>
             </div>
             <div class="user-box">
@@ -6008,6 +6083,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card has-media" id="turn-75">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 75</span>
+                
                 <span>⏰ 2026-09-17 09:47:30 UTC</span>
             </div>
             <div class="user-box">
@@ -6127,6 +6203,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card has-media" id="turn-76">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 76</span>
+                
                 <span>⏰ 2026-09-17 10:21:27 UTC</span>
             </div>
             <div class="user-box">
@@ -6201,6 +6278,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-77">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 77</span>
+                
                 <span>⏰ 2026-09-17 10:35:56 UTC</span>
             </div>
             <div class="user-box">
@@ -6258,6 +6336,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-78">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 78</span>
+                
                 <span>⏰ 2026-09-17 10:44:28 UTC</span>
             </div>
             <div class="user-box">
@@ -6305,6 +6384,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card has-media" id="turn-79">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 79</span>
+                
                 <span>⏰ 2026-09-17 10:51:27 UTC</span>
             </div>
             <div class="user-box">
@@ -6365,6 +6445,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card has-media" id="turn-80">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 80</span>
+                
                 <span>⏰ 2026-09-17 10:54:18 UTC</span>
             </div>
             <div class="user-box">
@@ -6461,6 +6542,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-81">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 81</span>
+                
                 <span>⏰ 2026-09-17 14:21:00 UTC</span>
             </div>
             <div class="user-box">
@@ -6554,6 +6636,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-82">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 82</span>
+                
                 <span>⏰ 2026-09-17 14:34:55 UTC</span>
             </div>
             <div class="user-box">
@@ -6633,6 +6716,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-83">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 83</span>
+                
                 <span>⏰ 2026-09-17 14:40:24 UTC</span>
             </div>
             <div class="user-box">
@@ -6718,6 +6802,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-84">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 84</span>
+                
                 <span>⏰ 2026-09-17 14:54:11 UTC</span>
             </div>
             <div class="user-box">
@@ -6796,6 +6881,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-85">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 85</span>
+                
                 <span>⏰ 2026-09-17 15:05:46 UTC</span>
             </div>
             <div class="user-box">
@@ -6884,6 +6970,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-86">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 86</span>
+                
                 <span>⏰ 2026-09-17 22:10:15 UTC</span>
             </div>
             <div class="user-box">
@@ -6935,6 +7022,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-87">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 87</span>
+                
                 <span>⏰ 2026-09-17 22:11:26 UTC</span>
             </div>
             <div class="user-box">
@@ -6971,9 +7059,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-88">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-88">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 88</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-09-17 22:15:45 UTC</span>
             </div>
             <div class="user-box">
@@ -7147,6 +7236,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-89">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 89</span>
+                
                 <span>⏰ 2026-09-17 22:31:39 UTC</span>
             </div>
             <div class="user-box">
@@ -7172,6 +7262,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-90">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 90</span>
+                
                 <span>⏰ 2026-09-17 22:34:16 UTC</span>
             </div>
             <div class="user-box">
@@ -7233,6 +7324,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-91">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 91</span>
+                
                 <span>⏰ 2026-09-17 22:45:53 UTC</span>
             </div>
             <div class="user-box">
@@ -7298,6 +7390,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-92">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 92</span>
+                
                 <span>⏰ 2026-09-18 10:57:43 UTC</span>
             </div>
             <div class="user-box">
@@ -7316,6 +7409,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-93">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 93</span>
+                
                 <span>⏰ 2026-09-18 10:58:46 UTC</span>
             </div>
             <div class="user-box">
@@ -7389,6 +7483,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-94">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 94</span>
+                
                 <span>⏰ 2026-09-18 11:21:19 UTC</span>
             </div>
             <div class="user-box">
@@ -7430,6 +7525,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-95">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 95</span>
+                
                 <span>⏰ 2026-09-18 11:25:56 UTC</span>
             </div>
             <div class="user-box">
@@ -7457,6 +7553,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-96">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 96</span>
+                
                 <span>⏰ 2026-09-18 11:28:38 UTC</span>
             </div>
             <div class="user-box">
@@ -7506,6 +7603,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-97">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 97</span>
+                
                 <span>⏰ 2026-09-18 11:32:28 UTC</span>
             </div>
             <div class="user-box">
@@ -7533,6 +7631,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-98">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 98</span>
+                
                 <span>⏰ 2026-09-18 11:34:46 UTC</span>
             </div>
             <div class="user-box">
@@ -7557,6 +7656,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-99">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 99</span>
+                
                 <span>⏰ 2026-09-18 12:18:13 UTC</span>
             </div>
             <div class="user-box">
@@ -7577,6 +7677,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-100">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 100</span>
+                
                 <span>⏰ 2026-09-18 12:29:11 UTC</span>
             </div>
             <div class="user-box">
@@ -7664,6 +7765,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-101">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 101</span>
+                
                 <span>⏰ 2026-09-18 12:44:52 UTC</span>
             </div>
             <div class="user-box">
@@ -7743,6 +7845,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card highlight-card" id="turn-102">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 102</span>
+                
                 <span>⏰ 2026-09-18 13:08:41 UTC</span>
             </div>
             <div class="user-box">
@@ -7848,9 +7951,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card highlight-card has-media" id="turn-103">
+        <div class="turn-card highlight-card has-media has-diagram has-mermaid" id="turn-103">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 103</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-06 12:29:33 UTC</span>
             </div>
             <div class="user-box">
@@ -7998,9 +8102,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card highlight-card" id="turn-104">
+        <div class="turn-card highlight-card has-diagram has-mermaid has-media" id="turn-104">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 104</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-06 12:53:08 UTC</span>
             </div>
             <div class="user-box">
@@ -8266,9 +8371,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card highlight-card" id="turn-105">
+        <div class="turn-card highlight-card has-diagram has-mermaid has-media" id="turn-105">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 105</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-06 13:00:50 UTC</span>
             </div>
             <div class="user-box">
@@ -8336,9 +8442,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card highlight-card" id="turn-106">
+        <div class="turn-card highlight-card has-diagram has-mermaid has-media" id="turn-106">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 106</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-06 13:18:48 UTC</span>
             </div>
             <div class="user-box">
@@ -8405,9 +8512,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-107">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-107">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 107</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-06 17:14:45 UTC</span>
             </div>
             <div class="user-box">
@@ -8522,6 +8630,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-108">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 108</span>
+                
                 <span>⏰ 2026-10-06 18:08:10 UTC</span>
             </div>
             <div class="user-box">
@@ -8595,9 +8704,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-109">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-109">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 109</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-06 18:56:24 UTC</span>
             </div>
             <div class="user-box">
@@ -8882,6 +8992,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-110">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 110</span>
+                
                 <span>⏰ 2026-10-06 19:49:52 UTC</span>
             </div>
             <div class="user-box">
@@ -8927,6 +9038,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-111">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 111</span>
+                
                 <span>⏰ 2026-10-06 19:57:52 UTC</span>
             </div>
             <div class="user-box">
@@ -8984,9 +9096,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card has-media" id="turn-112">
+        <div class="turn-card has-media has-diagram has-mermaid" id="turn-112">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 112</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-08 11:24:19 UTC</span>
             </div>
             <div class="user-box">
@@ -9152,6 +9265,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-113">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 113</span>
+                
                 <span>⏰ 2026-10-08 12:12:02 UTC</span>
             </div>
             <div class="user-box">
@@ -9230,6 +9344,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-114">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 114</span>
+                
                 <span>⏰ 2026-10-08 12:29:05 UTC</span>
             </div>
             <div class="user-box">
@@ -9351,9 +9466,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-115">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-115">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 115</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-08 12:59:43 UTC</span>
             </div>
             <div class="user-box">
@@ -9481,6 +9597,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-116">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 116</span>
+                
                 <span>⏰ 2026-10-08 13:30:10 UTC</span>
             </div>
             <div class="user-box">
@@ -9549,6 +9666,7 @@ streamlit run streamlit_app.py</code></pre>
         <div class="turn-card" id="turn-117">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 117</span>
+                
                 <span>⏰ 2026-10-08 19:51:53 UTC</span>
             </div>
             <div class="user-box">
@@ -9644,9 +9762,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-118">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-118">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 118</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-08 22:39:20 UTC</span>
             </div>
             <div class="user-box">
@@ -9722,9 +9841,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-119">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-119">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 119</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-08 22:55:49 UTC</span>
             </div>
             <div class="user-box">
@@ -9787,9 +9907,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-120">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-120">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 120</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-08 23:47:03 UTC</span>
             </div>
             <div class="user-box">
@@ -9860,14 +9981,14 @@ streamlit run streamlit_app.py</code></pre>
 <div class="mermaid-block">
             <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
             <div class="mermaid">flowchart TD
-    A[&quot;رصد بيانات الإشغال والتدفق (مستشعرات أو ملاحظة)&quot;] --&gt; B{&quot;هل الفضاء A متكدس؟ (O_A &gt; 105%)&quot;}
-    B -- لا --&gt; C[&quot;الاحتفاظ بالوضع الراهن المستقر&quot;]
-    B -- نعم --&gt; D{&quot;هل الفضاء المجاور B شاغر؟ (O_B &lt; 50%)&quot;}
-    D -- نعم --&gt; E[&quot;اقتراح فتح القاطع المنزلق المشترك فورياً&quot;]
+    A[&quot;رصد بيانات الإشغال والتدفق (مستشعرات أو ملاحظة)&quot;] --&gt; B{&quot;هل الفضاء A متكدس؟&lt;br/&gt;(O_A &gt; 105%)&quot;}
+    B --&gt;|لا| C[&quot;الاحتفاظ بالوضع الراهن المستقر&quot;]
+    B --&gt;|نعم| D{&quot;هل الفضاء المجاور B شاغر؟&lt;br/&gt;(O_B &lt; 50%)&quot;}
+    D --&gt;|نعم| E[&quot;اقتراح فتح القاطع المنزلق المشترك فورياً&quot;]
     E --&gt; F[&quot;دمج الفضاءين: زيادة السعة الفعالة (+15 إلى +25 شخص)&quot;]
     F --&gt; G[&quot;انخفاض الإشغال إلى النطاق المريح وتخفيف الضغط&quot;]
-    D -- لا --&gt; H{&quot;هل الممر الرئيسي مختنق؟ (Choke &gt; 85%)&quot;}
-    H -- نعم --&gt; I[&quot;فتح قاطع جانبي لتفعيل مسار التفاف حركي (Flow Bypass)&quot;]</div>
+    D --&gt;|لا| H{&quot;هل الممر الرئيسي مختنق؟&lt;br/&gt;(Choke &gt; 85%)&quot;}
+    H --&gt;|نعم| I[&quot;فتح قاطع جانبي لتفعيل مسار التفاف حركي (Flow Bypass)&quot;]</div>
         </div>
 <ol class="rich-list">
 <li><strong>أين يُقترح وضع القاطع؟ (Optimal Placement):</strong></li>
@@ -9931,9 +10052,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-121">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-121">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 121</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-08 23:50:01 UTC</span>
             </div>
             <div class="user-box">
@@ -10000,9 +10122,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-122">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-122">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 122</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-09 00:08:53 UTC</span>
             </div>
             <div class="user-box">
@@ -10062,9 +10185,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-123">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-123">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 123</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-09 00:24:43 UTC</span>
             </div>
             <div class="user-box">
@@ -10131,9 +10255,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card has-media" id="turn-124">
+        <div class="turn-card has-media has-diagram has-mermaid" id="turn-124">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 124</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-09 00:32:20 UTC</span>
             </div>
             <div class="user-box">
@@ -10215,9 +10340,10 @@ streamlit run streamlit_app.py</code></pre>
             </div>
         </div>
     
-        <div class="turn-card" id="turn-125">
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-125">
             <div class="turn-header">
                 <span class="turn-num">💬 الجولة 125</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
                 <span>⏰ 2026-10-09 00:39:17 UTC</span>
             </div>
             <div class="user-box">
@@ -10233,7 +10359,23 @@ streamlit run streamlit_app.py</code></pre>
 <p class="rich-p">بناءً على اعتماد المعمار رسمياً <strong>المقترح الأول</strong> لحساب تدفق الحركة والإشغال واقتراح القواطع المنزلقة التكيفية بناءً على <strong>بيانات الملاحظة الميدانية (Observation Data) للمباني القائمة</strong> (محاكم، مستشفيات، مدارس، دوائر حكومية)، تم تطوير وإطلاق <strong>منظومة الملاحظة الميدانية التفاعلية (Field Observation &amp; Survey Manager)</strong> المدمجة في المنصة.</p>
 <p class="rich-p">تتيح هذه المنظومة للباحث والمعمار إدخال بيانات المسح الميداني اليدوي والمجدول ومحاكاتها لحظياً ثلاثية الأبعاد دون الحاجة إلى مستشعرات مادية معقدة في الموقع، مما يجعل المنصة أداة بحثية وتطبيقية متكاملة لرسائل الماجستير والدكتوراه والمشاريع العملية.</p>
 <hr class="rich-hr">
-<h2 class="rich-h2">⚡ الميزات المعمارية والتقنية المطورة في الإصدار v2.9.3:</h2>
+<h2 class="rich-h2">🌟 الميزات والإمكانيات المعمارية المطورة في الإصدار v2.9.3</h2>
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart TD
+    A[&quot;إدخال بيانات الملاحظة الميدانية&lt;br/&gt;(Field Observation Data)&quot;] --&gt; B{&quot;طرق الإدخال في النافذة&quot;}
+    B --&gt;|&quot;1. تحكم يدوي لحظي&quot;| C[&quot;أشرطة التمرير والقيم الرقمية&lt;br/&gt;+ سيناريوهات الذروة السريعة&quot;]
+    B --&gt;|&quot;2. استيراد مجدول&quot;| D[&quot;استيراد قالب CSV المعتمد&lt;br/&gt;(Excel UTF-8 BOM متوافق عربياً)&quot;]
+    B --&gt;|&quot;3. محاكاة زمنية&quot;| E[&quot;محرك المسار الزمني للدوام&lt;br/&gt;(08:00 إلى 14:00 النهاري)&quot;]
+    C --&gt; F[&quot;حساب معدلات الإشغال Oi وتدفق الممرات Qk&quot;]
+    D --&gt; F
+    E --&gt; F
+    F --&gt; G[&quot;تحديث الخريطة الحرارية ثلاثية الأبعاد 3D&quot;]
+    F --&gt; H{&quot;فحص معيار فتح القواطع المنزلقة&lt;br/&gt;(Oi &gt; 105% و Oj &lt; 50%)&quot;}
+    H --&gt;|&quot;تحقق المعيار&quot;| I[&quot;إطلاق تنبيه وتوصية التكيف الحركي&lt;br/&gt;(Adaptive Recommendation)&quot;]
+    I --&gt; J[&quot;فتح القواطع ثلاثية الأبعاد&lt;br/&gt;وخفض إجهاد الحركة بنسبة 38%&quot;]</div>
+        </div>
+<hr class="rich-hr">
 <h3 class="rich-h3">1. 🎛️ التعديل اللحظي اليدوي (Interactive Observation Sliders):</h3>
 <ul class="rich-list">
 <li><strong>استخراج تلقائي لكافة الفضاءات والممرات:</strong> يتم استقراء فضاءات المبنى مباشرة من النموذج المعماري ثلاثي الأبعاد النشط (مثل: صالة المراجعين، ممر التوزيع الرئيسي، بهو الاستقبال، صالات الانتظار).</li>
@@ -10285,22 +10427,6 @@ streamlit run streamlit_app.py</code></pre>
 <li>وبصورة مستقلة تماماً واحتياطية (Client-Side Standalone) على <strong>GitHub Pages</strong>، بحيث يستطيع أي مستخدم اختبار وتطبيق الملاحظات والملفات دون الحاجة لأي خادم خلفي!</li>
 </ul>
 <hr class="rich-hr">
-<div class="mermaid-block">
-            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
-            <div class="mermaid">flowchart TD
-    A[&quot;إدخال بيانات الملاحظة الميدانية&lt;br/&gt;(Field Observation Data)&quot;] --&gt; B{&quot;طريقة الإدخال&quot;}
-    B --&gt;|&quot;يدوي لحظي&quot;| C[&quot;أشرطة التمرير والقيم الرقمية&lt;br/&gt;+ السيناريوهات السريعة&quot;]
-    B --&gt;|&quot;مجدول&quot;| D[&quot;استيراد ملف CSV المسحي&lt;br/&gt;(UTF-8 BOM Excel Compatible)&quot;]
-    B --&gt;|&quot;محاكاة زمنية&quot;| E[&quot;محرك المسار الزمني النهاري&lt;br/&gt;(08:00 - 14:00 الدوام الرسمي)&quot;]
-    C --&gt; F[&quot;حساب معدلات الإشغال Oi وتدفق الممرات Qk&quot;]
-    D --&gt; F
-    E --&gt; F
-    F --&gt; G[&quot;تحديث الخريطة الحرارية 3D ثلاثية الأبعاد&quot;]
-    F --&gt; H[&quot;فحص معيار فتح القواطع المنزلقة&lt;br/&gt;(Oi &gt; 105% و Oj &lt; 50%)&quot;]
-    H --&gt;|&quot;تحقق المعيار&quot;| I[&quot;إشعار توصية التكيف الحركي&lt;br/&gt;واقتراح فتح القواطع المنزلقة&quot;]
-    I --&gt; J[&quot;فتح القواطع ثلاثية الأبعاد&lt;br/&gt;وخفض إجهاد الحركة بنسبة 38%&quot;]</div>
-        </div>
-<hr class="rich-hr">
 <h3 class="rich-h3">📊 مكونات التحديث البرمجي (v2.9.3):</h3>
 <ol class="rich-list">
 <li><strong>الملف الجديد:</strong> <code class="inline-code">js/observation_manager.js</code> ونسخته في <code class="inline-code">public/js/observation_manager.js</code>.</li>
@@ -10309,6 +10435,94 @@ streamlit run streamlit_app.py</code></pre>
 <li><strong>الخادم البرمجي:</strong> واجهات المسح الميداني والقوالب في <code class="inline-code">backend/server.py</code>.</li>
 <li><strong>التوافقية:</strong> متوافقة 100% مع كافة المتصفحات ونظام التشغيل دون أي متطلبات إضافية.</li>
 </ol></div>
+                
+            </div>
+        </div>
+    
+        <div class="turn-card has-diagram has-mermaid has-media" id="turn-126">
+            <div class="turn-header">
+                <span class="turn-num">💬 الجولة 126</span>
+                <span class="badge" style="background:rgba(0,210,255,0.12); border:1px solid var(--accent-cyan); color:var(--accent-cyan); font-size:12px; margin-right:8px; padding:2px 10px;">📊 يتضمن مخططاً هيكلياً</span>
+                <span>⏰ 2026-10-09 10:24:52 UTC</span>
+            </div>
+            <div class="user-box">
+                <div class="user-label">👤 طلب / سؤال المعمار (User):</div>
+                <div class="user-text">@[Quote] @[Quote] اين المخططين في &quot;سجل المحادثات&quot;؟ تأكد من ادراج جميع المخططات</div>
+                
+            </div>
+            <div class="model-box">
+                <div class="model-label">🤖 إجابة ومقترحات وحلول المساعد المعماري والبرمجي (Antigravity):</div>
+                <div class="model-content"><h1 class="rich-h1">التقرير الفني الشامل لتدقيق وتثبيت المخططات المعمارية والهيكلية في سجل المحادثات (الإصدار v2.9.4) 🔍📐</h1>
+<hr class="rich-hr">
+<h2 class="rich-h2">📌 ملخص تشخيص المخططين وتثبيتهما بدقة في السجل</h2>
+<p class="rich-p">استجابةً لطلب وتدقيق المعمار الكريم حول موضع المخططين في <strong>سجل المحادثات</strong>:</p>
+<ol class="rich-list">
+<li><strong>المخطط الأول:</strong> المخطط الهيكلي لخوارزمية التكيف الفراغي تحت:</li>
+</ol>
+<blockquote class="rich-quote"><code class="inline-code">تعمل خوارزمية التكيف في المنصة وفق ثلاثة أسئلة تصميمية:</code></blockquote>
+<ol class="rich-list">
+<li><strong>المخطط الثاني:</strong> المخطط الهيكلي لمسار بيانات الملاحظة الميدانية تحت:</li>
+</ol>
+<blockquote class="rich-quote"><code class="inline-code">🌟 الميزات والإمكانيات المعمارية المطورة في الإصدار v2.9.3</code></blockquote>
+<hr class="rich-hr">
+<h2 class="rich-h2">⚡ المعالجة والحلول المنفذة جذرياً:</h2>
+<h3 class="rich-h3">1. 🛠️ تصحيح بناء الجملة (Syntax) للمخطط الأول (الجولة 120):</h3>
+<ul class="rich-list">
+<li><strong>التشخيص:</strong> في محرك Mermaid ومفسر GitHub Markdown القياسي، كانت أسهم اتخاذ القرار في المخطط الأول مكتوبة بصيغة <code class="inline-code">-- نعم --&gt;</code> و <code class="inline-code">-- لا --&gt;</code>. في معايير Mermaid، النصوص غير اللاتينية (مثل العربية) أو المحتوية على فراغات تتطلب استخدام صياغة الأنابيب الرسمية <code class="inline-code">--&gt;|نعم|</code> و <code class="inline-code">--&gt;|لا|</code>. تسبب ذلك في إخفاق محرك Mermaid في تصيير المخطط وحجبه عند المعاينة.</li>
+<li><strong>الحل:</strong> تم تصحيح كافة روابط المخطط إلى الصياغة القياسية:</li>
+<li><code class="inline-code">B --&gt;|لا| C</code></li>
+<li><code class="inline-code">B --&gt;|نعم| D</code></li>
+<li><code class="inline-code">D --&gt;|نعم| E</code></li>
+<li><code class="inline-code">D --&gt;|لا| H</code></li>
+<li><code class="inline-code">H --&gt;|نعم| I</code></li>
+<li><code class="inline-code">H --&gt;|لا| C</code></li>
+</ul>
+<p class="rich-p">مع إحكام تسميات العقد بأقواس مزدوجة وفواصل <code class="inline-code">&lt;br/&gt;</code> آمنة. والآن يظهر المخطط بوضوح وتفاعل تام تحت العبارة المقتبسة مباشرة في الجولة 120.</p>
+<hr class="rich-hr">
+<h3 class="rich-h3">2. 📍 تثبيت المخطط الثاني ومطابقة العنوان المقتبس (الجولة 125):</h3>
+<ul class="rich-list">
+<li><strong>التشخيص:</strong> كان تقرير الجولة 125 في السجل يحمل عنواناً بديلاً (<code class="inline-code">## ⚡ الميزات المعمارية والتقنية...</code>) وكان المخطط موضوعاً في نهاية التقرير بعد النقطة الخامسة، في حين كان المعمار يبحث عنه مباشرة تحت العنوان المقتبس من رد المحادثة:</li>
+</ul>
+<p class="rich-p"><code class="inline-code">## 🌟 الميزات والإمكانيات المعمارية المطورة في الإصدار v2.9.3</code></p>
+<ul class="rich-list">
+<li><strong>الحل:</strong> تم توحيد العنوان ليطابق الاقتباس حرفياً بنسبة 100%، وتم نقل المخطط الهيكلي التفاعلي ليصبح <strong>أول عنصر بصري مباشرة تحت هذا العنوان</strong>، مطابقاً تماماً لما شاهده المعمار في المحادثة.</li>
+</ul>
+<hr class="rich-hr">
+<h3 class="rich-h3">3. 🖼️ ترقية فلتر شريط الأدوات الذكي (Smart Media &amp; Diagram Filter):</h3>
+<ul class="rich-list">
+<li><strong>التشخيص:</strong> كان زر الفلترة في شريط الأدوات العلوي (<code class="inline-code">media-filter-toggle</code>) يحصر العرض على البطاقات المحتوية على صور أو ملفات PDF مرفوعة (<code class="inline-code">has-media</code>)، مما كان يؤدي عند النقر عليه إلى إخفاء الجولات التي تحتوي على مخططات هيكلية تفاعلية (Mermaid SVGs) مثل الجولتين 120 و 125!</li>
+<li><strong>الحل:</strong></li>
+</ul>
+<ol class="rich-list">
+<li>تم ترقية منطق الفلترة ليشمل تلقائياً كتل المخططات الهيكلية (<code class="inline-code">.mermaid-block</code>).</li>
+<li>تم تزويد ترويسة كل جولة تحتوي على مخطط هيكلي بشارة تعريفية بارزة:</li>
+</ol>
+<p class="rich-p"><code class="inline-code">&lt;span class=&quot;badge&quot;&gt;📊 يتضمن مخططاً هيكلياً&lt;/span&gt;</code>.</p>
+<ol class="rich-list">
+<li>تم تحديث أزرار القفز السريع في أعلى السجل لتشمل أزراراً مباشرة للمخططين ولأهم الجولات.</li>
+</ol>
+<hr class="rich-hr">
+<div class="mermaid-block">
+            <div class="mermaid-badge">📊 مخطط هيكلي تفاعلي (Interactive Vector Diagram)</div>
+            <div class="mermaid">flowchart TD
+    A[&quot;طلب المعمار: تدقيق موضع المخططين في سجل المحادثات&quot;] --&gt; B[&quot;فحص الجولة 120 والجولة 125&quot;]
+    B --&gt; C[&quot;تشخيص المخطط الأول:&lt;br/&gt;تصحيح أسهم Mermaid إلى صيغة الأنابيب الرسمية&quot;]
+    B --&gt; D[&quot;تشخيص المخطط الثاني:&lt;br/&gt;مطابقة العنوان وتثبيت المخطط في مقدمة التقرير&quot;]
+    B --&gt; E[&quot;ترقية فلتر السجل media-filter-toggle&lt;br/&gt;ليشمل كتل المخططات الهيكلية&quot;]
+    C --&gt; F[&quot;إعادة بناء السجل بنسختيه: HTML + Markdown&quot;]
+    D --&gt; F
+    E --&gt; F
+    F --&gt; G[&quot;مزامنة مجلد البث public/ والنشر الفوري على GitHub Main&quot;]
+    G --&gt; H[&quot;ظهور كافة المخططات (27 مخطط هيكلي + 14 وثيقة معمارية) بنجاح 100%&quot;]</div>
+        </div>
+<hr class="rich-hr">
+<h3 class="rich-h3">📊 إحصائيات السجل المكتمل (v2.9.4):</h3>
+<ul class="rich-list">
+<li><strong>إجمالي الجولات:</strong> 126 جولة حوارية ومحطة تطويرية شاملة وموثقة بنسبة 100%.</li>
+<li><strong>المخططات الهيكلية التفاعلية (Mermaid SVGs):</strong> 27 مخططاً هيكلياً تفاعلياً.</li>
+<li><strong>المخططات والوثائق الأصلية:</strong> 14 وثيقة ومخطط معماري أصلي.</li>
+<li><strong>التوافقية:</strong> متوافقة 100% مع GitHub Markdown وكافة المتصفحات.</li>
+</ul></div>
                 
             </div>
         </div>
