@@ -561,6 +561,27 @@
                                 data-tooltip="إلغاء تحديد العنصر الحالي وإنهاء وضع التعديل.">✖ إلغاء (Esc)</button>
                     </div>
                 </div>
+
+                <!-- Dedicated Action Bar for Space Creation Tools (enclosed-space & polygon-space) -->
+                <div class="tracer-space-panel" id="tracer-space-panel" style="display:none; margin-top:8px; padding:8px 14px; background:rgba(15,23,42,0.96); border:1px solid #10b981; border-radius:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; box-shadow:0 4px 20px rgba(16,185,129,0.25);">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="space-panel-icon" style="font-size:16px;">📐</span>
+                        <span id="space-panel-title" style="color:#10b981; font-weight:bold; font-size:12.5px;">تحديد وتجسيم الفضاء</span>
+                        <span id="space-panel-stats" style="color:#94a3b8; font-size:11.5px; background:rgba(30,41,59,0.8); padding:3px 8px; border-radius:4px; border:1px solid #334155;">عدد الجدران: 0</span>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <button class="tracer-tool-btn" id="btn-space-confirm" style="border-color:#10b981; color:#fff; font-weight:bold; background:rgba(16,185,129,0.3); padding:5px 14px; font-size:12px; cursor:pointer;"
+                                data-tooltip-title="تأكيد وتجسيم الفضاء المعماري (Enter)"
+                                data-tooltip="تأكيد الفضاء المغلق وتوليد أرضيته ثلاثية الأبعاد وحساساته وسعته الاستيعابية فوراً. يمكن الضغط على مفتاح Enter أيضاً.">✅ تأكيد وتجسيم الفضاء (Enter)</button>
+                        <button class="tracer-tool-btn" id="btn-space-undo-vertex" style="border-color:#38bdf8; color:#38bdf8; background:rgba(56,189,248,0.15); padding:5px 10px; font-size:11px; cursor:pointer; display:none;"
+                                data-tooltip-title="تراجع عن آخر رأس في المضلع"
+                                data-tooltip="حذف آخر نقطة تم إضافتها في الفضاء المضلع والرجوع للنقطة السابقة.">↩️ تراجع عن نقطة</button>
+                        <button class="tracer-tool-btn" id="btn-space-cancel" style="border-color:#ef4444; color:#ef4444; background:rgba(239,68,68,0.15); padding:5px 10px; font-size:11px; cursor:pointer;"
+                                data-tooltip-title="إلغاء التحديد الحالي (Esc)"
+                                data-tooltip="إلغاء تحديد الجدران أو نقاط المضلع الحالية والبدء من جديد. يمكن الضغط على مفتاح Esc.">✖️ إلغاء التحديد (Esc)</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Multi-Storey BIM Control Bar (shown only when IFC model has multiple storeys) -->

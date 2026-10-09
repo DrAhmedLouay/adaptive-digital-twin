@@ -1279,6 +1279,8 @@ class PlanManager {
         let stairMoveOriginal = null;
         let selectedBoundaryWallIds = [];
         let enclosedSpacePreviewLine = null;
+        let enclosedSpacePreviewMesh = null;
+        let roomPreviewGroup = null;
         let stairPreviewGroup = null;
         let stairRotationAngle = 0;
         let stairLastTargetPos = null;
@@ -1345,6 +1347,20 @@ class PlanManager {
                 enclosedSpacePreviewLine.geometry.dispose();
                 enclosedSpacePreviewLine.material.dispose();
                 enclosedSpacePreviewLine = null;
+            }
+            if (enclosedSpacePreviewMesh && this.app.viewer?.scene) {
+                this.app.viewer.scene.remove(enclosedSpacePreviewMesh);
+                if (enclosedSpacePreviewMesh.geometry) enclosedSpacePreviewMesh.geometry.dispose();
+                if (enclosedSpacePreviewMesh.material) enclosedSpacePreviewMesh.material.dispose();
+                enclosedSpacePreviewMesh = null;
+            }
+            if (roomPreviewGroup && this.app.viewer?.scene) {
+                this.app.viewer.scene.remove(roomPreviewGroup);
+                roomPreviewGroup.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                });
+                roomPreviewGroup = null;
             }
             if (currentHoveredSpaceId && this.app.viewer) {
                 this.app.viewer.clearSpaceHighlight(currentHoveredSpaceId);
@@ -1421,6 +1437,7 @@ class PlanManager {
                 calibModal.style.display = 'none';
             }
             hideTransformPanel();
+            hideSpacePanel();
         };
 
         const transformPanel = document.getElementById('tracer-transform-panel');
@@ -1476,6 +1493,56 @@ class PlanManager {
             if (transformPanel) transformPanel.style.display = 'none';
             const btnTrim = document.getElementById('btn-transform-trim');
             if (btnTrim) btnTrim.style.display = 'none';
+        };
+
+        const spacePanel = document.getElementById('tracer-space-panel');
+        const spacePanelTitle = document.getElementById('space-panel-title');
+        const spacePanelStats = document.getElementById('space-panel-stats');
+        const spacePanelIcon = document.getElementById('space-panel-icon');
+        const btnSpaceConfirm = document.getElementById('btn-space-confirm');
+        const btnSpaceUndoVertex = document.getElementById('btn-space-undo-vertex');
+        const btnSpaceCancel = document.getElementById('btn-space-cancel');
+
+        const showSpacePanel = (toolType, count = 0, area = 0, isValid = true) => {
+            if (!spacePanel) return;
+            spacePanel.style.display = 'flex';
+            if (toolType === 'enclosed') {
+                if (spacePanelIcon) spacePanelIcon.textContent = '📐';
+                if (spacePanelTitle) spacePanelTitle.textContent = 'تحديد فضاء من 3+ جدران';
+                if (spacePanelStats) {
+                    spacePanelStats.textContent = isValid ? 
+                        `الجدران: ${count} | المساحة: ${area.toFixed(1)}م²` : 
+                        `الجدران المختارة: ${count} (غير مغلق بعد)`;
+                    spacePanelStats.style.borderColor = isValid ? '#10b981' : '#f59e0b';
+                    spacePanelStats.style.color = isValid ? '#10b981' : '#f59e0b';
+                }
+                if (btnSpaceConfirm) {
+                    btnSpaceConfirm.style.display = 'inline-flex';
+                    btnSpaceConfirm.textContent = '✅ تأكيد وتجسيم الفضاء (Enter)';
+                    btnSpaceConfirm.style.opacity = isValid ? '1' : '0.6';
+                    btnSpaceConfirm.disabled = !isValid;
+                }
+                if (btnSpaceUndoVertex) btnSpaceUndoVertex.style.display = 'none';
+            } else if (toolType === 'polygon') {
+                if (spacePanelIcon) spacePanelIcon.textContent = '⬡';
+                if (spacePanelTitle) spacePanelTitle.textContent = 'فضاء مضلع حر';
+                if (spacePanelStats) {
+                    spacePanelStats.textContent = `الرؤوس: ${count} | المساحة: ${area.toFixed(1)}م²`;
+                    spacePanelStats.style.borderColor = '#38bdf8';
+                    spacePanelStats.style.color = '#38bdf8';
+                }
+                if (btnSpaceConfirm) {
+                    btnSpaceConfirm.style.display = 'inline-flex';
+                    btnSpaceConfirm.textContent = '✅ تأكيد وتجسيم المضلع (Enter)';
+                    btnSpaceConfirm.style.opacity = (count >= 3) ? '1' : '0.6';
+                    btnSpaceConfirm.disabled = (count < 3);
+                }
+                if (btnSpaceUndoVertex) btnSpaceUndoVertex.style.display = count > 1 ? 'inline-flex' : 'none';
+            }
+        };
+
+        const hideSpacePanel = () => {
+            if (spacePanel) spacePanel.style.display = 'none';
         };
 
         const changeStairDirection = async (newDir) => {
@@ -1858,6 +1925,64 @@ class PlanManager {
             });
         }
 
+        if (btnSpaceConfirm) {
+            btnSpaceConfirm.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (activeTool === 'enclosed-space') {
+                    const bData = this.app.viewer?.buildingData;
+                    if (selectedBoundaryWallIds.length >= 3 && bData?.walls) {
+                        const polyRes = computePolygonFromSelectedWalls(selectedBoundaryWallIds, bData.walls);
+                        if (polyRes && polyRes.valid) {
+                            await confirmEnclosedSpaceCreation({
+                                wallIds: [...selectedBoundaryWallIds],
+                                vertices: polyRes.vertices,
+                                area: polyRes.area,
+                                centroid: polyRes.centroid,
+                                bounds: polyRes.bounds
+                            });
+                        }
+                    }
+                } else if (activeTool === 'polygon-space') {
+                    if (polygonPoints.length >= 3) {
+                        await finalizePolygonSpace();
+                    }
+                }
+            });
+        }
+
+        if (btnSpaceUndoVertex) {
+            btnSpaceUndoVertex.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (activeTool === 'polygon-space' && polygonPoints.length > 0) {
+                    polygonPoints.pop();
+                    if (polygonPreviewGroup) {
+                        const dots = polygonPreviewGroup.children.filter(c => c instanceof THREE.Mesh);
+                        if (dots.length > 0) {
+                            const lastDot = dots[dots.length - 1];
+                            polygonPreviewGroup.remove(lastDot);
+                            if (lastDot.geometry) lastDot.geometry.dispose();
+                        }
+                    }
+                    if (polygonPoints.length === 0) {
+                        cleanupTempVisuals();
+                        setHint("⬡ تم التراجع عن كافة الرؤوس.");
+                    } else {
+                        const curArea = polygonArea(polygonPoints);
+                        showSpacePanel('polygon', polygonPoints.length, curArea);
+                        setHint(`⬡ تم التراجع عن الرأس الأخير (المتبقي: ${polygonPoints.length} رؤوس).`);
+                    }
+                }
+            });
+        }
+
+        if (btnSpaceCancel) {
+            btnSpaceCancel.addEventListener('click', (e) => {
+                e.stopPropagation();
+                cleanupTempVisuals();
+                setHint("✖️ تم إلغاء تحديد الفضاء الحالي.");
+            });
+        }
+
         window.addEventListener('keydown', async (e) => {
             if (!isTracing) return;
 
@@ -1866,6 +1991,36 @@ class PlanManager {
                     e.preventDefault();
                     cleanupTempVisuals();
                     setHint("↔️🔄 تم إلغاء تحديد العنصر.");
+                    return;
+                }
+                if (selectedBoundaryWallIds.length > 0 || polygonPoints.length > 0 || roomCorner1 || circleSpaceCenter || spaceSeparatorStart) {
+                    e.preventDefault();
+                    cleanupTempVisuals();
+                    setHint("✖️ تم إلغاء الأمر الحالي والبدء من جديد.");
+                    return;
+                }
+            }
+
+            if (e.key === 'Enter' || e.code === 'Enter') {
+                if (activeTool === 'enclosed-space' && selectedBoundaryWallIds.length >= 3) {
+                    e.preventDefault();
+                    const bData = this.app.viewer?.buildingData;
+                    if (bData?.walls) {
+                        const polyRes = computePolygonFromSelectedWalls(selectedBoundaryWallIds, bData.walls);
+                        if (polyRes && polyRes.valid) {
+                            await confirmEnclosedSpaceCreation({
+                                wallIds: [...selectedBoundaryWallIds],
+                                vertices: polyRes.vertices,
+                                area: polyRes.area,
+                                centroid: polyRes.centroid,
+                                bounds: polyRes.bounds
+                            });
+                            return;
+                        }
+                    }
+                } else if (activeTool === 'polygon-space' && polygonPoints.length >= 3) {
+                    e.preventDefault();
+                    await finalizePolygonSpace();
                     return;
                 }
             }
@@ -2878,6 +3033,15 @@ class PlanManager {
         };
 
         // دوال الحسابات الهندسية وكشف الفضاءات المغلقة بـ 3 جدران أو أكثر
+        const distPointToSegment = (px, pz, x1, z1, x2, z2) => {
+            const dx = x2 - x1;
+            const dz = z2 - z1;
+            const lenSq = dx * dx + dz * dz;
+            if (lenSq < 1e-6) return Math.hypot(px - x1, pz - z1);
+            const t = Math.max(0.0, Math.min(1.0, ((px - x1) * dx + (pz - z1) * dz) / lenSq));
+            return Math.hypot(px - (x1 + t * dx), pz - (z1 + t * dz));
+        };
+
         const intersectTwoWallLines = (w1, w2) => {
             if (!w1 || !w2) return [0, 0];
             const x1 = w1.start[0], z1 = w1.start[1];
@@ -2890,10 +3054,15 @@ class PlanManager {
                 const s = ((x3 - x1) * (z4 - z3) - (z3 - z1) * (x4 - x3)) / denom;
                 const px = x1 + s * (x2 - x1);
                 const pz = z1 + s * (z2 - z1);
-                const d1 = Math.min(Math.hypot(px - x1, pz - z1), Math.hypot(px - x2, pz - z2));
-                const d2 = Math.min(Math.hypot(px - x3, pz - z3), Math.hypot(px - x4, pz - z4));
-                if (d1 < 3.5 && d2 < 3.5) {
-                    return [Math.round(px * 10) / 10, Math.round(pz * 10) / 10];
+
+                const d1 = distPointToSegment(px, pz, x1, z1, x2, z2);
+                const d2 = distPointToSegment(px, pz, x3, z3, x4, z4);
+                const dEnd1 = Math.min(Math.hypot(px - x1, pz - z1), Math.hypot(px - x2, pz - z2));
+                const dEnd2 = Math.min(Math.hypot(px - x3, pz - z3), Math.hypot(px - x4, pz - z4));
+
+                // إذا كانت نقطة التقاطع تقع على بعد معقول من قطعتي الجدارين
+                if ((d1 < 2.5 || dEnd1 < 4.5) && (d2 < 2.5 || dEnd2 < 4.5)) {
+                    return [Math.round(px * 100) / 100, Math.round(pz * 100) / 100];
                 }
             }
 
@@ -2908,7 +3077,7 @@ class PlanManager {
                     }
                 }
             }
-            return [Math.round(bestP[0] * 10) / 10, Math.round(bestP[1] * 10) / 10];
+            return [Math.round(bestP[0] * 100) / 100, Math.round(bestP[1] * 100) / 100];
         };
 
         const computePolygonAreaAndCentroid = (vertices) => {
@@ -2965,8 +3134,10 @@ class PlanManager {
             let inside = false;
             const n = polygon.length;
             for (let i = 0, j = n - 1; i < n; j = i++) {
-                const xi = polygon[i][0], zi = polygon[i][1];
-                const xj = polygon[j][0], zj = polygon[j][1];
+                const xi = polygon[i][0] !== undefined ? polygon[i][0] : polygon[i].x;
+                const zi = polygon[i][1] !== undefined ? polygon[i][1] : polygon[i].z;
+                const xj = polygon[j][0] !== undefined ? polygon[j][0] : polygon[j].x;
+                const zj = polygon[j][1] !== undefined ? polygon[j][1] : polygon[j].z;
                 const intersect = ((zi > pz) !== (zj > pz)) &&
                     (px < (xj - xi) * (pz - zi) / (zj - zi + 1e-9) + xi);
                 if (intersect) inside = !inside;
@@ -2997,7 +3168,7 @@ class PlanManager {
         const detectEnclosingWallsFromPoint = (px, pz, walls, targetElev = null) => {
             if (!walls || Object.keys(walls).length < 3) return null;
 
-            // تصفية الجدران بحسب الطابق والارتفاع لتجنب تداخل جدران الطوابق المتعددة في ملفات الـ IFC
+            // تصفية الجدران بحسب الطابق والارتفاع لتجنب تداخل جدران الطوابق المتعددة
             let filteredWalls = walls;
             const actStorey = this.app.viewer?.activeStoreyFilter;
             if (actStorey && actStorey !== 'all') {
@@ -3005,6 +3176,7 @@ class PlanManager {
                 for (const [wId, w] of Object.entries(walls)) {
                     if (w.storey_id === actStorey) filteredWalls[wId] = w;
                 }
+                if (Object.keys(filteredWalls).length < 3) filteredWalls = walls;
             } else if (targetElev !== null && targetElev > 0.5) {
                 filteredWalls = {};
                 for (const [wId, w] of Object.entries(walls)) {
@@ -3044,14 +3216,20 @@ class PlanManager {
                     }
                 }
 
-                if (!bestWallId) {
-                    return null;
+                if (bestWallId) {
+                    rayHits.push({ angle, wallId: bestWallId, dist: bestT });
                 }
-                rayHits.push({ angle, wallId: bestWallId });
             }
 
+            if (rayHits.length < 12) return null;
+
+            // حساب الوسيط لفلترة الأشعة الهاربة عبر الأبواب أو الفتحات إلى خارج الغرفة
+            const sortedDists = [...rayHits].map(h => h.dist).sort((a, b) => a - b);
+            const medianDist = sortedDists[Math.floor(sortedDists.length / 2)];
+            const closeHits = rayHits.filter(h => h.dist <= medianDist * 2.8);
+
             const wallCycle = [];
-            for (const h of rayHits) {
+            for (const h of closeHits) {
                 if (wallCycle.length === 0 || wallCycle[wallCycle.length - 1] !== h.wallId) {
                     wallCycle.push(h.wallId);
                 }
@@ -3080,81 +3258,266 @@ class PlanManager {
 
         const computePolygonFromSelectedWalls = (wallIds, walls) => {
             if (!wallIds || wallIds.length < 3) return null;
-            const segments = [];
-            for (const wid of wallIds) {
-                const w = walls[wid];
-                if (!w || !w.start || !w.end) return null;
-                segments.push({ id: wid, start: [...w.start], end: [...w.end] });
+            const n = wallIds.length;
+
+            // استراتيجية 1: بناء مخطط الاتصال الطوبولوجي بالتقاطعات (Topological Intersection Cycle)
+            const adj = {};
+            for (const wid of wallIds) adj[wid] = [];
+
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    const w1Id = wallIds[i], w2Id = wallIds[j];
+                    const w1 = walls[w1Id], w2 = walls[w2Id];
+                    if (!w1 || !w2) continue;
+                    const pt = intersectTwoWallLines(w1, w2);
+                    const d1 = distPointToSegment(pt[0], pt[1], w1.start[0], w1.start[1], w1.end[0], w1.end[1]);
+                    const d2 = distPointToSegment(pt[0], pt[1], w2.start[0], w2.start[1], w2.end[0], w2.end[1]);
+                    if (d1 < 3.2 && d2 < 3.2) {
+                        adj[w1Id].push({ id: w2Id, pt, dist: d1 + d2 });
+                        adj[w2Id].push({ id: w1Id, pt, dist: d1 + d2 });
+                    }
+                }
             }
 
-            // محاولة 1: الترتيب المتسلسل بالنهايات المتقاربة (Greedy Chain)
-            const orderedSegments = [segments[0]];
-            const used = new Set([0]);
-            let currentPt = segments[0].end;
-
-            for (let step = 1; step < segments.length; step++) {
-                let bestIdx = -1;
-                let bestDist = Infinity;
-                let flip = false;
-
-                for (let i = 0; i < segments.length; i++) {
-                    if (used.has(i)) continue;
-                    const dStart = Math.hypot(segments[i].start[0] - currentPt[0], segments[i].start[1] - currentPt[1]);
-                    const dEnd = Math.hypot(segments[i].end[0] - currentPt[0], segments[i].end[1] - currentPt[1]);
-
-                    if (dStart < bestDist) {
-                        bestDist = dStart;
-                        bestIdx = i;
-                        flip = false;
-                    }
-                    if (dEnd < bestDist) {
-                        bestDist = dEnd;
-                        bestIdx = i;
-                        flip = true;
-                    }
-                }
-
-                if (bestIdx !== -1 && bestDist <= 6.5) {
-                    used.add(bestIdx);
-                    const seg = segments[bestIdx];
-                    if (flip) {
-                        orderedSegments.push({ id: seg.id, start: seg.end, end: seg.start });
-                        currentPt = seg.start;
-                    } else {
-                        orderedSegments.push({ id: seg.id, start: seg.start, end: seg.end });
-                        currentPt = seg.end;
-                    }
-                } else {
-                    break;
-                }
+            const visited = [wallIds[0]];
+            let curr = wallIds[0];
+            for (let step = 0; step < n - 1; step++) {
+                const candidates = (adj[curr] || []).filter(c => !visited.includes(c.id));
+                if (candidates.length === 0) break;
+                candidates.sort((a, b) => a.dist - b.dist);
+                const nextWall = candidates[0].id;
+                visited.push(nextWall);
+                curr = nextWall;
             }
 
             let cycleIds = null;
-            if (orderedSegments.length === segments.length) {
-                const dClose = Math.hypot(currentPt[0] - orderedSegments[0].start[0], currentPt[1] - orderedSegments[0].start[1]);
-                if (dClose <= 7.0) {
+            if (visited.length === n) {
+                const lastToFirst = (adj[visited[n - 1]] || []).some(c => c.id === visited[0]);
+                if (lastToFirst || n <= 4) {
+                    cycleIds = visited;
+                }
+            }
+
+            // استراتيجية 2: الترتيب المتسلسل بالنهايات المتقاربة (Greedy Chain)
+            if (!cycleIds) {
+                const segments = wallIds.map(wid => {
+                    const w = walls[wid];
+                    return { id: wid, start: [...w.start], end: [...w.end] };
+                });
+                const orderedSegments = [segments[0]];
+                const used = new Set([0]);
+                let currentPt = segments[0].end;
+
+                for (let step = 1; step < segments.length; step++) {
+                    let bestIdx = -1;
+                    let bestDist = Infinity;
+                    let flip = false;
+
+                    for (let i = 0; i < segments.length; i++) {
+                        if (used.has(i)) continue;
+                        const dStart = Math.hypot(segments[i].start[0] - currentPt[0], segments[i].start[1] - currentPt[1]);
+                        const dEnd = Math.hypot(segments[i].end[0] - currentPt[0], segments[i].end[1] - currentPt[1]);
+
+                        if (dStart < bestDist) {
+                            bestDist = dStart;
+                            bestIdx = i;
+                            flip = false;
+                        }
+                        if (dEnd < bestDist) {
+                            bestDist = dEnd;
+                            bestIdx = i;
+                            flip = true;
+                        }
+                    }
+
+                    if (bestIdx !== -1 && bestDist <= 8.5) {
+                        used.add(bestIdx);
+                        const seg = segments[bestIdx];
+                        if (flip) {
+                            orderedSegments.push({ id: seg.id, start: seg.end, end: seg.start });
+                            currentPt = seg.start;
+                        } else {
+                            orderedSegments.push({ id: seg.id, start: seg.start, end: seg.end });
+                            currentPt = seg.end;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                if (orderedSegments.length === segments.length) {
                     cycleIds = orderedSegments.map(s => s.id);
                 }
             }
 
-            // محاولة 2 ذكية مخصصة لملفات IFC: الترتيب الزاوي الدائري حول المركز المعماري (Angular Ordering)
+            // استراتيجية 3 الاحتياطية: الترتيب الزاوي الدائري حول المركز المعماري (Angular Ordering)
             if (!cycleIds) {
-                const centers = segments.map(s => [ (s.start[0] + s.end[0]) / 2, (s.start[1] + s.end[1]) / 2 ]);
-                const avgX = centers.reduce((sum, c) => sum + c[0], 0) / centers.length;
-                const avgZ = centers.reduce((sum, c) => sum + c[1], 0) / centers.length;
+                const centers = wallIds.map(wid => {
+                    const w = walls[wid];
+                    return { id: wid, cx: (w.start[0] + w.end[0]) / 2, cz: (w.start[1] + w.end[1]) / 2 };
+                });
+                const avgX = centers.reduce((sum, c) => sum + c.cx, 0) / centers.length;
+                const avgZ = centers.reduce((sum, c) => sum + c.cz, 0) / centers.length;
 
-                const sorted = [...segments].sort((a, b) => {
-                    const caX = (a.start[0] + a.end[0]) / 2;
-                    const caZ = (a.start[1] + a.end[1]) / 2;
-                    const cbX = (b.start[0] + b.end[0]) / 2;
-                    const cbZ = (b.start[1] + b.end[1]) / 2;
-                    return Math.atan2(caZ - avgZ, caX - avgX) - Math.atan2(cbZ - avgZ, cbX - avgX);
+                const sorted = [...centers].sort((a, b) => {
+                    return Math.atan2(a.cz - avgZ, a.cx - avgX) - Math.atan2(b.cz - avgZ, b.cx - avgX);
                 });
                 cycleIds = sorted.map(s => s.id);
             }
 
             const polyRes = computePolygonFromWallCycle(cycleIds, walls);
             return polyRes;
+        };
+
+        const updateEnclosedSpacePreview = () => {
+            const bData = this.app.viewer?.buildingData;
+            if (!bData || !bData.walls) return;
+
+            if (selectedBoundaryWallIds.length >= 3) {
+                const polyRes = computePolygonFromSelectedWalls(selectedBoundaryWallIds, bData.walls);
+                if (polyRes && polyRes.valid && polyRes.vertices.length >= 3) {
+                    const vertices = polyRes.vertices;
+                    const centroid = polyRes.centroid;
+
+                    // 1. توليد أو تحديث بلاطة الأرضية الشفافة المضيئة (Translucent Floor Preview)
+                    const shape = new THREE.Shape();
+                    shape.moveTo(vertices[0][0] - centroid[0], -(vertices[0][1] - centroid[1]));
+                    for (let i = 1; i < vertices.length; i++) {
+                        shape.lineTo(vertices[i][0] - centroid[0], -(vertices[i][1] - centroid[1]));
+                    }
+                    shape.closePath();
+
+                    const geo = new THREE.ShapeGeometry(shape);
+                    geo.rotateX(-Math.PI / 2);
+
+                    if (!enclosedSpacePreviewMesh) {
+                        const mat = new THREE.MeshBasicMaterial({
+                            color: 0x10b981,
+                            transparent: true,
+                            opacity: 0.45,
+                            side: THREE.DoubleSide,
+                            depthWrite: false
+                        });
+                        enclosedSpacePreviewMesh = new THREE.Mesh(geo, mat);
+                        this.app.viewer.scene.add(enclosedSpacePreviewMesh);
+                    } else {
+                        enclosedSpacePreviewMesh.geometry.dispose();
+                        enclosedSpacePreviewMesh.geometry = geo;
+                    }
+                    enclosedSpacePreviewMesh.position.set(centroid[0], 0.28, centroid[1]);
+                    enclosedSpacePreviewMesh.visible = true;
+
+                    // 2. تحديث الإطار المحيطي المتوهج (Neon Border Outline)
+                    const linePts = [...vertices, vertices[0]].map(p => new THREE.Vector3(p[0], 0.32, p[1]));
+                    if (!enclosedSpacePreviewLine) {
+                        const lGeo = new THREE.BufferGeometry().setFromPoints(linePts);
+                        const lMat = new THREE.LineBasicMaterial({ color: 0x34d399, linewidth: 3 });
+                        enclosedSpacePreviewLine = new THREE.Line(lGeo, lMat);
+                        this.app.viewer.scene.add(enclosedSpacePreviewLine);
+                    } else {
+                        enclosedSpacePreviewLine.geometry.dispose();
+                        enclosedSpacePreviewLine.geometry = new THREE.BufferGeometry().setFromPoints(linePts);
+                        enclosedSpacePreviewLine.visible = true;
+                    }
+
+                    showSpacePanel('enclosed', selectedBoundaryWallIds.length, polyRes.area, true);
+                    setHint(`🎉 الجدران المحددة تشكل فضاءً مغلقاً بمساحة ${polyRes.area.toFixed(1)}م²! انقر داخل الفضاء، أو اضغط Enter، أو انقر زر التأكيد لتجسيمه.`);
+                    return;
+                } else {
+                    if (enclosedSpacePreviewMesh) enclosedSpacePreviewMesh.visible = false;
+                    if (enclosedSpacePreviewLine) enclosedSpacePreviewLine.visible = false;
+                    showSpacePanel('enclosed', selectedBoundaryWallIds.length, 0, false);
+                    setHint(`📐 تم تحديد ${selectedBoundaryWallIds.length} جدران (حلقة غير محكمة بعد). اختر جداراً إضافياً لإكمال الإغلاق.`);
+                    return;
+                }
+            } else if (selectedBoundaryWallIds.length > 0) {
+                if (enclosedSpacePreviewMesh) enclosedSpacePreviewMesh.visible = false;
+                if (enclosedSpacePreviewLine) enclosedSpacePreviewLine.visible = false;
+                showSpacePanel('enclosed', selectedBoundaryWallIds.length, 0, false);
+                setHint(`📐 تم تحديد ${selectedBoundaryWallIds.length} جدار... انقر على الجدار التالي لإكمال حلقة الفضاء (3 جدران على الأقل).`);
+            } else {
+                if (enclosedSpacePreviewMesh) enclosedSpacePreviewMesh.visible = false;
+                if (enclosedSpacePreviewLine) enclosedSpacePreviewLine.visible = false;
+                hideSpacePanel();
+            }
+        };
+
+        const confirmEnclosedSpaceCreation = async (detectedSpace, clickPt = null) => {
+            if (!detectedSpace || !detectedSpace.wallIds || detectedSpace.wallIds.length < 3) {
+                setHint("⚠️ يجب اختيار 3 جدران محيطة على الأقل لتشكيل الفضاء.");
+                return;
+            }
+            const bData = this.app.viewer?.buildingData;
+            if (!bData) return;
+
+            const numWalls = detectedSpace.wallIds.length;
+            const areaM2 = detectedSpace.area.toFixed(1);
+            const shapeName = numWalls === 3 ? "مثلثي" : (numWalls === 4 ? "رباعي" : `مضلع ذو ${numWalls} أضلاع`);
+
+            const roomPrompt = `تم تحديد فضاء معماري ${shapeName} محاط بـ ${numWalls} جدران!\n` +
+                `• المساحة المحسوبة: ${areaM2} م²\n` +
+                `• السعة التقديرية: ${Math.max(2, Math.round(detectedSpace.area / 3.5))} شخص\n\n` +
+                `أدخل اسماً لهذا الفضاء:`;
+
+            const defaultName = `فضاء ${shapeName} (${areaM2}م²)`;
+            const roomName = prompt(roomPrompt, defaultName);
+
+            if (!roomName) {
+                setHint("ℹ️ تم إلغاء إنشاء الفضاء.");
+                return;
+            }
+
+            const firstWall = bData.walls[detectedSpace.wallIds[0]];
+            const wallElev = firstWall?.base_elevation || firstWall?.elevation || (clickPt?.y !== undefined ? Math.round(clickPt.y * 10) / 10 : 0);
+            const wallStorey = firstWall?.storey_id || this.app.viewer?.activeStoreyFilter || 'st_g';
+
+            const spaceId = `space_${Date.now()}`;
+            const spaceObj = {
+                id: spaceId,
+                name_ar: roomName,
+                name_en: "Enclosed Space",
+                type: "flexible",
+                capacity: Math.max(2, Math.round(detectedSpace.area / 3.5)),
+                area_m2: Math.round(detectedSpace.area * 10) / 10,
+                centroid: detectedSpace.centroid,
+                polygon: detectedSpace.vertices,
+                bounds: detectedSpace.bounds,
+                base_elevation: wallElev,
+                storey_id: wallStorey,
+                enclosing_wall_ids: detectedSpace.wallIds,
+                color: "#2ecc71"
+            };
+
+            if (!bData.spaces) bData.spaces = {};
+            bData.spaces[spaceId] = spaceObj;
+
+            cleanupTempVisuals();
+
+            // تحديث المنظور ثلاثي الأبعاد واللوحة الحركية
+            this.app.viewer.loadBuildingModel(bData);
+            this.populateSpacesEditor();
+
+            historyStack.push({
+                type: 'create-enclosed-space',
+                spaceId: spaceId,
+                space: spaceObj
+            });
+
+            setHint(`✓ تم تحديد وتجسيم فضاء (${roomName}) بمساحة ${areaM2}م² وتوليد أرضيته ثلاثية الأبعاد وحساساته بنجاح!`);
+
+            try {
+                await fetch('/api/model/add_element', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'space', element: spaceObj })
+                });
+                if (window.app?.analytics) {
+                    await window.app.analytics.fetchAndUpdateSensorsInventory();
+                    await window.app.analytics.fetchAndUpdateIoTTelemetry();
+                }
+            } catch(err) {
+                console.error("Failed to sync enclosed space:", err);
+            }
         };
 
         const pointInPolygon = (x, z, poly) => {
@@ -3324,7 +3687,25 @@ class PlanManager {
             }
             const bData = this.app.viewer?.buildingData;
             if (!bData) return;
-            const area = polygonArea(polygonPoints);
+
+            // تنظيف وإزالة النقاط المكررة المتتالية الناتجة عن النقر المزدوج السريع
+            const cleanedPts = [];
+            for (let i = 0; i < polygonPoints.length; i++) {
+                const pt = polygonPoints[i];
+                if (cleanedPts.length === 0 || Math.hypot(pt[0] - cleanedPts[cleanedPts.length - 1][0], pt[1] - cleanedPts[cleanedPts.length - 1][1]) > 0.15) {
+                    cleanedPts.push(pt);
+                }
+            }
+            if (cleanedPts.length > 3 && Math.hypot(cleanedPts[cleanedPts.length - 1][0] - cleanedPts[0][0], cleanedPts[cleanedPts.length - 1][1] - cleanedPts[0][1]) < 0.2) {
+                cleanedPts.pop();
+            }
+
+            if (cleanedPts.length < 3) {
+                setHint("⚠️ يلزم تحديد 3 رؤوس مستقلة على الأقل لتشكيل فضاء مضلع.");
+                return;
+            }
+
+            const area = polygonArea(cleanedPts);
             if (area < 0.5) {
                 setHint("⚠️ مساحة الفضاء المضلع صغيرة جداً.");
                 return;
@@ -3333,13 +3714,12 @@ class PlanManager {
             const roomName = prompt(`أدخل اسم الفضاء المضلع الحر (${area.toFixed(1)}م²):`, defaultName);
             if (!roomName) return;
 
-            const pts = [...polygonPoints];
             cleanupTempVisuals();
 
-            const targetElev = (pts[0].y !== undefined && pts[0].y > 0.5) ? Math.round(pts[0].y * 10) / 10 : 0;
+            const targetElev = (cleanedPts[0].y !== undefined && cleanedPts[0].y > 0.5) ? Math.round(cleanedPts[0].y * 10) / 10 : 0;
             const targetStorey = this.app.viewer?.activeStoreyFilter || 'st_g';
 
-            const spaceObj = await createSpaceFromPolygon(pts, targetElev, targetStorey, roomName, "#10b981");
+            const spaceObj = await createSpaceFromPolygon(cleanedPts, targetElev, targetStorey, roomName, "#10b981");
             if (spaceObj) {
                 historyStack.push({
                     type: 'create-polygon-space',
@@ -4520,6 +4900,7 @@ class PlanManager {
                 }
 
                 if (activeTool === 'enclosed-space') {
+                    const pt = getPointOnBlueprint(e.clientX, e.clientY);
                     const hoveredWallId = findWallUnderCursor(e.clientX, e.clientY);
                     if (hoveredWallId) {
                         if (canvas) canvas.style.cursor = 'pointer';
@@ -4527,12 +4908,21 @@ class PlanManager {
                         const selMsg = isAlreadySel ? " ⚠️ [محدد، انقر لإلغائه]" : " ➕ [انقر لإضافته للجدران المحيطة]";
                         setHint(`📐 جدار محيط (${hoveredWallId})${selMsg} — عدد الجدران المختارة: ${selectedBoundaryWallIds.length}`);
                     } else {
-                        if (canvas) canvas.style.cursor = 'crosshair';
                         if (selectedBoundaryWallIds.length >= 3) {
-                            setHint(`📐 تم تحديد ${selectedBoundaryWallIds.length} جدران! انقر بالداخل لتأكيد إنشاء وتجسيم الفضاء.`);
+                            const polyRes = computePolygonFromSelectedWalls(selectedBoundaryWallIds, this.app.viewer.buildingData?.walls);
+                            const isInside = polyRes && polyRes.valid && pt && isPointInPolygon(pt.x, pt.z, polyRes.vertices);
+                            if (isInside) {
+                                if (canvas) canvas.style.cursor = 'pointer';
+                                setHint(`🎯 انقر هنا داخل الفضاء لتأكيد تجسيم (${polyRes.area.toFixed(1)}م²)، أو اضغط Enter!`);
+                            } else {
+                                if (canvas) canvas.style.cursor = 'crosshair';
+                                setHint(`📐 تم تحديد ${selectedBoundaryWallIds.length} جدران (${polyRes ? polyRes.area.toFixed(1) + 'م²' : ''}) — انقر بالداخل أو اضغط Enter لتأكيد وتجسيم الفضاء.`);
+                            }
                         } else if (selectedBoundaryWallIds.length > 0) {
+                            if (canvas) canvas.style.cursor = 'crosshair';
                             setHint(`📐 تم تحديد ${selectedBoundaryWallIds.length} جدار... انقر على الجدار التالي لإكمال الإغلاق (3 جدران على الأقل).`);
                         } else {
+                            if (canvas) canvas.style.cursor = 'crosshair';
                             setHint("📐 انقر داخل مساحة محاطة بـ 3 جدران أو أكثر لكشفها وتجسيمها تلقائياً، أو انقر فوق الجدران المحيطة تباعاً.");
                         }
                     }
@@ -4593,30 +4983,81 @@ class PlanManager {
                         }
                     }
                 } else if (activeTool === 'room' && roomCorner1) {
-                    const rw = Math.abs(pt.x - roomCorner1[0]);
-                    const rd = Math.abs(pt.z - roomCorner1[1]);
-                    const area = (rw * rd).toFixed(0);
-                    setHint(`📐 أبعاد الفضاء فوق الـ PDF: ${rw.toFixed(1)}م × ${rd.toFixed(1)}م (المساحة: ${area}م²) — انقر لتأكيد الغرفة.`);
+                    const x1 = roomCorner1[0], z1 = roomCorner1[1];
+                    const x2 = pt.x, z2 = pt.z;
+                    const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+                    const minZ = Math.min(z1, z2), maxZ = Math.max(z1, z2);
+                    const rw = maxX - minX;
+                    const rd = maxZ - minZ;
+                    const area = (rw * rd).toFixed(1);
+
+                    if (!roomPreviewGroup) {
+                        roomPreviewGroup = new THREE.Group();
+                        const planeGeo = new THREE.PlaneGeometry(1, 1);
+                        planeGeo.rotateX(-Math.PI / 2);
+                        const planeMat = new THREE.MeshBasicMaterial({
+                            color: 0x00d2ff,
+                            transparent: true,
+                            opacity: 0.35,
+                            side: THREE.DoubleSide,
+                            depthWrite: false
+                        });
+                        const floorMesh = new THREE.Mesh(planeGeo, planeMat);
+                        floorMesh.name = 'room_preview_floor';
+                        roomPreviewGroup.add(floorMesh);
+
+                        const lineGeo = new THREE.BufferGeometry();
+                        const lineMat = new THREE.LineDashedMaterial({
+                            color: 0x00d2ff,
+                            dashSize: 0.5,
+                            gapSize: 0.25,
+                            linewidth: 2
+                        });
+                        const outline = new THREE.Line(lineGeo, lineMat);
+                        outline.name = 'room_preview_line';
+                        roomPreviewGroup.add(outline);
+
+                        this.app.viewer.scene.add(roomPreviewGroup);
+                    }
+
+                    const floorMesh = roomPreviewGroup.getObjectByName('room_preview_floor');
+                    if (floorMesh) {
+                        floorMesh.scale.set(Math.max(0.1, rw), 1, Math.max(0.1, rd));
+                        floorMesh.position.set(minX + rw / 2, 0.25, minZ + rd / 2);
+                    }
+
+                    const outline = roomPreviewGroup.getObjectByName('room_preview_line');
+                    if (outline) {
+                        const pts = [
+                            new THREE.Vector3(minX, 0.28, minZ),
+                            new THREE.Vector3(maxX, 0.28, minZ),
+                            new THREE.Vector3(maxX, 0.28, maxZ),
+                            new THREE.Vector3(minX, 0.28, maxZ),
+                            new THREE.Vector3(minX, 0.28, minZ)
+                        ];
+                        outline.geometry.dispose();
+                        outline.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+                        outline.computeLineDistances();
+                    }
+                    roomPreviewGroup.visible = true;
+                    setHint(`🏷️ أبعاد الفضاء: ${rw.toFixed(1)}م × ${rd.toFixed(1)}م (المساحة: ${area}م²) — انقر الزاوية المقابلة لتأكيد وتجسيم الفضاء.`);
                 } else if (activeTool === 'polygon-space' && polygonPoints.length > 0) {
                     const snapRes = snapPointToWalls(pt.x, pt.z, this.app.viewer.buildingData?.walls);
-                    const curX = snapRes.snapped ? snapRes.point[0] : pt.x;
-                    const curZ = snapRes.snapped ? snapRes.point[1] : pt.z;
+                    const curX = snapRes.snapped ? snapRes.point[0] : Math.round(pt.x * 10) / 10;
+                    const curZ = snapRes.snapped ? snapRes.point[1] : Math.round(pt.z * 10) / 10;
 
                     if (!polygonPreviewGroup) {
                         polygonPreviewGroup = new THREE.Group();
                         this.app.viewer.scene.add(polygonPreviewGroup);
                     }
 
-                    let prevLine = polygonPreviewGroup.getObjectByName('poly_rubberband');
-                    const allPts = [...polygonPoints, [curX, curZ]];
+                    const distToStart = Math.hypot(curX - polygonPoints[0][0], curZ - polygonPoints[0][1]);
+                    const closing = polygonPoints.length >= 3 && distToStart < 1.5;
+
+                    const allPts = [...polygonPoints, closing ? [polygonPoints[0][0], polygonPoints[0][1]] : [curX, curZ]];
                     const pts3d = allPts.map(p => new THREE.Vector3(p[0], 0.25, p[1]));
 
-                    const distToStart = Math.hypot(curX - polygonPoints[0][0], curZ - polygonPoints[0][1]);
-                    const closing = polygonPoints.length >= 3 && distToStart < 1.2;
-                    if (closing) {
-                        pts3d.push(new THREE.Vector3(polygonPoints[0][0], 0.25, polygonPoints[0][1]));
-                    }
-
+                    let prevLine = polygonPreviewGroup.getObjectByName('poly_rubberband');
                     if (!prevLine) {
                         const geo = new THREE.BufferGeometry().setFromPoints(pts3d);
                         const mat = new THREE.LineBasicMaterial({ color: closing ? 0x10b981 : 0x38bdf8, linewidth: 3 });
@@ -4629,9 +5070,61 @@ class PlanManager {
                         prevLine.material.color.setHex(closing ? 0x10b981 : 0x38bdf8);
                     }
 
+                    // معاينة الأرضية الشفافة المباشرة أثناء تحريك الفأرة
+                    if (allPts.length >= 3) {
+                        const polyCx = allPts.reduce((s, p) => s + p[0], 0) / allPts.length;
+                        const polyCz = allPts.reduce((s, p) => s + p[1], 0) / allPts.length;
+                        const sh = new THREE.Shape();
+                        sh.moveTo(allPts[0][0] - polyCx, -(allPts[0][1] - polyCz));
+                        for (let k = 1; k < allPts.length; k++) {
+                            sh.lineTo(allPts[k][0] - polyCx, -(allPts[k][1] - polyCz));
+                        }
+                        sh.closePath();
+                        const pGeo = new THREE.ShapeGeometry(sh);
+                        pGeo.rotateX(-Math.PI / 2);
+
+                        let floorPrev = polygonPreviewGroup.getObjectByName('poly_floor_preview');
+                        if (!floorPrev) {
+                            const pMat = new THREE.MeshBasicMaterial({
+                                color: closing ? 0x10b981 : 0x38bdf8,
+                                transparent: true,
+                                opacity: 0.35,
+                                side: THREE.DoubleSide,
+                                depthWrite: false
+                            });
+                            floorPrev = new THREE.Mesh(pGeo, pMat);
+                            floorPrev.name = 'poly_floor_preview';
+                            polygonPreviewGroup.add(floorPrev);
+                        } else {
+                            floorPrev.geometry.dispose();
+                            floorPrev.geometry = pGeo;
+                            floorPrev.material.color.setHex(closing ? 0x10b981 : 0x38bdf8);
+                        }
+                        floorPrev.position.set(polyCx, 0.22, polyCz);
+                        floorPrev.visible = true;
+                    }
+
+                    // حلقة الالتصاق بنقطة البداية Snap Ring
+                    let snapRing = polygonPreviewGroup.getObjectByName('poly_snap_ring');
+                    if (closing) {
+                        if (!snapRing) {
+                            const rGeo = new THREE.RingGeometry(0.35, 0.55, 24);
+                            rGeo.rotateX(-Math.PI / 2);
+                            const rMat = new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide });
+                            snapRing = new THREE.Mesh(rGeo, rMat);
+                            snapRing.name = 'poly_snap_ring';
+                            polygonPreviewGroup.add(snapRing);
+                        }
+                        snapRing.position.set(polygonPoints[0][0], 0.3, polygonPoints[0][1]);
+                        snapRing.visible = true;
+                    } else if (snapRing) {
+                        snapRing.visible = false;
+                    }
+
                     const tempArea = polygonArea(allPts);
+                    showSpacePanel('polygon', allPts.length, tempArea);
                     const closeMsg = closing ? " 🎯 [انقر هنا لإغلاق وتجسيم الفضاء!]" : "";
-                    setHint(`⬡ مضلع فضاء: ${allPts.length} رؤوس (المساحة: ${tempArea.toFixed(1)}م²)${closeMsg} — انقر لإضافة رأس، أو انقر مزدوجاً/Enter لإنهاء التجسيم.`);
+                    setHint(`⬡ مضلع فضاء: ${allPts.length} رؤوس (المساحة: ${tempArea.toFixed(1)}م²)${closeMsg} — انقر لإضافة رأس، أو انقر نقراً مزدوجاً/Enter لإنهاء التجسيم.`);
                 } else if (activeTool === 'space-separator' && spaceSeparatorStart) {
                     const x1 = spaceSeparatorStart[0], z1 = spaceSeparatorStart[1];
                     const x2 = pt.x, z2 = pt.z;
@@ -4665,17 +5158,39 @@ class PlanManager {
                     const area = Math.PI * R * R;
 
                     if (!circleSpacePreviewMesh) {
+                        const grp = new THREE.Group();
+                        const discGeo = new THREE.CircleGeometry(Math.max(0.1, R), 32);
+                        discGeo.rotateX(-Math.PI / 2);
+                        const discMat = new THREE.MeshBasicMaterial({ color: 0xf39c12, transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false });
+                        const disc = new THREE.Mesh(discGeo, discMat);
+                        disc.name = 'circle_disc';
+                        grp.add(disc);
+
                         const ringGeo = new THREE.RingGeometry(Math.max(0.1, R - 0.08), R + 0.08, 32);
                         ringGeo.rotateX(-Math.PI / 2);
-                        const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
-                        circleSpacePreviewMesh = new THREE.Mesh(ringGeo, ringMat);
+                        const ringMat = new THREE.MeshBasicMaterial({ color: 0xf39c12, side: THREE.DoubleSide });
+                        const ring = new THREE.Mesh(ringGeo, ringMat);
+                        ring.name = 'circle_ring';
+                        grp.add(ring);
+
+                        circleSpacePreviewMesh = grp;
                         circleSpacePreviewMesh.position.set(cx, 0.25, cz);
                         this.app.viewer.scene.add(circleSpacePreviewMesh);
                     } else {
-                        circleSpacePreviewMesh.geometry.dispose();
-                        const ringGeo = new THREE.RingGeometry(Math.max(0.1, R - 0.08), R + 0.08, 32);
-                        ringGeo.rotateX(-Math.PI / 2);
-                        circleSpacePreviewMesh.geometry = ringGeo;
+                        const disc = circleSpacePreviewMesh.getObjectByName('circle_disc');
+                        if (disc) {
+                            disc.geometry.dispose();
+                            const discGeo = new THREE.CircleGeometry(Math.max(0.1, R), 32);
+                            discGeo.rotateX(-Math.PI / 2);
+                            disc.geometry = discGeo;
+                        }
+                        const ring = circleSpacePreviewMesh.getObjectByName('circle_ring');
+                        if (ring) {
+                            ring.geometry.dispose();
+                            const ringGeo = new THREE.RingGeometry(Math.max(0.1, R - 0.08), R + 0.08, 32);
+                            ringGeo.rotateX(-Math.PI / 2);
+                            ring.geometry = ringGeo;
+                        }
                     }
                     setHint(`🔘 فضاء دائري/شعاعي: نصف القطر ${R.toFixed(1)}م (المساحة: ${area.toFixed(1)}م²) — انقر لتثبيت وتجسيم الفضاء.`);
                 } else if (activeTool === 'calibrate-scale' && scaleCalibP1) {
@@ -5287,9 +5802,25 @@ class PlanManager {
                 }
 
                 if (activeTool === 'enclosed-space') {
-                    const hoveredWallId = findWallUnderCursor(clientX, clientY);
+                    const pt = getPointOnBlueprint(clientX, clientY);
 
-                    // 1. إذا نقر المستخدم فوق جدار: إضافة / إزالة الجدار من حلقة التحديد اليدوي
+                    // 1. أولوية تأكيد الإنشاء بالنقر داخل الفضاء إذا كانت الجدران محددة مسبقاً
+                    if (selectedBoundaryWallIds.length >= 3 && pt) {
+                        const polyRes = computePolygonFromSelectedWalls(selectedBoundaryWallIds, bData.walls);
+                        if (polyRes && polyRes.valid && isPointInPolygon(pt.x, pt.z, polyRes.vertices)) {
+                            await confirmEnclosedSpaceCreation({
+                                wallIds: [...selectedBoundaryWallIds],
+                                vertices: polyRes.vertices,
+                                area: polyRes.area,
+                                centroid: polyRes.centroid,
+                                bounds: polyRes.bounds
+                            }, pt);
+                            return;
+                        }
+                    }
+
+                    // 2. إذا نقر المستخدم فوق جدار: إضافة / إزالة الجدار من حلقة التحديد
+                    const hoveredWallId = findWallUnderCursor(clientX, clientY);
                     if (hoveredWallId && bData.walls[hoveredWallId]) {
                         const existingIdx = selectedBoundaryWallIds.indexOf(hoveredWallId);
                         if (existingIdx !== -1) {
@@ -5301,125 +5832,21 @@ class PlanManager {
                             this.app.viewer.highlightWall(hoveredWallId, 0x2ecc71);
                             setHint(`📐 تم اختيار الجدار (${hoveredWallId}) [إجمالي: ${selectedBoundaryWallIds.length}].`);
                         }
-
-                        if (selectedBoundaryWallIds.length >= 3) {
-                            const polyRes = computePolygonFromSelectedWalls(selectedBoundaryWallIds, bData.walls);
-                            if (polyRes && polyRes.valid) {
-                                setHint(`🎉 الجدران المحددة (${selectedBoundaryWallIds.length}) تشكل فضاءً مغلقاً بمساحة ${polyRes.area.toFixed(1)}م²! انقر في الفراغ لتأكيد وتجسيم الفضاء.`);
-                            }
-                        }
+                        updateEnclosedSpacePreview();
                         return;
                     }
 
-                    // 2. إذا نقر المستخدم في الفراغ داخل المخطط:
-                    const pt = getPointOnBlueprint(clientX, clientY);
+                    // 3. إذا نقر المستخدم في الفراغ دون تحديد مسبق: الكشف التلقائي الذكي بالنقر داخل الفضاء
                     if (!pt) return;
-
-                    let detectedSpace = null;
-
-                    // أ. إذا كان المستخدم قد حدد 3 جدران أو أكثر يدوياً:
-                    if (selectedBoundaryWallIds.length >= 3) {
-                        const manualRes = computePolygonFromSelectedWalls(selectedBoundaryWallIds, bData.walls);
-                        if (manualRes && manualRes.valid) {
-                            detectedSpace = {
-                                wallIds: [...selectedBoundaryWallIds],
-                                vertices: manualRes.vertices,
-                                area: manualRes.area,
-                                centroid: manualRes.centroid,
-                                bounds: manualRes.bounds
-                            };
-                        } else {
-                            setHint("⚠️ الجدران المحددة لا تشكل حلقة مغلقة محكمة (يوجد فراغ بين النهايات). يرجى اختيار جدار مكمل أو النقر داخل فضاء مغلق للكشف الآلي.");
-                            return;
-                        }
+                    setHint("⏳ جاري تحليل أشعة الرصد وكشف الجدران المحيطة بالفضاء...");
+                    const detectedSpace = detectEnclosingWallsFromPoint(pt.x, pt.z, bData.walls, pt.y);
+                    if (detectedSpace) {
+                        selectedBoundaryWallIds = [...detectedSpace.wallIds];
+                        selectedBoundaryWallIds.forEach(wId => this.app.viewer.highlightWall(wId, 0x2ecc71));
+                        updateEnclosedSpacePreview();
+                        await confirmEnclosedSpaceCreation(detectedSpace, pt);
                     } else {
-                        // ب. الكشف التلقائي الذكي بالنقر داخل الفضاء المغلق (Auto-Detection via 360° Raycasting)
-                        setHint("⏳ جاري تحليل أشعة الرصد وكشف الجدران المحيطة بالفضاء...");
-                        detectedSpace = detectEnclosingWallsFromPoint(pt.x, pt.z, bData.walls, pt.y);
-                    }
-
-                    if (!detectedSpace) {
-                        setHint("⚠️ لم يتم العثور على فضاء مغلق بالكامل بـ 3 جدران أو أكثر في هذا الموضع. تأكد من إحكام زوايا الجدران المحيطة.");
-                        return;
-                    }
-
-                    // تم العثور على فضاء مغلق بنجاح!
-                    const numWalls = detectedSpace.wallIds.length;
-                    const areaM2 = detectedSpace.area.toFixed(1);
-                    const shapeName = numWalls === 3 ? "مثلثي" : (numWalls === 4 ? "رباعي" : `مضلع ذو ${numWalls} أضلاع`);
-
-                    // إضاءة الجدران المحيطة
-                    detectedSpace.wallIds.forEach(wId => {
-                        this.app.viewer.highlightWall(wId, 0x2ecc71);
-                    });
-
-                    // طلب اسم الفضاء وتأكيد الإنشاء
-                    const roomPrompt = `تم اكتشاف فضاء معماري ${shapeName} محاط بـ ${numWalls} جدران!\n` +
-                        `• المساحة المحسوبة: ${areaM2} م²\n` +
-                        `• السعة التقديرية: ${Math.max(2, Math.round(detectedSpace.area / 3.5))} شخص\n\n` +
-                        `أدخل اسماً لهذا الفضاء:`;
-
-                    const defaultName = `فضاء ${shapeName} (${areaM2}م²)`;
-                    const roomName = prompt(roomPrompt, defaultName);
-
-                    // تنظيف تمييز الجدران
-                    detectedSpace.wallIds.forEach(wId => {
-                        this.app.viewer.clearWallHighlight(wId);
-                    });
-                    cleanupTempVisuals();
-
-                    if (!roomName) {
-                        setHint("ℹ️ تم إلغاء إنشاء الفضاء.");
-                        return;
-                    }
-
-                    const firstWall = bData.walls[detectedSpace.wallIds[0]];
-                    const wallElev = firstWall?.base_elevation || firstWall?.elevation || (pt.y !== undefined ? Math.round(pt.y * 10) / 10 : 0);
-                    const wallStorey = firstWall?.storey_id || this.app.viewer?.activeStoreyFilter || 'st_g';
-
-                    const spaceId = `space_${Date.now()}`;
-                    const spaceObj = {
-                        id: spaceId,
-                        name_ar: roomName,
-                        name_en: "Enclosed Space",
-                        type: "flexible",
-                        capacity: Math.max(2, Math.round(detectedSpace.area / 3.5)),
-                        area_m2: Math.round(detectedSpace.area * 10) / 10,
-                        centroid: detectedSpace.centroid,
-                        polygon: detectedSpace.vertices,
-                        bounds: detectedSpace.bounds,
-                        base_elevation: wallElev,
-                        storey_id: wallStorey,
-                        enclosing_wall_ids: detectedSpace.wallIds,
-                        color: "#2ecc71"
-                    };
-
-                    bData.spaces[spaceId] = spaceObj;
-
-                    // تحديث المنظور ثلاثي الأبعاد واللوحة الحركية
-                    this.app.viewer.loadBuildingModel(bData);
-                    this.populateSpacesEditor();
-
-                    historyStack.push({
-                        type: 'create-enclosed-space',
-                        spaceId: spaceId,
-                        space: spaceObj
-                    });
-
-                    setHint(`✓ تم تحديد وتجسيم فضاء (${roomName}) بمساحة ${areaM2}م² وتوليد أرضيته ثلاثية الأبعاد وحساساته بنجاح!`);
-
-                    try {
-                        await fetch('/api/model/add_element', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ type: 'space', element: spaceObj })
-                        });
-                        if (window.app?.analytics) {
-                            await window.app.analytics.fetchAndUpdateSensorsInventory();
-                            await window.app.analytics.fetchAndUpdateIoTTelemetry();
-                        }
-                    } catch(err) {
-                        console.error("Failed to sync enclosed space:", err);
+                        setHint("⚠️ لم يتم العثور على فضاء مغلق بالكامل في هذا الموضع. انقر فوق 3 جدران محيطة أو أكثر لتحديده يدوياً.");
                     }
                     return;
                 }
@@ -5660,18 +6087,43 @@ class PlanManager {
 
                         bData.spaces[spaceId] = spaceObj;
 
-                        // توليد الجدران المحيطية الأربعة وباب الغرفة
+                        // توليد الجدران المحيطية (فقط إذا لم تكن موجودة مسبقاً في النموذج)
+                        const wallExistsNear = (sX, sZ, eX, eZ) => {
+                            for (const w of Object.values(bData.walls || {})) {
+                                if (!w.start || !w.end) continue;
+                                const dS1 = Math.hypot(w.start[0] - sX, w.start[1] - sZ);
+                                const dE1 = Math.hypot(w.end[0] - eX, w.end[1] - eZ);
+                                const dS2 = Math.hypot(w.start[0] - eX, w.start[1] - eZ);
+                                const dE2 = Math.hypot(w.end[0] - sX, w.end[1] - sZ);
+                                if ((dS1 < 0.8 && dE1 < 0.8) || (dS2 < 0.8 && dE2 < 0.8)) return true;
+                            }
+                            return false;
+                        };
+
+                        const createdWalls = [];
                         const w1 = `w_${spaceId}_n`, w2 = `w_${spaceId}_s`, w3 = `w_${spaceId}_w`, w4 = `w_${spaceId}_e`;
-                        bData.walls[w1] = { id: w1, start: [rx, rz], end: [rx + rw, rz], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "exterior" };
-                        bData.walls[w2] = { id: w2, start: [rx, rz + rd], end: [rx + rw, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
-                        bData.walls[w3] = { id: w3, start: [rx, rz], end: [rx, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
-                        bData.walls[w4] = { id: w4, start: [rx + rw, rz], end: [rx + rw, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
+                        if (!wallExistsNear(rx, rz, rx + rw, rz)) {
+                            bData.walls[w1] = { id: w1, start: [rx, rz], end: [rx + rw, rz], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "exterior" };
+                            createdWalls.push(w1);
+                        }
+                        if (!wallExistsNear(rx, rz + rd, rx + rw, rz + rd)) {
+                            bData.walls[w2] = { id: w2, start: [rx, rz + rd], end: [rx + rw, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
+                            createdWalls.push(w2);
+                        }
+                        if (!wallExistsNear(rx, rz, rx, rz + rd)) {
+                            bData.walls[w3] = { id: w3, start: [rx, rz], end: [rx, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
+                            createdWalls.push(w3);
+                        }
+                        if (!wallExistsNear(rx + rw, rz, rx + rw, rz + rd)) {
+                            bData.walls[w4] = { id: w4, start: [rx + rw, rz], end: [rx + rw, rz + rd], thickness: 0.25, height: 2.8, base_elevation: targetElev, storey_id: targetStorey, type: "interior" };
+                            createdWalls.push(w4);
+                        }
 
                         const d1 = `door_${spaceId}`;
                         bData.openings[d1] = {
                             id: d1,
                             type: "door",
-                            wall_id: w2,
+                            wall_id: createdWalls[0] || w2,
                             position: [rx + rw / 2, rz + rd],
                             width: 1.2,
                             height: 2.2
@@ -5681,13 +6133,13 @@ class PlanManager {
                             type: 'room',
                             id: spaceId,
                             name: roomName,
-                            walls: [w1, w2, w3, w4],
+                            walls: createdWalls,
                             doorId: d1
                         });
 
                         this.app.viewer.loadBuildingModel(bData);
                         this.populateSpacesEditor();
-                        setHint(`✓ تم تحديد وتجسيم فضاء (${roomName}) بمساحة ${Math.round(rw * rd)}م² وتوليد جدرانه وبابه وحساساته!`);
+                        setHint(`✓ تم تحديد وتجسيم فضاء (${roomName}) بمساحة ${Math.round(rw * rd)}م² وتوليد أرضيته وحساساته!`);
 
                         try {
                             await fetch('/api/model/add_element', {
@@ -5873,7 +6325,7 @@ class PlanManager {
                     if (polygonPoints.length >= 3) {
                         const startPt = polygonPoints[0];
                         const distToStart = Math.hypot(usePt[0] - startPt[0], usePt[1] - startPt[1]);
-                        if (distToStart < 1.0) {
+                        if (distToStart < 1.5) {
                             await finalizePolygonSpace();
                             return;
                         }
@@ -5893,11 +6345,13 @@ class PlanManager {
                     dotMesh.position.set(usePt[0], targetElev + 0.25, usePt[1]);
                     polygonPreviewGroup.add(dotMesh);
 
+                    const curArea = polygonArea(polygonPoints);
+                    showSpacePanel('polygon', polygonPoints.length, curArea);
+
                     if (polygonPoints.length === 1) {
                         setHint("⬡ تم تسجيل الرأس الأول؛ انقر لتحديد الرأس التالي لمضلع الفضاء...");
                     } else {
-                        const curArea = polygonArea(polygonPoints);
-                        setHint(`⬡ تم تسجيل الرأس ${polygonPoints.length} (المساحة: ${curArea.toFixed(1)}م²). انقر الرأس التالي، أو انقر قرب البداية/انقر نقراً مزدوجاً لإنهاء وتجسيم الفضاء.`);
+                        setHint(`⬡ تم تسجيل الرأس ${polygonPoints.length} (المساحة: ${curArea.toFixed(1)}م²). انقر الرأس التالي، أو انقر قرب البداية أو اضغط Enter لإنهاء وتجسيم الفضاء.`);
                     }
                     return;
                 } else if (activeTool === 'space-separator') {
@@ -5918,7 +6372,7 @@ class PlanManager {
                         cleanupTempVisuals();
 
                         const sepLen = Math.hypot(pB[0] - pA[0], pB[1] - pA[1]);
-                        if (sepLen < 0.8) {
+                        if (sepLen < 0.6) {
                             setHint("⚠️ طول خط التقسيم قصير جداً.");
                             return;
                         }
@@ -5961,7 +6415,13 @@ class PlanManager {
                             ];
                         }
 
-                        const splitResult = splitPolygonByLine(poly, pA, pB);
+                        // تمديد خط التقسيم بمقدار 1.5م على الطرفين لضمان قطع أضلاع الفضاء بالكامل
+                        const dx = pB[0] - pA[0], dz = pB[1] - pA[1];
+                        const ux = dx / sepLen, uz = dz / sepLen;
+                        const extA = [pA[0] - ux * 1.5, pA[1] - uz * 1.5];
+                        const extB = [pB[0] + ux * 1.5, pB[1] + uz * 1.5];
+
+                        const splitResult = splitPolygonByLine(poly, extA, extB);
                         if (!splitResult) {
                             setHint("⚠️ يتعذر تقسيم الفضاء: يجب أن يقطع خط التقسيم حافتين من حواف الفضاء بالكامل.");
                             return;
@@ -6017,8 +6477,8 @@ class PlanManager {
                         cleanupTempVisuals();
 
                         const radius = Math.hypot(clickX - cx, clickZ - cz);
-                        if (radius < 1.0) {
-                            setHint("⚠️ نصف قطر الفضاء الدائري صغير جداً (يجب ألا يقل عن 1م).");
+                        if (radius < 0.5) {
+                            setHint("⚠️ نصف قطر الفضاء الدائري صغير جداً (يجب ألا يقل عن 0.5م).");
                             return;
                         }
 
@@ -6026,7 +6486,7 @@ class PlanManager {
                         const roomName = prompt(`أدخل اسم الفضاء الدائري الشعاعي (نصف القطر: ${radius.toFixed(1)}م، المساحة: ${area.toFixed(1)}م²):`, "بهو دائري مركزي (Atrium)");
                         if (!roomName) return;
 
-                        const numSegments = 24;
+                        const numSegments = 32;
                         const circlePts = [];
                         for (let i = 0; i < numSegments; i++) {
                             const angle = (2 * Math.PI * i) / numSegments;

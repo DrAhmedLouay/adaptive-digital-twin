@@ -1512,6 +1512,36 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
   box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
 }
 
+/* شريط التحكم التفاعلي بتعيين وتجسيم الفضاءات (Space Action Bar) */
+.tracer-space-panel {
+  display: flex;
+  margin-top: 8px;
+  padding: 8px 14px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
+}
+
+#btn-space-confirm:hover {
+  background: rgba(16, 185, 129, 0.5) !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+#btn-space-cancel:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+#btn-space-undo-vertex:hover {
+  background: rgba(56, 189, 248, 0.3) !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
 /* ==========================================================
    أداة عارض وتفكيك عناصر IFC المعمارية (IFC BIM Viewer & Inspector)
    ========================================================== */
