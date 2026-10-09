@@ -64,97 +64,93 @@
         </div>
 
         <div class="header-status">
-            <!-- 1. مجموعة المشاريع ونماذج BIM -->
-            <div class="header-menu-group" data-group="project">
-                <span class="menu-group-label">🏗️ المشاريع و BIM</span>
-                <button class="btn-plan-manager header-btn-primary" id="btn-new-project"
-                        data-tooltip-title="بدء مشروع معماري جديد"
-                        data-tooltip="تفريغ المشهد بالكامل والبدء من لوحة بيضاء نظيفة خالية من العناصر لبناء أو استيراد تصميم معماري جديد من الصفر في منتصف الشبكة المحورية.">
-                    <span>✨</span>
-                    <span>مشروع جديد</span>
-                </button>
-                <button class="btn-plan-manager" id="btn-open-plan-manager"
-                        data-tooltip-title="إدارة واستيراد المخططات المعمارية"
-                        data-tooltip="فتح نافذة لاختيار دراسات الحالة الجاهزة (إدارية، صحية، خدمية) أو رفع مخططات BIM بصيغة IFC (Revit / ArchiCAD)، أو مخططات PDF معمارية، أو AutoCAD DXF.">
-                    <span>📐</span>
-                    <span>المخططات</span>
-                </button>
-                <button class="btn-plan-manager" id="btn-open-ifc-viewer"
-                        data-tooltip-title="أداة عارض وتفكيك عناصر IFC (BIM Inspector)"
-                        data-tooltip="أداة متقدمة لفحص نموذج BIM: إظهار وإخفاء الطبقات (جدران، أسقف، بلاطات، أعمدة، جسور، أبواب، شبابيك)، تنظيف السطوح الدخيلة تلقائياً، عزل الطوابق، وفحص خصائص وأبعاد أي عنصر عند النقر عليه في المشهد ثلاثي الأبعاد.">
-                    <span>🏢</span>
-                    <span>عارض IFC</span>
+            <!-- 1. مشاريع ونماذج BIM -->
+            <button class="btn-plan-manager header-btn-primary" id="btn-new-project"
+                    data-tooltip-title="بدء مشروع معماري جديد"
+                    data-tooltip="تفريغ المشهد بالكامل والبدء من لوحة بيضاء نظيفة خالية من العناصر لبناء أو استيراد تصميم معماري جديد من الصفر في منتصف الشبكة المحورية.">
+                <span>✨</span>
+                <span>مشروع جديد</span>
+            </button>
+            <button class="btn-plan-manager" id="btn-open-plan-manager"
+                    data-tooltip-title="إدارة واستيراد المخططات المعمارية"
+                    data-tooltip="فتح نافذة لاختيار دراسات الحالة الجاهزة (إدارية، صحية، خدمية) أو رفع مخططات BIM بصيغة IFC (Revit / ArchiCAD)، أو مخططات PDF معمارية، أو AutoCAD DXF.">
+                <span>📐</span>
+                <span>المخططات</span>
+            </button>
+            <button class="btn-plan-manager" id="btn-open-ifc-viewer"
+                    data-tooltip-title="أداة عارض وتفكيك عناصر IFC (BIM Inspector)"
+                    data-tooltip="أداة متقدمة لفحص نموذج BIM: إظهار وإخفاء الطبقات (جدران، أسقف، بلاطات، أعمدة، جسور، أبواب، شبابيك)، تنظيف السطوح الدخيلة تلقائياً، عزل الطوابق، وفحص خصائص وأبعاد أي عنصر عند النقر عليه في المشهد ثلاثي الأبعاد.">
+                <span>🏢</span>
+                <span>عارض IFC</span>
+            </button>
+
+            <!-- فاصل تنظيمي -->
+            <div class="header-separator"></div>
+
+            <!-- 2. التحليل والمحاكاة -->
+            <button class="btn-plan-manager" id="btn-open-iot-modal"
+                    data-tooltip-title="شبكة مستشعرات الـ IoT والتحليل المكاني"
+                    data-tooltip="عرض لوحة مراقبة شبكة الحساسات اللحظية (PIR، عدادات الأبواب، جودة الهواء CO2) ومصفوفة التدفق التبادلي بين الفضاءات.">
+                <span>📡</span>
+                <span>مستشعرات IoT</span>
+            </button>
+            <button class="btn-plan-manager" id="btn-open-reconfig-modal"
+                    data-tooltip-title="محرك إعادة التشكيل والتوزيع الوظيفي"
+                    data-tooltip="اختبار خوارزميات التكيف المعماري وإعادة توزيع الفضاءات والمقارنة الإحصائية الدقيقة بين الوضع الراهن والمقترح.">
+                <span>🔄</span>
+                <span>إعادة التشكيل</span>
+            </button>
+            <button class="btn-plan-manager" id="btn-header-partitions"
+                    style="border-color:#38bdf8; background:rgba(56,189,248,0.2); color:#38bdf8; font-weight:bold;"
+                    data-tooltip-title="🚪 التحكم بالقواطع المنزلقة التكيفية"
+                    data-tooltip="فتح لوحة التحكم بالقواطع المنزلقة، وتوجيه الكاميرا للقاطع، والتبديل الفوري بين فتح وانزلاق القواطع وإغلاقها.">
+                <span>🚪</span>
+                <span>القواطع المنزلقة</span>
+            </button>
+            <button class="btn-plan-manager" id="btn-header-scale-calibration"
+                    data-tooltip-title="معايرة وتعديل مقياس مسقط الـ PDF (Scale Calibration)"
+                    data-tooltip="فتح لوحة وأدوات ضبط ومعايرة مقياس مساقط الـ PDF والمخططات الحقيقية بنقطتين معلومتين أو بنسبة مئوية لتطابق أبعاد الجدران 1:1.">
+                <span>📏</span>
+                <span>معايرة المسقط</span>
+            </button>
+
+            <!-- فاصل تنظيمي -->
+            <div class="header-separator"></div>
+
+            <!-- 3. التوثيق والحساب -->
+            <a href="CONVERSATION_HISTORY.html" target="_blank" class="btn-plan-manager" id="header-link-conversation-history"
+               data-tooltip-title="سجل المحادثات وتوثيق التطوير"
+               data-tooltip="فتح سجل المحادثات الكامل بجميع أسئلتك وأوامرك وإجابات المساعد والخطوات الهندسية منذ بداية المشروع في صفحة تفاعلية قابلة للقراءة والطباعة والحفظ كـ PDF.">
+                <span>📜</span>
+                <span>سجل المحادثات</span>
+            </a>
+
+            <!-- Active User Profile Badge & Logout -->
+            <div class="header-user-badge" id="header-user-badge"
+                 data-tooltip-title="حساب المستخدم النشط وصلاحيات النظام"
+                 data-tooltip="عرض اسم الحساب النشط وصلاحياته، مع إمكانية التبديل وتسجيل الخروج.">
+                <span id="user-badge-icon" style="font-size:14px;">👑</span>
+                <div class="user-badge-info">
+                    <span class="user-badge-name" id="user-badge-name">د. أحمد لؤي</span>
+                    <span class="user-badge-role" id="user-badge-role">مدير النظام</span>
+                </div>
+                <button class="btn-header-logout" id="btn-header-logout" title="تسجيل الخروج أو تبديل الحساب">
+                    <span>خروج</span>
+                    <span>⏻</span>
                 </button>
             </div>
 
-            <!-- 2. مجموعة التحليل والذكاء المعماري -->
-            <div class="header-menu-group" data-group="intelligence">
-                <span class="menu-group-label">🧠 التحليل والمحاكاة</span>
-                <button class="btn-plan-manager" id="btn-open-iot-modal"
-                        data-tooltip-title="شبكة مستشعرات الـ IoT والتحليل المكاني"
-                        data-tooltip="عرض لوحة مراقبة شبكة الحساسات اللحظية (PIR، عدادات الأبواب، جودة الهواء CO2) ومصفوفة التدفق التبادلي بين الفضاءات.">
-                    <span>📡</span>
-                    <span>مستشعرات IoT</span>
-                </button>
-                <button class="btn-plan-manager" id="btn-open-reconfig-modal"
-                        data-tooltip-title="محرك إعادة التشكيل والتوزيع الوظيفي"
-                        data-tooltip="اختبار خوارزميات التكيف المعماري وإعادة توزيع الفضاءات والمقارنة الإحصائية الدقيقة بين الوضع الراهن والمقترح.">
-                    <span>🔄</span>
-                    <span>إعادة التشكيل</span>
-                </button>
-                <button class="btn-plan-manager" id="btn-header-partitions"
-                        style="border-color:#38bdf8; background:rgba(56,189,248,0.2); color:#38bdf8; font-weight:bold;"
-                        data-tooltip-title="🚪 التحكم بالقواطع المنزلقة التكيفية"
-                        data-tooltip="فتح لوحة التحكم بالقواطع المنزلقة، وتوجيه الكاميرا للقاطع، والتبديل الفوري بين فتح وانزلاق القواطع وإغلاقها.">
-                    <span>🚪</span>
-                    <span>القواطع المنزلقة</span>
-                </button>
-                <button class="btn-plan-manager" id="btn-header-scale-calibration"
-                        data-tooltip-title="معايرة وتعديل مقياس مسقط الـ PDF (Scale Calibration)"
-                        data-tooltip="فتح لوحة وأدوات ضبط ومعايرة مقياس مساقط الـ PDF والمخططات الحقيقية بنقطتين معلومتين أو بنسبة مئوية لتطابق أبعاد الجدران 1:1.">
-                    <span>📏</span>
-                    <span>معايرة المسقط</span>
-                </button>
+            <!-- 4. مؤشرات الحالة المجاورة لـ "مدير النظام" و "سجل المحادثات" في استمرارية شريط الأزرار -->
+            <div class="status-pill" id="header-status-building"
+                 data-tooltip-title="المبنى المعماري النشط"
+                 data-tooltip="المبنى المعروض حالياً في بيئة التوأم الرقمي ثلاثي الأبعاد وتجري عليه محاكاة الإشغال الحركي.">
+                <span id="active-building-name" style="color:var(--accent-cyan); font-weight:600;">المبنى الإداري النموذجي</span>
             </div>
-
-            <!-- 3. مجموعة التوثيق والإدارة -->
-            <div class="header-menu-group" data-group="system">
-                <span class="menu-group-label">📑 التوثيق والحساب</span>
-                <a href="CONVERSATION_HISTORY.html" target="_blank" class="btn-plan-manager" id="header-link-conversation-history"
-                   data-tooltip-title="سجل المحادثات وتوثيق التطوير"
-                   data-tooltip="فتح سجل المحادثات الكامل بجميع أسئلتك وأوامرك وإجابات المساعد والخطوات الهندسية منذ بداية المشروع في صفحة تفاعلية قابلة للقراءة والطباعة والحفظ كـ PDF.">
-                    <span>📜</span>
-                    <span>سجل المحادثات</span>
-                </a>
-                <!-- Active User Profile Badge & Logout -->
-                <div class="header-user-badge" id="header-user-badge"
-                     data-tooltip-title="حساب المستخدم النشط وصلاحيات النظام"
-                     data-tooltip="عرض اسم الحساب النشط وصلاحياته، مع إمكانية التبديل وتسجيل الخروج.">
-                    <span id="user-badge-icon" style="font-size:14px;">👑</span>
-                    <div class="user-badge-info">
-                        <span class="user-badge-name" id="user-badge-name">د. أحمد لؤي</span>
-                        <span class="user-badge-role" id="user-badge-role">مدير النظام</span>
-                    </div>
-                    <button class="btn-header-logout" id="btn-header-logout" title="تسجيل الخروج أو تبديل الحساب">
-                        <span>خروج</span>
-                        <span>⏻</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 4. مؤشرات الحالة الحية -->
-            <div class="header-status-indicators">
-                <div class="status-pill"
-                     data-tooltip-title="المبنى المعماري النشط"
-                     data-tooltip="المبنى المعروض حالياً في بيئة التوأم الرقمي ثلاثي الأبعاد وتجري عليه محاكاة الإشغال الحركي.">
-                    <span id="active-building-name" style="color:var(--accent-cyan); font-weight:600;">المبنى النموذجي</span>
-                </div>
-                <div class="status-pill live-iot-pill"
-                     data-tooltip-title="بث بيانات الحساسات اللحظية"
-                     data-tooltip="حالة الاتصال بدفق حساسات IoT الافتراضية؛ تقوم بتوليد قياسات حركة وإشغال الأفراد كل 1.5 ثانية.">
-                    <span class="pulse-dot"></span>
-                    <span>IoT لحظي</span>
-                </div>
+            <div class="status-pill live-iot-pill" id="header-status-iot"
+                 data-tooltip-title="بث بيانات الحساسات اللحظية"
+                 data-tooltip="حالة الاتصال بدفق حساسات IoT الافتراضية؛ تقوم بتوليد قياسات حركة وإشغال الأفراد كل 1.5 ثانية.">
+                <span class="pulse-dot"></span>
+                <span>IoT لحظي</span>
             </div>
         </div>
     </header>
