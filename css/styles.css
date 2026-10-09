@@ -38,71 +38,77 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 10px;
   z-index: 100;
   backdrop-filter: blur(10px);
-  gap: 8px;
+  gap: 6px;
   flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+header::-webkit-scrollbar {
+  display: none;
 }
 
 .logo-area {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .logo-badge {
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 14px;
   color: #fff;
-  box-shadow: 0 0 12px rgba(0, 210, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
   flex-shrink: 0;
 }
 
 .logo-title h1 {
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 700;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   white-space: nowrap;
 }
 
 .logo-title span {
-  font-size: 10px;
-  color: var(--text-muted);
-  max-width: 250px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
+  display: none;
 }
 
-@media (max-width: 1600px) {
+@media (min-width: 1750px) {
   .logo-title span {
-    display: none;
+    font-size: 10px;
+    color: var(--text-muted);
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
   }
 }
 
 .header-status {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   flex-wrap: nowrap;
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 
 .header-separator {
   width: 1px;
-  height: 20px;
+  height: 18px;
   background: rgba(148, 163, 184, 0.22);
-  margin: 0 2px;
+  margin: 0 1px;
   flex-shrink: 0;
 }
 
@@ -144,10 +150,10 @@ header {
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(42, 59, 84, 0.45);
   height: 29px;
-  padding: 0 10px;
+  padding: 0 7px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
@@ -995,7 +1001,7 @@ input:checked + .slider:before {
   border: 1px solid rgba(56, 189, 248, 0.45);
   color: var(--accent-cyan);
   height: 29px;
-  padding: 0 8px;
+  padding: 0 6px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
@@ -1003,11 +1009,12 @@ input:checked + .slider:before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   transition: all 0.2s ease;
   white-space: nowrap;
   text-decoration: none;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .btn-plan-manager:hover {
@@ -1941,15 +1948,16 @@ button[data-tooltip], .switch[data-tooltip], .preset-card[data-tooltip], a[data-
 .header-user-badge {
   display: none;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
+  gap: 4px;
+  padding: 2px 6px;
   height: 29px;
-  border-radius: 7px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   font-size: 0.72rem;
   backdrop-filter: blur(8px);
   transition: all 0.2s ease;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .user-badge-info {
